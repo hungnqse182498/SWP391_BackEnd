@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "dgSpecHash": "aieEt5R8q9s=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\DAL\\DAL.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\ADMIN\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\8.0.22\\microsoft.windowsdesktop.app.ref.8.0.22.nupkg.sha512",
+    "C:\\Users\\ADMIN\\.nuget\\packages\\microsoft.netcore.app.ref\\8.0.22\\microsoft.netcore.app.ref.8.0.22.nupkg.sha512",
+    "C:\\Users\\ADMIN\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\8.0.22\\microsoft.aspnetcore.app.ref.8.0.22.nupkg.sha512"
+  ],
+  "logs": []
+}
