@@ -1,12 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "VBVGJs6ClGc=",
+  "dgSpecHash": "rEz0Xb8CYb4=",
   "success": true,
-  "projectFilePath": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\BLL\\BLL.csproj",
-  "expectedPackageFiles": [
-    "C:\\Users\\ADMIN\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\8.0.22\\microsoft.windowsdesktop.app.ref.8.0.22.nupkg.sha512",
-    "C:\\Users\\ADMIN\\.nuget\\packages\\microsoft.netcore.app.ref\\8.0.22\\microsoft.netcore.app.ref.8.0.22.nupkg.sha512",
-    "C:\\Users\\ADMIN\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\8.0.22\\microsoft.aspnetcore.app.ref.8.0.22.nupkg.sha512"
-  ],
+  "projectFilePath": "D:\\FPT\\Ki_8\\SWP\\ParkingBuildingManagement-Group6\\BackEnd\\BLL\\BLL.csproj",
+  "expectedPackageFiles": [],
   "logs": []
 }
