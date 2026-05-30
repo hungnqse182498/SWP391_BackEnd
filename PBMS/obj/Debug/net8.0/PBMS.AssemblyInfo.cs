@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PBMS")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b84a2753c4720021fc8b267ccc4ed8617f7a3741")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e29a3ba93176ba7fd7764505bbffe86a527cc052")]
 [assembly: System.Reflection.AssemblyProductAttribute("PBMS")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PBMS")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -3,8 +3,88 @@
   "WorkspaceRootPath": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{00DD9082-7DC7-49BB-8DD7-7338B19B8538}|DAL\\DAL.csproj|c:\\users\\admin\\onedrive\\documents\\fpt\\ky8\\swp391\\parkingbuildingmanagementsystem\\backend\\dal\\implements\\userrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{00DD9082-7DC7-49BB-8DD7-7338B19B8538}|DAL\\DAL.csproj|solutionrelative:dal\\implements\\userrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{00DD9082-7DC7-49BB-8DD7-7338B19B8538}|DAL\\DAL.csproj|c:\\users\\admin\\onedrive\\documents\\fpt\\ky8\\swp391\\parkingbuildingmanagementsystem\\backend\\dal\\implements\\tokenrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{00DD9082-7DC7-49BB-8DD7-7338B19B8538}|DAL\\DAL.csproj|solutionrelative:dal\\implements\\tokenrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{00DD9082-7DC7-49BB-8DD7-7338B19B8538}|DAL\\DAL.csproj|c:\\users\\admin\\onedrive\\documents\\fpt\\ky8\\swp391\\parkingbuildingmanagementsystem\\backend\\dal\\interfaces\\igenericrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{00DD9082-7DC7-49BB-8DD7-7338B19B8538}|DAL\\DAL.csproj|solutionrelative:dal\\interfaces\\igenericrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{00DD9082-7DC7-49BB-8DD7-7338B19B8538}|DAL\\DAL.csproj|c:\\users\\admin\\onedrive\\documents\\fpt\\ky8\\swp391\\parkingbuildingmanagementsystem\\backend\\dal\\unitofworks\\unitofwork.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{00DD9082-7DC7-49BB-8DD7-7338B19B8538}|DAL\\DAL.csproj|solutionrelative:dal\\unitofworks\\unitofwork.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{00DD9082-7DC7-49BB-8DD7-7338B19B8538}|DAL\\DAL.csproj|c:\\users\\admin\\onedrive\\documents\\fpt\\ky8\\swp391\\parkingbuildingmanagementsystem\\backend\\dal\\unitofworks\\iunitofwork.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{00DD9082-7DC7-49BB-8DD7-7338B19B8538}|DAL\\DAL.csproj|solutionrelative:dal\\unitofworks\\iunitofwork.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{00DD9082-7DC7-49BB-8DD7-7338B19B8538}|DAL\\DAL.csproj|c:\\users\\admin\\onedrive\\documents\\fpt\\ky8\\swp391\\parkingbuildingmanagementsystem\\backend\\dal\\implements\\genericrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{00DD9082-7DC7-49BB-8DD7-7338B19B8538}|DAL\\DAL.csproj|solutionrelative:dal\\implements\\genericrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{00DD9082-7DC7-49BB-8DD7-7338B19B8538}|DAL\\DAL.csproj|c:\\users\\admin\\onedrive\\documents\\fpt\\ky8\\swp391\\parkingbuildingmanagementsystem\\backend\\dal\\interfaces\\iuserrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{00DD9082-7DC7-49BB-8DD7-7338B19B8538}|DAL\\DAL.csproj|solutionrelative:dal\\interfaces\\iuserrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{9C35A6DE-EF4E-461A-BB07-FFD2FD965FDE}|BLL\\BLL.csproj|c:\\users\\admin\\onedrive\\documents\\fpt\\ky8\\swp391\\parkingbuildingmanagementsystem\\backend\\bll\\implements\\jwtprovider.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{9C35A6DE-EF4E-461A-BB07-FFD2FD965FDE}|BLL\\BLL.csproj|solutionrelative:bll\\implements\\jwtprovider.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{9C35A6DE-EF4E-461A-BB07-FFD2FD965FDE}|BLL\\BLL.csproj|c:\\users\\admin\\onedrive\\documents\\fpt\\ky8\\swp391\\parkingbuildingmanagementsystem\\backend\\bll\\implements\\authservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{9C35A6DE-EF4E-461A-BB07-FFD2FD965FDE}|BLL\\BLL.csproj|solutionrelative:bll\\implements\\authservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{20A88167-94BC-4097-AB13-8974BD74D0B9}|PBMS\\PBMS.csproj|c:\\users\\admin\\onedrive\\documents\\fpt\\ky8\\swp391\\parkingbuildingmanagementsystem\\backend\\pbms\\controllers\\authcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{20A88167-94BC-4097-AB13-8974BD74D0B9}|PBMS\\PBMS.csproj|solutionrelative:pbms\\controllers\\authcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{20A88167-94BC-4097-AB13-8974BD74D0B9}|PBMS\\PBMS.csproj|c:\\users\\admin\\onedrive\\documents\\fpt\\ky8\\swp391\\parkingbuildingmanagementsystem\\backend\\pbms\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{20A88167-94BC-4097-AB13-8974BD74D0B9}|PBMS\\PBMS.csproj|solutionrelative:pbms\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B9E88732-A1AC-417C-BC48-3C4A9768A32D}|Common\\Common.csproj|c:\\users\\admin\\onedrive\\documents\\fpt\\ky8\\swp391\\parkingbuildingmanagementsystem\\backend\\common\\dtos\\responsedto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B9E88732-A1AC-417C-BC48-3C4A9768A32D}|Common\\Common.csproj|solutionrelative:common\\dtos\\responsedto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B9E88732-A1AC-417C-BC48-3C4A9768A32D}|Common\\Common.csproj|c:\\users\\admin\\onedrive\\documents\\fpt\\ky8\\swp391\\parkingbuildingmanagementsystem\\backend\\common\\dtos\\authdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B9E88732-A1AC-417C-BC48-3C4A9768A32D}|Common\\Common.csproj|solutionrelative:common\\dtos\\authdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{9C35A6DE-EF4E-461A-BB07-FFD2FD965FDE}|BLL\\BLL.csproj|c:\\users\\admin\\onedrive\\documents\\fpt\\ky8\\swp391\\parkingbuildingmanagementsystem\\backend\\bll\\bll.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
       "RelativeMoniker": "D:0:0:{9C35A6DE-EF4E-461A-BB07-FFD2FD965FDE}|BLL\\BLL.csproj|solutionrelative:bll\\bll.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{9C35A6DE-EF4E-461A-BB07-FFD2FD965FDE}|BLL\\BLL.csproj|c:\\users\\admin\\onedrive\\documents\\fpt\\ky8\\swp391\\parkingbuildingmanagementsystem\\backend\\bll\\interfaces\\iauthservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{9C35A6DE-EF4E-461A-BB07-FFD2FD965FDE}|BLL\\BLL.csproj|solutionrelative:bll\\interfaces\\iauthservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{20A88167-94BC-4097-AB13-8974BD74D0B9}|PBMS\\PBMS.csproj|c:\\users\\admin\\onedrive\\documents\\fpt\\ky8\\swp391\\parkingbuildingmanagementsystem\\backend\\pbms\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{20A88167-94BC-4097-AB13-8974BD74D0B9}|PBMS\\PBMS.csproj|solutionrelative:pbms\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B9E88732-A1AC-417C-BC48-3C4A9768A32D}|Common\\Common.csproj|c:\\users\\admin\\onedrive\\documents\\fpt\\ky8\\swp391\\parkingbuildingmanagementsystem\\backend\\common\\constrants\\jwtconstrant.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B9E88732-A1AC-417C-BC48-3C4A9768A32D}|Common\\Common.csproj|solutionrelative:common\\constrants\\jwtconstrant.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{00DD9082-7DC7-49BB-8DD7-7338B19B8538}|DAL\\DAL.csproj|c:\\users\\admin\\onedrive\\documents\\fpt\\ky8\\swp391\\parkingbuildingmanagementsystem\\backend\\dal\\models\\parkingdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{00DD9082-7DC7-49BB-8DD7-7338B19B8538}|DAL\\DAL.csproj|solutionrelative:dal\\models\\parkingdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{00DD9082-7DC7-49BB-8DD7-7338B19B8538}|DAL\\DAL.csproj|c:\\users\\admin\\onedrive\\documents\\fpt\\ky8\\swp391\\parkingbuildingmanagementsystem\\backend\\dal\\interfaces\\itokenrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{00DD9082-7DC7-49BB-8DD7-7338B19B8538}|DAL\\DAL.csproj|solutionrelative:dal\\interfaces\\itokenrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B9E88732-A1AC-417C-BC48-3C4A9768A32D}|Common\\Common.csproj|c:\\users\\admin\\onedrive\\documents\\fpt\\ky8\\swp391\\parkingbuildingmanagementsystem\\backend\\common\\settings\\jwtsettingmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B9E88732-A1AC-417C-BC48-3C4A9768A32D}|Common\\Common.csproj|solutionrelative:common\\settings\\jwtsettingmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{00DD9082-7DC7-49BB-8DD7-7338B19B8538}|DAL\\DAL.csproj|c:\\users\\admin\\onedrive\\documents\\fpt\\ky8\\swp391\\parkingbuildingmanagementsystem\\backend\\dal\\dal.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{00DD9082-7DC7-49BB-8DD7-7338B19B8538}|DAL\\DAL.csproj|solutionrelative:dal\\dal.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
     }
   ],
   "DocumentGroupContainers": [
@@ -14,21 +94,8 @@
       "DocumentGroups": [
         {
           "DockedHeight": 200,
-          "SelectedChildIndex": 0,
+          "SelectedChildIndex": 12,
           "Children": [
-            {
-              "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "BLL",
-              "DocumentMoniker": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\BLL\\BLL.csproj",
-              "RelativeDocumentMoniker": "BLL\\BLL.csproj",
-              "ToolTip": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\BLL\\BLL.csproj",
-              "RelativeToolTip": "BLL\\BLL.csproj",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA4AAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
-              "WhenOpened": "2026-05-15T07:13:16.088Z",
-              "EditorCaption": ""
-            },
             {
               "$type": "Bookmark",
               "Name": "ST:128:0:{13b12e3e-c1b4-4539-9371-4fe9a0d523fc}"
@@ -47,7 +114,264 @@
             },
             {
               "$type": "Bookmark",
+              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
+            },
+            {
+              "$type": "Bookmark",
               "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "JwtProvider.cs",
+              "DocumentMoniker": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\BLL\\Implements\\JwtProvider.cs",
+              "RelativeDocumentMoniker": "BLL\\Implements\\JwtProvider.cs",
+              "ToolTip": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\BLL\\Implements\\JwtProvider.cs",
+              "RelativeToolTip": "BLL\\Implements\\JwtProvider.cs",
+              "ViewState": "AgIAADwAAAAAAAAAAAAwwCIAAAAJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-27T12:54:22.13Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "GenericRepository.cs",
+              "DocumentMoniker": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\DAL\\Implements\\GenericRepository.cs",
+              "RelativeDocumentMoniker": "DAL\\Implements\\GenericRepository.cs",
+              "ToolTip": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\DAL\\Implements\\GenericRepository.cs",
+              "RelativeToolTip": "DAL\\Implements\\GenericRepository.cs",
+              "ViewState": "AgIAAG4AAAAAAAAAAADwv2MAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-26T06:45:04.133Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "TokenRepository.cs",
+              "DocumentMoniker": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\DAL\\Implements\\TokenRepository.cs",
+              "RelativeDocumentMoniker": "DAL\\Implements\\TokenRepository.cs",
+              "ToolTip": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\DAL\\Implements\\TokenRepository.cs",
+              "RelativeToolTip": "DAL\\Implements\\TokenRepository.cs",
+              "ViewState": "AgIAAAsAAAAAAAAAAAAxwBgAAAAnAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-27T13:47:47.891Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "AuthController.cs",
+              "DocumentMoniker": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\PBMS\\Controllers\\AuthController.cs",
+              "RelativeDocumentMoniker": "PBMS\\Controllers\\AuthController.cs",
+              "ToolTip": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\PBMS\\Controllers\\AuthController.cs",
+              "RelativeToolTip": "PBMS\\Controllers\\AuthController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABUAAAATAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-27T14:43:52.766Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "AuthService.cs",
+              "DocumentMoniker": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\BLL\\Implements\\AuthService.cs",
+              "RelativeDocumentMoniker": "BLL\\Implements\\AuthService.cs",
+              "ToolTip": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\BLL\\Implements\\AuthService.cs",
+              "RelativeToolTip": "BLL\\Implements\\AuthService.cs",
+              "ViewState": "AgIAAIkAAAAAAAAAAAAgwJwAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-26T07:25:34.928Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "IUserRepository.cs",
+              "DocumentMoniker": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\DAL\\Interfaces\\IUserRepository.cs",
+              "RelativeDocumentMoniker": "DAL\\Interfaces\\IUserRepository.cs",
+              "ToolTip": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\DAL\\Interfaces\\IUserRepository.cs",
+              "RelativeToolTip": "DAL\\Interfaces\\IUserRepository.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAA/AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-26T06:39:11.056Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "UserRepository.cs",
+              "DocumentMoniker": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\DAL\\Implements\\UserRepository.cs",
+              "RelativeDocumentMoniker": "DAL\\Implements\\UserRepository.cs",
+              "ToolTip": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\DAL\\Implements\\UserRepository.cs",
+              "RelativeToolTip": "DAL\\Implements\\UserRepository.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABUAAABTAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-26T06:39:23.934Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "IUnitOfWork.cs",
+              "DocumentMoniker": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\DAL\\UnitOfWorks\\IUnitOfWork.cs",
+              "RelativeDocumentMoniker": "DAL\\UnitOfWorks\\IUnitOfWork.cs",
+              "ToolTip": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\DAL\\UnitOfWorks\\IUnitOfWork.cs",
+              "RelativeToolTip": "DAL\\UnitOfWorks\\IUnitOfWork.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAArAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-26T06:30:55.441Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "UnitOfWork.cs",
+              "DocumentMoniker": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\DAL\\UnitOfWorks\\UnitOfWork.cs",
+              "RelativeDocumentMoniker": "DAL\\UnitOfWorks\\UnitOfWork.cs",
+              "ToolTip": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\DAL\\UnitOfWorks\\UnitOfWork.cs",
+              "RelativeToolTip": "DAL\\UnitOfWorks\\UnitOfWork.cs",
+              "ViewState": "AgIAAAYAAAAAAAAAAAAAABQAAAA2AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-26T06:30:47.197Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "IGenericRepository.cs",
+              "DocumentMoniker": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\DAL\\Interfaces\\IGenericRepository.cs",
+              "RelativeDocumentMoniker": "DAL\\Interfaces\\IGenericRepository.cs",
+              "ToolTip": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\DAL\\Interfaces\\IGenericRepository.cs",
+              "RelativeToolTip": "DAL\\Interfaces\\IGenericRepository.cs",
+              "ViewState": "AgIAAAUAAAAAAAAAAAAiwCMAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-26T06:43:38.918Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\PBMS\\appsettings.json",
+              "RelativeDocumentMoniker": "PBMS\\appsettings.json",
+              "ToolTip": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\PBMS\\appsettings.json",
+              "RelativeToolTip": "PBMS\\appsettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-05-21T17:45:24.384Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "ResponseDTO.cs",
+              "DocumentMoniker": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\Common\\DTOs\\ResponseDTO.cs",
+              "RelativeDocumentMoniker": "Common\\DTOs\\ResponseDTO.cs",
+              "ToolTip": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\Common\\DTOs\\ResponseDTO.cs",
+              "RelativeToolTip": "Common\\DTOs\\ResponseDTO.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABUAAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-26T06:54:20.567Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 13,
+              "Title": "BLL.csproj",
+              "DocumentMoniker": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\BLL\\BLL.csproj",
+              "RelativeDocumentMoniker": "BLL\\BLL.csproj",
+              "ToolTip": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\BLL\\BLL.csproj",
+              "RelativeToolTip": "BLL\\BLL.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA8AAAAOAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-05-15T07:13:16.088Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 15,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\PBMS\\Program.cs",
+              "RelativeDocumentMoniker": "PBMS\\Program.cs",
+              "ToolTip": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\PBMS\\Program.cs",
+              "RelativeToolTip": "PBMS\\Program.cs",
+              "ViewState": "AgIAAAQAAAAAAAAAAADwvx4AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-26T06:48:33.722Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 14,
+              "Title": "IAuthService.cs",
+              "DocumentMoniker": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\BLL\\Interfaces\\IAuthService.cs",
+              "RelativeDocumentMoniker": "BLL\\Interfaces\\IAuthService.cs",
+              "ToolTip": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\BLL\\Interfaces\\IAuthService.cs",
+              "RelativeToolTip": "BLL\\Interfaces\\IAuthService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAAAzAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-26T07:25:19.194Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
+              "Title": "AuthDTO.cs",
+              "DocumentMoniker": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\Common\\DTOs\\AuthDTO.cs",
+              "RelativeDocumentMoniker": "Common\\DTOs\\AuthDTO.cs",
+              "ToolTip": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\Common\\DTOs\\AuthDTO.cs",
+              "RelativeToolTip": "Common\\DTOs\\AuthDTO.cs",
+              "ViewState": "AgIAAAMAAAAAAAAAAAAAABgAAAAGAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-27T13:05:50.665Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 16,
+              "Title": "JwtConstrant.cs",
+              "DocumentMoniker": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\Common\\Constrants\\JwtConstrant.cs",
+              "RelativeDocumentMoniker": "Common\\Constrants\\JwtConstrant.cs",
+              "ToolTip": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\Common\\Constrants\\JwtConstrant.cs",
+              "RelativeToolTip": "Common\\Constrants\\JwtConstrant.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAACEAAAA9AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-27T14:09:06.413Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 17,
+              "Title": "ParkingDBContext.cs",
+              "DocumentMoniker": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\DAL\\Models\\ParkingDBContext.cs",
+              "RelativeDocumentMoniker": "DAL\\Models\\ParkingDBContext.cs",
+              "ToolTip": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\DAL\\Models\\ParkingDBContext.cs",
+              "RelativeToolTip": "DAL\\Models\\ParkingDBContext.cs",
+              "ViewState": "AgIAAFUBAAAAAAAAAAAqwCkAAABAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-21T17:43:54.436Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 18,
+              "Title": "ITokenRepository.cs",
+              "DocumentMoniker": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\DAL\\Interfaces\\ITokenRepository.cs",
+              "RelativeDocumentMoniker": "DAL\\Interfaces\\ITokenRepository.cs",
+              "ToolTip": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\DAL\\Interfaces\\ITokenRepository.cs",
+              "RelativeToolTip": "DAL\\Interfaces\\ITokenRepository.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA8AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-27T13:23:22.279Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 19,
+              "Title": "JwtSettingModel.cs",
+              "DocumentMoniker": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\Common\\Settings\\JwtSettingModel.cs",
+              "RelativeDocumentMoniker": "Common\\Settings\\JwtSettingModel.cs",
+              "ToolTip": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\Common\\Settings\\JwtSettingModel.cs",
+              "RelativeToolTip": "Common\\Settings\\JwtSettingModel.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAAWAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-27T12:55:38.321Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 20,
+              "Title": "DAL.csproj",
+              "DocumentMoniker": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\DAL\\DAL.csproj",
+              "RelativeDocumentMoniker": "DAL\\DAL.csproj",
+              "ToolTip": "C:\\Users\\ADMIN\\OneDrive\\Documents\\FPT\\KY8\\SWP391\\ParkingBuildingManagementSystem\\BackEnd\\DAL\\DAL.csproj",
+              "RelativeToolTip": "DAL\\DAL.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABEAAAANAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-05-26T06:34:19.443Z"
             }
           ]
         },

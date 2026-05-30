@@ -1,13 +1,15 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36327.8 d17.14
+VisualStudioVersion = 17.14.36327.8
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DAL", "DAL\DAL.csproj", "{00DD9082-7DC7-49BB-8DD7-7338B19B8538}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BLL", "BLL\BLL.csproj", "{9C35A6DE-EF4E-461A-BB07-FFD2FD965FDE}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PBMS", "PBMS\PBMS.csproj", "{20A88167-94BC-4097-AB13-8974BD74D0B9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common", "Common\Common.csproj", "{B9E88732-A1AC-417C-BC48-3C4A9768A32D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -27,6 +29,10 @@ Global
 		{20A88167-94BC-4097-AB13-8974BD74D0B9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{20A88167-94BC-4097-AB13-8974BD74D0B9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{20A88167-94BC-4097-AB13-8974BD74D0B9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B9E88732-A1AC-417C-BC48-3C4A9768A32D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B9E88732-A1AC-417C-BC48-3C4A9768A32D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B9E88732-A1AC-417C-BC48-3C4A9768A32D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B9E88732-A1AC-417C-BC48-3C4A9768A32D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
