@@ -1,0 +1,65 @@
+## ==========================================
+## BIÊN DỊCH VÀ ĐẦU RA (Build Outputs)
+## ==========================================
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+build/
+bld/
+[Bb]in/
+[Oo]bj/
+generated/
+
+## ==========================================
+## CẤU HÌNH VÀ CACHE CỦA VISUAL STUDIO (.vs)
+## ==========================================
+.vs/
+🔥SuaDoiNguoiDung.user
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+*.vshost.exe
+*.vshost.exe.manifest
+
+## ==========================================
+## BẢO MẬT & FILE CẤU HÌNH LOCAL (QUAN TRỌNG)
+## Không bao giờ push file chứa chuỗi kết nối DB hay mật khẩu lên Git
+## ==========================================
+appsettings.Development.json
+appsettings.Local.json
+appsettings.*.local.json
+.env
+.secrets.json
+
+## ==========================================
+## QUẢN LÝ GÓI NẠP (NuGet Packages)
+## ==========================================
+*.nuget.props
+*.nuget.targets
+packages/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+## ==========================================
+## KẾT QUẢ TEST & ĐO ĐỘ PHỦ CODE (Testing/Coverage)
+## ==========================================
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+*.trx
+
+## ==========================================
+## CÁC IDE KHÁC (Nếu trong nhóm có ai dùng Rider hoặc VS Code)
+## ==========================================
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+.ionide/
