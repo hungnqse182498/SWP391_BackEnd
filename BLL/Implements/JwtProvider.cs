@@ -1,4 +1,5 @@
 ﻿using Common.Settings;
+using DAL.Models;
 using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
@@ -20,7 +21,7 @@ namespace BLL.Implements
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(claims),
-                Expires = DateTime.UtcNow.AddHours(JwtSettingModel.ExpireDayAccessToken),
+                Expires = DateTime.UtcNow.AddMinutes(JwtSettingModel.ExpireDayAccessToken),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
                 Issuer = JwtSettingModel.Issuer, // Thêm Issuer
                 Audience = JwtSettingModel.Audience // Thêm Audience
@@ -31,18 +32,24 @@ namespace BLL.Implements
         }
 
 
-        public static string GenerateRefreshToken(List<Claim> claims)
+        public static string GenerateRefreshToken(string userId)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.UTF8.GetBytes(JwtSettingModel.SecretKey);
 
+            var claims = new List<Claim>
+            {
+                new Claim("TokenPurpose", "RefreshToken"),
+                new Claim(ClaimTypes.NameIdentifier, userId)
+            };
+
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(claims),
-                Expires = DateTime.UtcNow.AddDays(JwtSettingModel.ExpireDayRefreshToken), // Thời gian hết hạn
+                Expires = DateTime.UtcNow.AddDays(JwtSettingModel.ExpireDayRefreshToken),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
-                Issuer = JwtSettingModel.Issuer, // Thêm Issuer cho refresh token
-                Audience = JwtSettingModel.Audience // Thêm Audience cho refresh token
+                Issuer = JwtSettingModel.Issuer,
+                Audience = JwtSettingModel.Audience 
             };
 
             var token = tokenHandler.CreateToken(tokenDescriptor);
@@ -50,38 +57,56 @@ namespace BLL.Implements
         }
         public static bool Validation(string token)
         {
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(JwtSettingModel.SecretKey);
-
-
-            tokenHandler.ValidateToken(token, new TokenValidationParameters
+            try
             {
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(key),
-                ValidateIssuer = false,
-                ValidateAudience = false,
-            }, out SecurityToken validatedToken);
+                var tokenHandler = new JwtSecurityTokenHandler();
+                var key = Encoding.UTF8.GetBytes(JwtSettingModel.SecretKey);
 
-            return true;
+                tokenHandler.ValidateToken(token, new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ValidateIssuer = true,
+                    ValidIssuer = JwtSettingModel.Issuer,
+                    ValidateAudience = true,
+                    ValidAudience = JwtSettingModel.Audience,
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.Zero 
+                }, out SecurityToken validatedToken);
+
+                return true; 
+            }
+            catch (Exception)
+            {
+                return false;
+            }
         }
         public static List<Claim> DecodeToken(string token)
         {
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.UTF8.GetBytes(JwtSettingModel.SecretKey);
-
-            tokenHandler.ValidateToken(token, new TokenValidationParameters
+            try
             {
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(key),
-                ValidateIssuer = false,
-                ValidateAudience = false
-            }, out SecurityToken validatedToken);
+                var tokenHandler = new JwtSecurityTokenHandler();
+                var key = Encoding.UTF8.GetBytes(JwtSettingModel.SecretKey);
 
-            var jwtToken = (JwtSecurityToken)validatedToken;
+                tokenHandler.ValidateToken(token, new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ValidateIssuer = true,
+                    ValidIssuer = JwtSettingModel.Issuer,
+                    ValidateAudience = true,
+                    ValidAudience = JwtSettingModel.Audience,
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.Zero // Ép chết chính xác từng giây
+                }, out SecurityToken validatedToken);
 
-            var claims = jwtToken.Claims.ToList();
-
-            return claims;
+                var jwtToken = (JwtSecurityToken)validatedToken;
+                return jwtToken.Claims.ToList();
+            }
+            catch (Exception)
+            {
+                return new List<Claim>();
+            }
         }
         public static string GetValueFromToken(string token, string claimType)
         {

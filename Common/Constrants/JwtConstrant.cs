@@ -32,7 +32,8 @@ namespace Common.Constrants
             public const string UserId = nameof(UserId);   
             public const string UserName = nameof(UserName);
             public const string Email = nameof(Email);       
-            public const string RoleId = nameof(RoleId);     
+            public const string RoleId = nameof(RoleId);
+            public const string Role = "role";
         }
     }
 }

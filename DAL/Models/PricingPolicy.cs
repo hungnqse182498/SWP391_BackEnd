@@ -7,9 +7,9 @@ namespace DAL.Models;
 
 public partial class PricingPolicy
 {
-    public int PolicyId { get; set; }
+    public Guid PolicyId { get; set; }
 
-    public int VehicleTypeId { get; set; }
+    public Guid VehicleTypeId { get; set; }
 
     public decimal BasePrice { get; set; }
 

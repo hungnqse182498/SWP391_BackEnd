@@ -7,11 +7,11 @@ namespace DAL.Models;
 
 public partial class Floor
 {
-    public int FloorId { get; set; }
+    public Guid FloorId { get; set; }
 
     public string FloorName { get; set; }
 
-    public int? DedicatedVehicleTypeId { get; set; }
+    public Guid? DedicatedVehicleTypeId { get; set; }
 
     public int TotalCapacity { get; set; }
 

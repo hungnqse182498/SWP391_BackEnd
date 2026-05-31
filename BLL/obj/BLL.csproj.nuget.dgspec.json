@@ -60,6 +60,10 @@
             "BCrypt.Net-Next": {
               "target": "Package",
               "version": "[4.2.0, )"
+            },
+            "Microsoft.Extensions.Hosting.Abstractions": {
+              "target": "Package",
+              "version": "[10.0.8, )"
             }
           },
           "imports": [

@@ -10,5 +10,7 @@ namespace DAL.Interfaces
     public interface IUserRepository : IGenericRepository<User>
     {
         Task<User> FindByEmailAsync(string email);
+        Task<Guid> GetRoleIdByNameAsync(string roleName);
+        Task<User> GetByIdWithRoleAsync(Guid id);
     }
 }

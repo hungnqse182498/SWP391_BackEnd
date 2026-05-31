@@ -18,10 +18,10 @@ namespace DAL.Implements
             _context = context;
         }
 
-        public async Task<RefreshToken> GetRefreshTokenByUserID(long userId)
+        public async Task<RefreshToken> GetRefreshTokenByUserID(Guid userId)
         {
             return await _context.RefreshTokens
-                .Where(rt => rt.RefreshTokenId == userId && rt.IsRevoked == false)
+                .Where(rt => rt.UserId == userId && rt.IsRevoked == false)
                 .FirstOrDefaultAsync();
         }  
         public async Task<RefreshToken?> GetRefreshTokenByKey(string refreshTokenKey)

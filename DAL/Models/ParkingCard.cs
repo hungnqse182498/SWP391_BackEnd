@@ -7,7 +7,7 @@ namespace DAL.Models;
 
 public partial class ParkingCard
 {
-    public long CardId { get; set; }
+    public Guid CardId { get; set; }
 
     public string CardCode { get; set; }
 

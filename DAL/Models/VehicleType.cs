@@ -7,7 +7,7 @@ namespace DAL.Models;
 
 public partial class VehicleType
 {
-    public int VehicleTypeId { get; set; }
+    public Guid VehicleTypeId { get; set; }
 
     public string TypeName { get; set; }
 

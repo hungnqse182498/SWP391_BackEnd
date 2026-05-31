@@ -9,7 +9,7 @@ namespace DAL.Interfaces
 {
     public interface ITokenRepository : IGenericRepository<RefreshToken>
     {
-        Task<RefreshToken> GetRefreshTokenByUserID(long userId);
+        Task<RefreshToken> GetRefreshTokenByUserID(Guid userId);
         Task<RefreshToken?> GetRefreshTokenByKey(string refreshTokenKey);
     }
 }

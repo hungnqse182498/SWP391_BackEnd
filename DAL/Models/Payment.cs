@@ -7,11 +7,11 @@ namespace DAL.Models;
 
 public partial class Payment
 {
-    public long PaymentId { get; set; }
+    public Guid PaymentId { get; set; }
 
-    public long SessionId { get; set; }
+    public Guid SessionId { get; set; }
 
-    public long? ReservationId { get; set; }
+    public Guid? ReservationId { get; set; }
 
     public decimal Amount { get; set; }
 

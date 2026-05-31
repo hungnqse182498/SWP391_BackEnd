@@ -7,9 +7,9 @@ namespace DAL.Models;
 
 public partial class RefreshToken
 {
-    public long RefreshTokenId { get; set; }
+    public Guid RefreshTokenId { get; set; }
 
-    public long UserId { get; set; }
+    public Guid UserId { get; set; }
 
     public string RefreshTokenKey { get; set; }
 

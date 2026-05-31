@@ -7,11 +7,11 @@ namespace DAL.Models;
 
 public partial class ParkingSession
 {
-    public long SessionId { get; set; }
+    public Guid SessionId { get; set; }
 
-    public long? CardId { get; set; }
+    public Guid? CardId { get; set; }
 
-    public long? DriverUserId { get; set; }
+    public Guid? DriverUserId { get; set; }
 
     public string LicensePlateIn { get; set; }
 
@@ -21,19 +21,19 @@ public partial class ParkingSession
 
     public string ExitImageUrl { get; set; }
 
-    public int VehicleTypeId { get; set; }
+    public Guid VehicleTypeId { get; set; }
 
     public DateTime EntryTime { get; set; }
 
     public DateTime? ExitTime { get; set; }
 
-    public int EntryGateId { get; set; }
+    public Guid EntryGateId { get; set; }
 
-    public int? ExitGateId { get; set; }
+    public Guid? ExitGateId { get; set; }
 
-    public long? AssignedSlotId { get; set; }
+    public Guid? AssignedSlotId { get; set; }
 
-    public long? ActualSlotId { get; set; }
+    public Guid? ActualSlotId { get; set; }
 
     public string Status { get; set; }
 

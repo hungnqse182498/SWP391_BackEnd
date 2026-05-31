@@ -7,13 +7,13 @@ namespace DAL.Models;
 
 public partial class Reservation
 {
-    public long ReservationId { get; set; }
+    public Guid ReservationId { get; set; }
 
-    public long UserId { get; set; }
+    public Guid UserId { get; set; }
 
-    public int VehicleTypeId { get; set; }
+    public Guid VehicleTypeId { get; set; }
 
-    public long AssignedSlotId { get; set; }
+    public Guid AssignedSlotId { get; set; }
 
     public DateTime ExpectedEntryTime { get; set; }
 

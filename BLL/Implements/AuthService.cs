@@ -12,6 +12,7 @@ using System.Text;
 using System.Threading.Tasks;
 using static Common.DTOs.AuthDTO;
 using Common.Constrants;
+using Microsoft.EntityFrameworkCore;
 
 namespace BLL.Implements
 {
@@ -46,23 +47,23 @@ namespace BLL.Implements
                 return new ResponseDTO("Lỗi xác thực mật khẩu (lỗi hệ thống): " + ex.Message, 500, false);
             }
 
-            var existRefreshToken = await _unitOfWork.TokenRepo.GetRefreshTokenByUserID(user.UserId);
-            if (existRefreshToken != null)
-            {
-                existRefreshToken.IsRevoked = true;
-                await _unitOfWork.TokenRepo.UpdateAsync(existRefreshToken);
-            }
-
             var claims = new List<Claim>
             {
                 new Claim(JwtConstant.KeyClaim.Email, user.Email),
                 new Claim(JwtConstant.KeyClaim.UserId, user.UserId.ToString()),
                 new Claim(JwtConstant.KeyClaim.UserName, user.UserName),
-                new Claim(JwtConstant.KeyClaim.RoleId, user.RoleId.ToString())
+                new Claim(JwtConstant.KeyClaim.RoleId, user.RoleId.ToString()),
+                new Claim(JwtConstant.KeyClaim.Role, user.Role?.RoleName ?? "User")
             };
 
-            var refreshTokenKey = JwtProvider.GenerateRefreshToken(claims);
+            var refreshTokenKey = JwtProvider.GenerateRefreshToken(user.UserId.ToString());
             var accessTokenKey = JwtProvider.GenerateAccessToken(claims);
+
+            //var existRefreshToken = await _unitOfWork.TokenRepo.GetRefreshTokenByUserID(user.UserId);
+            //if (existRefreshToken != null)
+            //{
+            //    _unitOfWork.TokenRepo.Delete(existRefreshToken);
+            //}
 
             var refreshToken = new RefreshToken
             {
@@ -83,8 +84,6 @@ namespace BLL.Implements
 
             return new ResponseDTO("Đăng nhập thành công", 200, true, new
             {
-                AccessToken = accessTokenKey,
-                RefreshToken = refreshTokenKey,
                 User = new
                 {
                     user.UserId,
@@ -92,8 +91,11 @@ namespace BLL.Implements
                     user.Email,
                     user.FullName,
                     user.PhoneNumber,
-                    user.RoleId
-                }
+                    user.Role.RoleName
+                },
+                AccessToken = accessTokenKey,
+                RefreshToken = refreshTokenKey,
+                
             });
         }
 
@@ -132,15 +134,23 @@ namespace BLL.Implements
 
             var passwordHash = BCrypt.Net.BCrypt.HashPassword(registerDTO.Password);
 
+            var defaultRole = await _unitOfWork.UserRepo.GetRoleIdByNameAsync("User");
+
+            if (defaultRole == Guid.Empty)
+            {
+                return new ResponseDTO("Lỗi cấu hình hệ thống: Không tìm thấy quyền 'User' mặc định trong DB", 500, false);
+            }
+
             var newUser = new User
             {
+                UserId = Guid.NewGuid(),
                 UserName = registerDTO.UserName,
                 Email = registerDTO.Email,
                 Password = passwordHash,                      
                 FullName = registerDTO.FullName ?? "Chưa đặt tên", 
                 PhoneNumber = registerDTO.PhoneNumber ?? "",       
                 Status = "Active",                                 
-                RoleId = 1,                                        
+                RoleId = defaultRole,                                        
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -169,6 +179,72 @@ namespace BLL.Implements
             {
                 return false;
             }
+        }
+
+        public async Task<ResponseDTO> RenewToken(RefreshTokenDTO tokenDTO)
+        {
+            if (string.IsNullOrWhiteSpace(tokenDTO.RefreshTokenKey))
+            {
+                return new ResponseDTO("Vui lòng nhập refresh token", 400, false);
+            }
+
+            bool isValid = JwtProvider.Validation(tokenDTO.RefreshTokenKey);
+            if (!isValid)
+            {
+                return new ResponseDTO("Refresh token không hợp lệ hoặc hết hạn", 401, false);
+            }
+
+            var storedToken = await _unitOfWork.TokenRepo.GetRefreshTokenByKey(tokenDTO.RefreshTokenKey);
+            if (storedToken == null || storedToken.IsRevoked == true)
+            {
+                return new ResponseDTO("Refresh token không tồn tại hoặc đã bị vô hiệu hóa", 401, false);
+            }
+
+            var userIdStr = JwtProvider.GetValueFromToken(tokenDTO.RefreshTokenKey, "nameid");
+            if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out Guid userId))
+            {
+                return new ResponseDTO("Token không chứa thông tin định danh hợp lệ", 401, false);
+            }
+
+            var user = await _unitOfWork.UserRepo.GetByIdWithRoleAsync(userId);
+            if (user == null)
+            {
+                return new ResponseDTO("Người dùng không tồn tại trên hệ thống", 404, false);
+            }
+
+            var newClaims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim("UserId", user.UserId.ToString()),
+                new Claim(ClaimTypes.Name, user.UserName),
+                new Claim("RoleId", user.RoleId.ToString()),
+                new Claim(ClaimTypes.Role, user.Role.RoleName) 
+            };
+
+            var newAccessToken = JwtProvider.GenerateAccessToken(newClaims);
+
+            return new ResponseDTO("Cấp token mới thành công.", 200, true, new
+            {
+                accessToken = newAccessToken
+            });
+        }
+
+        public async Task<ResponseDTO> Logout(RefreshTokenDTO tokenDTO)
+        {
+            if (string.IsNullOrWhiteSpace(tokenDTO.RefreshTokenKey))
+            {
+                return new ResponseDTO("Vui lòng nhập refresh token", 400, false);
+            }
+            var storedToken = await _unitOfWork.TokenRepo.GetRefreshTokenByKey(tokenDTO.RefreshTokenKey);
+            if (storedToken != null)
+            {
+                storedToken.IsRevoked = true;
+
+                await _unitOfWork.TokenRepo.UpdateAsync(storedToken); 
+                await _unitOfWork.SaveChangeAsync();
+            }
+
+            return new ResponseDTO("Đăng xuất thành công", 200, true);
         }
     }
 }

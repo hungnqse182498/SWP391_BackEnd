@@ -7,13 +7,13 @@ namespace DAL.Models;
 
 public partial class Gate
 {
-    public int GateId { get; set; }
+    public Guid GateId { get; set; }
 
     public string GateName { get; set; }
 
     public string GateType { get; set; }
 
-    public int FloorId { get; set; }
+    public Guid FloorId { get; set; }
 
     public virtual Floor Floor { get; set; }
 

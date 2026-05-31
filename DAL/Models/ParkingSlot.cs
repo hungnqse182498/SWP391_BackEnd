@@ -7,13 +7,13 @@ namespace DAL.Models;
 
 public partial class ParkingSlot
 {
-    public long SlotId { get; set; }
+    public Guid SlotId { get; set; }
 
-    public int FloorId { get; set; }
+    public Guid FloorId { get; set; }
 
     public string SlotCode { get; set; }
 
-    public int VehicleTypeId { get; set; }
+    public Guid VehicleTypeId { get; set; }
 
     public string Status { get; set; }
 

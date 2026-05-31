@@ -7,11 +7,11 @@ namespace DAL.Models;
 
 public partial class IncidentReport
 {
-    public long IncidentId { get; set; }
+    public Guid IncidentId { get; set; }
 
-    public long? SessionId { get; set; }
+    public Guid? SessionId { get; set; }
 
-    public long ReportedByUserId { get; set; }
+    public Guid ReportedByUserId { get; set; }
 
     public string IssueType { get; set; }
 
@@ -21,7 +21,7 @@ public partial class IncidentReport
 
     public string Status { get; set; }
 
-    public long? HandledByStaffId { get; set; }
+    public Guid? HandledByStaffId { get; set; }
 
     public DateTime? ResolvedAt { get; set; }
 
