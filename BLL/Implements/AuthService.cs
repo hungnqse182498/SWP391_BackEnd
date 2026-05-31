@@ -53,7 +53,7 @@ namespace BLL.Implements
                 new Claim(JwtConstant.KeyClaim.UserId, user.UserId.ToString()),
                 new Claim(JwtConstant.KeyClaim.UserName, user.UserName),
                 new Claim(JwtConstant.KeyClaim.RoleId, user.RoleId.ToString()),
-                new Claim(JwtConstant.KeyClaim.Role, user.Role?.RoleName ?? "User")
+                new Claim(JwtConstant.KeyClaim.Role, user.Role?.RoleName ?? "driver")
             };
 
             var refreshTokenKey = JwtProvider.GenerateRefreshToken(user.UserId.ToString());
@@ -134,11 +134,11 @@ namespace BLL.Implements
 
             var passwordHash = BCrypt.Net.BCrypt.HashPassword(registerDTO.Password);
 
-            var defaultRole = await _unitOfWork.UserRepo.GetRoleIdByNameAsync("User");
+            var defaultRole = await _unitOfWork.UserRepo.GetRoleIdByNameAsync("driver");
 
             if (defaultRole == Guid.Empty)
             {
-                return new ResponseDTO("Lỗi cấu hình hệ thống: Không tìm thấy quyền 'User' mặc định trong DB", 500, false);
+                return new ResponseDTO("Lỗi cấu hình hệ thống: Không tìm thấy quyền 'driver' mặc định trong DB", 500, false);
             }
 
             var newUser = new User
@@ -148,7 +148,7 @@ namespace BLL.Implements
                 Email = registerDTO.Email,
                 Password = passwordHash,                      
                 FullName = registerDTO.FullName ?? "Chưa đặt tên", 
-                PhoneNumber = registerDTO.PhoneNumber ?? "",       
+                PhoneNumber = string.IsNullOrWhiteSpace(registerDTO.PhoneNumber) ? null : registerDTO.PhoneNumber.Trim(),
                 Status = "Active",                                 
                 RoleId = defaultRole,                                        
                 CreatedAt = DateTime.UtcNow,

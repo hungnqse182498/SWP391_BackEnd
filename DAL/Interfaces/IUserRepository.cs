@@ -12,5 +12,7 @@ namespace DAL.Interfaces
         Task<User> FindByEmailAsync(string email);
         Task<Guid> GetRoleIdByNameAsync(string roleName);
         Task<User> GetByIdWithRoleAsync(Guid id);
+        Task<Role> GetRoleByIdAsync(Guid roleId);
+        Task<List<Role>> GetManageableRolesAsync();
     }
 }
