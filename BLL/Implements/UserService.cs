@@ -17,6 +17,7 @@ namespace BLL.Implements
         private static readonly HashSet<string> ManageableRoleNames = new(StringComparer.OrdinalIgnoreCase)
         {
             "user",
+            "customer",
             "staff"
         };
         private static readonly HashSet<string> ValidStatuses = new(StringComparer.OrdinalIgnoreCase)
@@ -317,7 +318,7 @@ namespace BLL.Implements
 
             if (!ManageableRoleNames.Contains(role.RoleName))
             {
-                return (null, new ResponseDTO("Chỉ được gán quyền user hoặc staff", 400, false));
+                return (null, new ResponseDTO("Chỉ được gán quyền user, customer hoặc staff", 400, false));
             }
 
             return (role, null);

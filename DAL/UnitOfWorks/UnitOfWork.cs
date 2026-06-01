@@ -20,11 +20,14 @@ namespace DAL.UnitOfWorks
             UserRepo = new UserRepository(_context);
             TokenRepo = new TokenRepository(_context);
             VehicleTypeRepo = new VehicleTypeRepository(_context);
+            FloorRepo = new FloorRepository(_context);
         }
 
         public IUserRepository UserRepo { get; private set; }
         public ITokenRepository TokenRepo { get; private set; }
         public IVehicleTypeRepository VehicleTypeRepo { get; private set; }
+
+        public IFloorRepository FloorRepo { get; private set; }
 
         public void Dispose()
         {

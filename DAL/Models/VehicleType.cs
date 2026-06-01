@@ -15,6 +15,8 @@ public partial class VehicleType
 
     public virtual ICollection<Floor> Floors { get; set; } = new List<Floor>();
 
+    public virtual ICollection<MonthlySubscription> MonthlySubscriptions { get; set; } = new List<MonthlySubscription>();
+
     public virtual ICollection<ParkingSession> ParkingSessions { get; set; } = new List<ParkingSession>();
 
     public virtual ICollection<ParkingSlot> ParkingSlots { get; set; } = new List<ParkingSlot>();

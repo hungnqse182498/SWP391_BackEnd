@@ -31,6 +31,10 @@
          "ObjectType": 0
       },
       {
+         "Name": "[dbo].[MonthlySubscriptions]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[dbo].[ParkingCards]",
          "ObjectType": 0
       },
