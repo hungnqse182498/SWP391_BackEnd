@@ -372,11 +372,9 @@ public partial class ParkingDBContext : DbContext
         {
             entity.HasKey(e => e.UserId).HasName("PK__Users__1788CCACB5AD543E");
 
-            entity.HasIndex(e => e.PhoneNumber, "UQ__Users__85FB4E382F3FDAFB").IsUnique();
+            entity.HasIndex(e => e.PhoneNumber, "UQ_Users_PhoneNumber").IsUnique();
 
             entity.HasIndex(e => e.Email, "UQ__Users__A9D105346AF39579").IsUnique();
-
-            entity.HasIndex(e => e.UserName, "UQ__Users__C9F28456A774622D").IsUnique();
 
             entity.Property(e => e.UserId)
                 .HasDefaultValueSql("(newid())")
@@ -395,6 +393,7 @@ public partial class ParkingDBContext : DbContext
                 .HasMaxLength(255)
                 .IsUnicode(false);
             entity.Property(e => e.PhoneNumber)
+                .IsRequired()
                 .HasMaxLength(15)
                 .IsUnicode(false);
             entity.Property(e => e.RoleId).HasColumnName("RoleID");

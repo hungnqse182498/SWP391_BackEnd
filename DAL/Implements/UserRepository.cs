@@ -19,12 +19,15 @@ namespace DAL.Implements
         }
         public async Task<User> FindByEmailAsync(string email)
         {
-            return await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Email == email);
+            return await _context.Users
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.Email == email);
         }
 
         public async Task<Guid> GetRoleIdByNameAsync(string roleName)
         {
-            var role = await _context.Roles.FirstOrDefaultAsync(r => r.RoleName == roleName);
+            var normalizedRoleName = roleName.ToLower();
+            var role = await _context.Roles.FirstOrDefaultAsync(r => r.RoleName.ToLower() == normalizedRoleName);
             return role != null ? role.RoleId : Guid.Empty;
         }
 
@@ -33,6 +36,28 @@ namespace DAL.Implements
             return await _context.Users
                 .Include(u => u.Role) 
                 .FirstOrDefaultAsync(u => u.UserId == id);
+        }
+
+        public async Task<User> FindByPhoneNumberAsync(string phoneNumber)
+        {
+            return await _context.Users
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.PhoneNumber == phoneNumber);
+        }
+
+        public async Task<Role> GetRoleByIdAsync(Guid roleId)
+        {
+            return await _context.Roles.FirstOrDefaultAsync(r => r.RoleId == roleId);
+        }
+
+        public async Task<List<Role>> GetManageableRolesAsync()
+        {
+            var manageableRoleNames = new[] { "driver", "staff", "manager" };
+
+            return await _context.Roles
+                .Where(r => manageableRoleNames.Contains(r.RoleName.ToLower()))
+                .OrderBy(r => r.RoleName)
+                .ToListAsync();
         }
     }
 }

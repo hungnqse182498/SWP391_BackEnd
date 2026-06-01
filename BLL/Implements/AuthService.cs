@@ -134,8 +134,18 @@ namespace BLL.Implements
 
             var passwordHash = BCrypt.Net.BCrypt.HashPassword(registerDTO.Password);
 
-            var defaultRole = await _unitOfWork.UserRepo.GetRoleIdByNameAsync("User");
+            if (registerDTO.FullName == null)
+            {
+                return new ResponseDTO("Vui lòng nhập tên đầy đủ", 400, false);
+            }
 
+            var existingPhoneNumber = await _unitOfWork.UserRepo.FindByPhoneNumberAsync(registerDTO.PhoneNumber.Trim());
+            if (existingPhoneNumber != null)
+            {
+                return new ResponseDTO("Số điện thoại đã được đăng ký", 400, false);
+            }
+
+            var defaultRole = await _unitOfWork.UserRepo.GetRoleIdByNameAsync("User");
             if (defaultRole == Guid.Empty)
             {
                 return new ResponseDTO("Lỗi cấu hình hệ thống: Không tìm thấy quyền 'User' mặc định trong DB", 500, false);
@@ -147,8 +157,8 @@ namespace BLL.Implements
                 UserName = registerDTO.UserName,
                 Email = registerDTO.Email,
                 Password = passwordHash,                      
-                FullName = registerDTO.FullName ?? "Chưa đặt tên", 
-                PhoneNumber = registerDTO.PhoneNumber ?? "",       
+                FullName = registerDTO.FullName, 
+                PhoneNumber = registerDTO.PhoneNumber,     
                 Status = "Active",                                 
                 RoleId = defaultRole,                                        
                 CreatedAt = DateTime.UtcNow,
