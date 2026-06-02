@@ -1,0 +1,33 @@
+# ==========================================
+# BACKEND (.NET) - Đặt trong folder BackEnd
+# ==========================================
+
+# Build output của .NET (Git tự quét các project con bên trong)
+**/bin/
+**/obj/
+
+# User-specific files
+**/*.user
+**/*.rduser
+**/*.suo
+**/*.userosscache
+**/*.sln.docstates
+
+# Secrets / local config 
+**/appsettings.Local.json
+**/appsettings.*.local.json
+**/.env
+**/.secrets.json
+
+# NuGet / generated files
+**/packages/
+**/project.lock.json
+**/project.fragment.lock.json
+**/artifacts/
+
+# Test results / coverage
+**/TestResults/
+**/coverage/
+**/*.coverage
+**/*.coveragexml
+**/*.trx
