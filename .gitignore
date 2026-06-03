@@ -1,33 +1,22 @@
 # ==========================================
-# BACKEND (.NET) - Đặt trong folder BackEnd
+# BACKEND (.NET) - CHỈ CHẶN FILE RÁC, UP HẾT CONFIG
 # ==========================================
 
-# Build output của .NET (Git tự quét các project con bên trong)
+# FILE RÁC SINH RA KHI BUILD (Bắt buộc phải chặn vì máy khác không dùng được)
 **/bin/
 **/obj/
 
-# User-specific files
+# File cấu hình rác của IDE tự đẻ ra
 **/*.user
 **/*.rduser
 **/*.suo
 **/*.userosscache
 **/*.sln.docstates
 
-# Secrets / local config 
-**/appsettings.Local.json
-**/appsettings.*.local.json
-**/.env
-**/.secrets.json
-
-# NuGet / generated files
+# File rác của bộ quản lý thư viện & Test
 **/packages/
 **/project.lock.json
-**/project.fragment.lock.json
 **/artifacts/
-
-# Test results / coverage
 **/TestResults/
 **/coverage/
-**/*.coverage
-**/*.coveragexml
 **/*.trx
