@@ -31,6 +31,12 @@ namespace DAL.Implements
             return role != null ? role.RoleId : Guid.Empty;
         }
 
+        public async Task<Role?> GetRoleByNameAsync(string roleName)
+        {
+            var normalizedRoleName = roleName.Trim().ToLower();
+            return await _context.Roles.FirstOrDefaultAsync(r => r.RoleName.ToLower() == normalizedRoleName);
+        }
+
         public async Task<User> GetByIdWithRoleAsync(Guid id)
         {
             return await _context.Users
@@ -52,7 +58,7 @@ namespace DAL.Implements
 
         public async Task<List<Role>> GetManageableRolesAsync()
         {
-            var manageableRoleNames = new[] { "driver", "staff", "manager" };
+            var manageableRoleNames = new[] { "user", "customer", "staff", "manager" };
 
             return await _context.Roles
                 .Where(r => manageableRoleNames.Contains(r.RoleName.ToLower()))

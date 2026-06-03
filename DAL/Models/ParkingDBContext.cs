@@ -45,9 +45,9 @@ public partial class ParkingDBContext : DbContext
     {
         modelBuilder.Entity<Floor>(entity =>
         {
-            entity.HasKey(e => e.FloorId).HasName("PK__Floors__49D1E86B7A4046AB");
+            entity.HasKey(e => e.FloorId).HasName("PK__Floors__49D1E86B5BE35B12");
 
-            entity.HasIndex(e => e.FloorName, "UQ__Floors__3D098F3558B0D4F1").IsUnique();
+            entity.HasIndex(e => e.FloorName, "UQ__Floors__3D098F354DA69540").IsUnique();
 
             entity.Property(e => e.FloorId)
                 .HasDefaultValueSql("(newid())")
@@ -64,7 +64,7 @@ public partial class ParkingDBContext : DbContext
 
         modelBuilder.Entity<Gate>(entity =>
         {
-            entity.HasKey(e => e.GateId).HasName("PK__Gates__9582C630F083B2A0");
+            entity.HasKey(e => e.GateId).HasName("PK__Gates__9582C630B45C4515");
 
             entity.Property(e => e.GateId)
                 .HasDefaultValueSql("(newid())")
@@ -86,7 +86,7 @@ public partial class ParkingDBContext : DbContext
 
         modelBuilder.Entity<IncidentReport>(entity =>
         {
-            entity.HasKey(e => e.IncidentId).HasName("PK__Incident__3D805392FD754E73");
+            entity.HasKey(e => e.IncidentId).HasName("PK__Incident__3D80539293605000");
 
             entity.Property(e => e.IncidentId)
                 .HasDefaultValueSql("(newid())")
@@ -123,9 +123,9 @@ public partial class ParkingDBContext : DbContext
 
         modelBuilder.Entity<MonthlySubscription>(entity =>
         {
-            entity.HasKey(e => e.SubscriptionId).HasName("PK__MonthlyS__9A2B24BD4A98AE48");
+            entity.HasKey(e => e.SubscriptionId).HasName("PK__MonthlyS__9A2B24BD6047F1E8");
 
-            entity.HasIndex(e => e.LicensePlate, "UQ__MonthlyS__026BC15C3DEB105B").IsUnique();
+            entity.HasIndex(e => e.LicensePlate, "UQ__MonthlyS__026BC15CA9CB3FF7").IsUnique();
 
             entity.Property(e => e.SubscriptionId)
                 .HasDefaultValueSql("(newid())")
@@ -157,9 +157,9 @@ public partial class ParkingDBContext : DbContext
 
         modelBuilder.Entity<ParkingCard>(entity =>
         {
-            entity.HasKey(e => e.CardId).HasName("PK__ParkingC__55FECD8EF27DBC41");
+            entity.HasKey(e => e.CardId).HasName("PK__ParkingC__55FECD8EB0D8EB82");
 
-            entity.HasIndex(e => e.CardCode, "UQ__ParkingC__3D53170792FDC5E6").IsUnique();
+            entity.HasIndex(e => e.CardCode, "UQ__ParkingC__3D53170760A78497").IsUnique();
 
             entity.Property(e => e.CardId)
                 .HasDefaultValueSql("(newid())")
@@ -176,7 +176,7 @@ public partial class ParkingDBContext : DbContext
 
         modelBuilder.Entity<ParkingSession>(entity =>
         {
-            entity.HasKey(e => e.SessionId).HasName("PK__ParkingS__C9F49270558757E2");
+            entity.HasKey(e => e.SessionId).HasName("PK__ParkingS__C9F492706ED798BA");
 
             entity.Property(e => e.SessionId)
                 .HasDefaultValueSql("(newid())")
@@ -241,9 +241,9 @@ public partial class ParkingDBContext : DbContext
 
         modelBuilder.Entity<ParkingSlot>(entity =>
         {
-            entity.HasKey(e => e.SlotId).HasName("PK__ParkingS__0A124A4FD1A47760");
+            entity.HasKey(e => e.SlotId).HasName("PK__ParkingS__0A124A4FF57F0C09");
 
-            entity.HasIndex(e => e.SlotCode, "UQ__ParkingS__38BD98CC8C255A93").IsUnique();
+            entity.HasIndex(e => e.SlotCode, "UQ__ParkingS__38BD98CC6195FC4F").IsUnique();
 
             entity.Property(e => e.SlotId)
                 .HasDefaultValueSql("(newid())")
@@ -272,7 +272,7 @@ public partial class ParkingDBContext : DbContext
 
         modelBuilder.Entity<Payment>(entity =>
         {
-            entity.HasKey(e => e.PaymentId).HasName("PK__Payments__9B556A589EF0E4A6");
+            entity.HasKey(e => e.PaymentId).HasName("PK__Payments__9B556A58AC63D58F");
 
             entity.Property(e => e.PaymentId)
                 .HasDefaultValueSql("(newid())")
@@ -305,7 +305,7 @@ public partial class ParkingDBContext : DbContext
 
         modelBuilder.Entity<PricingPolicy>(entity =>
         {
-            entity.HasKey(e => e.PolicyId).HasName("PK__PricingP__2E133944046D9937");
+            entity.HasKey(e => e.PolicyId).HasName("PK__PricingP__2E13394484FE7A2C");
 
             entity.Property(e => e.PolicyId)
                 .HasDefaultValueSql("(newid())")
@@ -330,9 +330,9 @@ public partial class ParkingDBContext : DbContext
 
         modelBuilder.Entity<RefreshToken>(entity =>
         {
-            entity.HasKey(e => e.RefreshTokenId).HasName("PK__RefreshT__F5845E59E315F806");
+            entity.HasKey(e => e.RefreshTokenId).HasName("PK__RefreshT__F5845E59D5C309B8");
 
-            entity.HasIndex(e => e.RefreshTokenKey, "UQ__RefreshT__08D6172DCDCDEA9F").IsUnique();
+            entity.HasIndex(e => e.RefreshTokenKey, "UQ__RefreshT__08D6172D8C4CC8FC").IsUnique();
 
             entity.Property(e => e.RefreshTokenId)
                 .HasDefaultValueSql("(newid())")
@@ -355,7 +355,7 @@ public partial class ParkingDBContext : DbContext
 
         modelBuilder.Entity<Reservation>(entity =>
         {
-            entity.HasKey(e => e.ReservationId).HasName("PK__Reservat__B7EE5F0465BF0754");
+            entity.HasKey(e => e.ReservationId).HasName("PK__Reservat__B7EE5F04E0C57FD1");
 
             entity.Property(e => e.ReservationId)
                 .HasDefaultValueSql("(newid())")
@@ -391,9 +391,9 @@ public partial class ParkingDBContext : DbContext
 
         modelBuilder.Entity<Role>(entity =>
         {
-            entity.HasKey(e => e.RoleId).HasName("PK__Roles__8AFACE3AB7608B6F");
+            entity.HasKey(e => e.RoleId).HasName("PK__Roles__8AFACE3A611FFCBA");
 
-            entity.HasIndex(e => e.RoleName, "UQ__Roles__8A2B6160B821EA82").IsUnique();
+            entity.HasIndex(e => e.RoleName, "UQ__Roles__8A2B616088BE0FC6").IsUnique();
 
             entity.Property(e => e.RoleId)
                 .HasDefaultValueSql("(newid())")
@@ -406,13 +406,13 @@ public partial class ParkingDBContext : DbContext
 
         modelBuilder.Entity<User>(entity =>
         {
-            entity.HasKey(e => e.UserId).HasName("PK__Users__1788CCAC7EBBA151");
+            entity.HasKey(e => e.UserId).HasName("PK__Users__1788CCAC74BB1CF2");
 
-            entity.HasIndex(e => e.PhoneNumber, "UQ__Users__85FB4E38A4D498A3").IsUnique();
+            entity.HasIndex(e => e.PhoneNumber, "UQ__Users__85FB4E384DBEB242").IsUnique();
 
-            entity.HasIndex(e => e.Email, "UQ__Users__A9D105341F4A61B9").IsUnique();
+            entity.HasIndex(e => e.Email, "UQ__Users__A9D10534B1ED5E35").IsUnique();
 
-            entity.HasIndex(e => e.UserName, "UQ__Users__C9F28456CEF7C8D5").IsUnique();
+            entity.HasIndex(e => e.UserName, "UQ__Users__C9F28456038767D5").IsUnique();
 
             entity.Property(e => e.UserId)
                 .HasDefaultValueSql("(newid())")
@@ -453,9 +453,9 @@ public partial class ParkingDBContext : DbContext
 
         modelBuilder.Entity<VehicleType>(entity =>
         {
-            entity.HasKey(e => e.VehicleTypeId).HasName("PK__VehicleT__9F449623C4C0CBCC");
+            entity.HasKey(e => e.VehicleTypeId).HasName("PK__VehicleT__9F449623279124F0");
 
-            entity.HasIndex(e => e.TypeName, "UQ__VehicleT__D4E7DFA81A9BA7F2").IsUnique();
+            entity.HasIndex(e => e.TypeName, "UQ__VehicleT__D4E7DFA83EEB21DD").IsUnique();
 
             entity.Property(e => e.VehicleTypeId)
                 .HasDefaultValueSql("(newid())")

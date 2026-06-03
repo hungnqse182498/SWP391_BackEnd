@@ -14,16 +14,19 @@ namespace BLL.Implements
         private const string AdminRoleName = "admin";
         private const string ActiveStatus = "Active";
         private const string InactiveStatus = "Inactive";
+        private const string BannedStatus = "Banned";
         private static readonly HashSet<string> ManageableRoleNames = new(StringComparer.OrdinalIgnoreCase)
         {
             "user",
             "customer",
-            "staff"
+            "staff",
+            "manager"
         };
         private static readonly HashSet<string> ValidStatuses = new(StringComparer.OrdinalIgnoreCase)
         {
             ActiveStatus,
-            InactiveStatus
+            InactiveStatus,
+            BannedStatus
         };
 
         public UserService(IUnitOfWork unitOfWork)
@@ -97,7 +100,7 @@ namespace BLL.Implements
                 return new ResponseDTO("Vui lòng nhập mật khẩu", 400, false);
             }
 
-            var roleValidation = await ValidateManageableRoleAsync(createUserDTO.RoleId);
+            var roleValidation = await ValidateManageableRoleAsync(createUserDTO.RoleName);
             if (roleValidation.Error != null)
             {
                 return roleValidation.Error;
@@ -175,7 +178,7 @@ namespace BLL.Implements
                 return validation;
             }
 
-            var roleValidation = await ValidateManageableRoleAsync(updateUserDTO.RoleId);
+            var roleValidation = await ValidateManageableRoleAsync(updateUserDTO.RoleName);
             if (roleValidation.Error != null)
             {
                 return roleValidation.Error;
@@ -236,7 +239,7 @@ namespace BLL.Implements
             var normalizedStatus = NormalizeStatus(updateUserStatusDTO.Status);
             if (normalizedStatus == null)
             {
-                return new ResponseDTO("Trạng thái chỉ được là Active hoặc Inactive", 400, false);
+                return new ResponseDTO("Trạng thái chỉ được là Active, Inactive hoặc Banned", 400, false);
             }
 
             var user = await _unitOfWork.UserRepo.GetByIdWithRoleAsync(id);
@@ -245,7 +248,6 @@ namespace BLL.Implements
                 return new ResponseDTO("Không tìm thấy người dùng", 404, false);
             }
 
-            //var userDTO = new UserDTO
             if (IsAdminRole(user.Role))
             {
                 return new ResponseDTO("Không thể thay đổi trạng thái tài khoản admin", 400, false);
@@ -298,27 +300,29 @@ namespace BLL.Implements
             }
         }
 
-        private async Task<(Role? Role, ResponseDTO? Error)> ValidateManageableRoleAsync(Guid roleId)
+        private async Task<(Role? Role, ResponseDTO? Error)> ValidateManageableRoleAsync(string roleName)
         {
-            if (roleId == Guid.Empty)
+            if (string.IsNullOrWhiteSpace(roleName))
             {
                 return (null, new ResponseDTO("Vui lòng chọn quyền cho người dùng", 400, false));
             }
 
-            var role = await _unitOfWork.UserRepo.GetRoleByIdAsync(roleId);
-            if (role == null)
-            {
-                return (null, new ResponseDTO("Quyền người dùng không tồn tại", 404, false));
-            }
+            var trimmedRoleName = roleName.Trim();
 
-            if (IsAdminRole(role))
+            if (string.Equals(trimmedRoleName, AdminRoleName, StringComparison.OrdinalIgnoreCase))
             {
                 return (null, new ResponseDTO("Không được tạo hoặc gán quyền admin", 400, false));
             }
 
-            if (!ManageableRoleNames.Contains(role.RoleName))
+            if (!ManageableRoleNames.Contains(trimmedRoleName))
             {
-                return (null, new ResponseDTO("Chỉ được gán quyền user, customer hoặc staff", 400, false));
+                return (null, new ResponseDTO("Chỉ được gán quyền user, customer, staff hoặc manager", 400, false));
+            }
+
+            var role = await _unitOfWork.UserRepo.GetRoleByNameAsync(trimmedRoleName);
+            if (role == null)
+            {
+                return (null, new ResponseDTO("Quyền người dùng không tồn tại", 404, false));
             }
 
             return (role, null);

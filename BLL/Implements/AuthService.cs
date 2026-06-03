@@ -47,6 +47,15 @@ namespace BLL.Implements
                 return new ResponseDTO("Lỗi xác thực mật khẩu (lỗi hệ thống): " + ex.Message, 500, false);
             }
 
+            if (user.Status != "Active") 
+            {
+                if (user.Status == "Banned")
+                {
+                    return new ResponseDTO("Tài khoản của bạn đã bị khóa", 403, false);
+                }
+                return new ResponseDTO("Tài khoản chưa được kích hoạt hoặc đã bị vô hiệu hóa", 403, false);
+            }
+
             var claims = new List<Claim>
             {
                 new Claim(JwtConstant.KeyClaim.Email, user.Email),
@@ -58,13 +67,6 @@ namespace BLL.Implements
 
             var refreshTokenKey = JwtProvider.GenerateRefreshToken(user.UserId.ToString());
             var accessTokenKey = JwtProvider.GenerateAccessToken(claims);
-
-            //var existRefreshToken = await _unitOfWork.TokenRepo.GetRefreshTokenByUserID(user.UserId);
-            //if (existRefreshToken != null)
-            //{
-            //    _unitOfWork.TokenRepo.Delete(existRefreshToken);
-            //}
-
             var refreshToken = new RefreshToken
             {
                 RefreshTokenKey = refreshTokenKey,
@@ -222,6 +224,11 @@ namespace BLL.Implements
                 return new ResponseDTO("Người dùng không tồn tại trên hệ thống", 404, false);
             }
 
+            if (user.Status != "Active")
+            {
+                return new ResponseDTO("Tài khoản đã bị khóa hoặc vô hiệu hóa. Không thể làm mới token", 403, false);
+            }
+
             var newClaims = new List<Claim>
             {
                 new Claim(ClaimTypes.Email, user.Email),
@@ -233,7 +240,7 @@ namespace BLL.Implements
 
             var newAccessToken = JwtProvider.GenerateAccessToken(newClaims);
 
-            return new ResponseDTO("Cấp token mới thành công.", 200, true, new
+            return new ResponseDTO("Cấp token mới thành công", 200, true, new
             {
                 accessToken = newAccessToken
             });
