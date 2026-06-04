@@ -1,4 +1,4 @@
-namespace Common.DTOs.User
+﻿namespace Common.DTOs.User
 {
     public class UpdateUserStatusDTO
     {

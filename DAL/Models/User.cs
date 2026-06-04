@@ -31,6 +31,8 @@ public partial class User
 
     public virtual ICollection<IncidentReport> IncidentReportReportedByUsers { get; set; } = new List<IncidentReport>();
 
+    public virtual ICollection<MonthlySubscription> MonthlySubscriptions { get; set; } = new List<MonthlySubscription>();
+
     public virtual ICollection<ParkingSession> ParkingSessions { get; set; } = new List<ParkingSession>();
 
     public virtual ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();

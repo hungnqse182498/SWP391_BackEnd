@@ -19,7 +19,9 @@ namespace DAL.Implements
         }
         public async Task<User> FindByEmailAsync(string email)
         {
-            return await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Email == email);
+            return await _context.Users
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.Email == email);
         }
 
         public async Task<Guid> GetRoleIdByNameAsync(string roleName)
@@ -29,11 +31,24 @@ namespace DAL.Implements
             return role != null ? role.RoleId : Guid.Empty;
         }
 
+        public async Task<Role?> GetRoleByNameAsync(string roleName)
+        {
+            var normalizedRoleName = roleName.Trim().ToLower();
+            return await _context.Roles.FirstOrDefaultAsync(r => r.RoleName.ToLower() == normalizedRoleName);
+        }
+
         public async Task<User> GetByIdWithRoleAsync(Guid id)
         {
             return await _context.Users
                 .Include(u => u.Role) 
                 .FirstOrDefaultAsync(u => u.UserId == id);
+        }
+
+        public async Task<User> FindByPhoneNumberAsync(string phoneNumber)
+        {
+            return await _context.Users
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.PhoneNumber == phoneNumber);
         }
 
         public async Task<Role> GetRoleByIdAsync(Guid roleId)
@@ -43,7 +58,7 @@ namespace DAL.Implements
 
         public async Task<List<Role>> GetManageableRolesAsync()
         {
-            var manageableRoleNames = new[] { "driver", "staff", "manager" };
+            var manageableRoleNames = new[] { "user", "customer", "staff", "manager" };
 
             return await _context.Roles
                 .Where(r => manageableRoleNames.Contains(r.RoleName.ToLower()))

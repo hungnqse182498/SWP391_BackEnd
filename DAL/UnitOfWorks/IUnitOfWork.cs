@@ -11,8 +11,9 @@ namespace DAL.UnitOfWorks
     {
         IUserRepository UserRepo { get; }
         ITokenRepository TokenRepo { get; }
-
-        Task<int> SaveAsync();
+        IVehicleTypeRepository VehicleTypeRepo { get; }
+        IFloorRepository FloorRepo { get; }
+        Task<int> SaveAsync();  
         Task<bool> SaveChangeAsync();
     }
 }

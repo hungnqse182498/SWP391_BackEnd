@@ -31,7 +31,6 @@ namespace PBMS.Controllers
             return StatusCode(result.StatusCode, result);
         }
 
-        [HttpGet("id")]
         [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetUserById(Guid id)
         {

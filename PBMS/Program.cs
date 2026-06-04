@@ -40,10 +40,14 @@ builder.Services.AddDbContext<ParkingDBContext>(options =>
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<ITokenRepository, TokenRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IVehicleTypeRepository, VehicleTypeRepository>();
+builder.Services.AddScoped<IFloorRepository, FloorRepository>();
 
 // Đăng ký Services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IVehicleTypeService, VehicleTypeService>();
+builder.Services.AddScoped<IFloorService, FloorService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
