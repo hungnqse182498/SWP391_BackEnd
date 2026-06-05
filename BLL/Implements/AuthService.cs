@@ -62,7 +62,7 @@ namespace BLL.Implements
                 new Claim(JwtConstant.KeyClaim.UserId, user.UserId.ToString()),
                 new Claim(JwtConstant.KeyClaim.UserName, user.UserName),
                 new Claim(JwtConstant.KeyClaim.RoleId, user.RoleId.ToString()),
-                new Claim(JwtConstant.KeyClaim.Role, user.Role?.RoleName ?? "user")
+                new Claim(JwtConstant.KeyClaim.Role, user.Role?.RoleName ?? "User")
             };
 
             var refreshTokenKey = JwtProvider.GenerateRefreshToken(user.UserId.ToString());
@@ -150,7 +150,7 @@ namespace BLL.Implements
             var defaultRole = await _unitOfWork.UserRepo.GetRoleIdByNameAsync("User");
             if (defaultRole == Guid.Empty)
             {
-                return new ResponseDTO("Lỗi cấu hình hệ thống: Không tìm thấy quyền 'user' mặc định trong DB", 500, false);
+                return new ResponseDTO("Lỗi cấu hình hệ thống: Không tìm thấy quyền 'User' mặc định trong DB", 500, false);
             }
 
             var newUser = new User
