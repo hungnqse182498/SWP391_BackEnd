@@ -97,7 +97,7 @@ namespace BLL.Implements
                     ValidateAudience = true,
                     ValidAudience = JwtSettingModel.Audience,
                     ValidateLifetime = true,
-                    ClockSkew = TimeSpan.Zero // Ép chết chính xác từng giây
+                    ClockSkew = TimeSpan.Zero
                 }, out SecurityToken validatedToken);
 
                 var jwtToken = (JwtSecurityToken)validatedToken;

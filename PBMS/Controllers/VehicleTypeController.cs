@@ -1,6 +1,7 @@
 using BLL.Interfaces;
 using Common.DTOs;
 using Common.DTOs.VehicleType;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Threading.Tasks;
@@ -8,6 +9,7 @@ using System.Threading.Tasks;
 namespace PBMS.Controllers
 {
     [ApiController]
+    [Authorize(Roles = "Manager")]
     [Route("api/[controller]")]
     public class VehicleTypeController : ControllerBase
     {

@@ -15,6 +15,8 @@ public partial class Floor
 
     public int TotalCapacity { get; set; }
 
+    public bool IsResident { get; set; }
+
     public virtual VehicleType DedicatedVehicleType { get; set; }
 
     public virtual ICollection<Gate> Gates { get; set; } = new List<Gate>();

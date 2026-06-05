@@ -17,13 +17,15 @@ public partial class ParkingSlot
 
     public string Status { get; set; }
 
+    public Guid? AssignedUserId { get; set; }
+
+    public virtual User AssignedUser { get; set; }
+
     public virtual Floor Floor { get; set; }
 
     public virtual ICollection<ParkingSession> ParkingSessionActualSlots { get; set; } = new List<ParkingSession>();
 
     public virtual ICollection<ParkingSession> ParkingSessionAssignedSlots { get; set; } = new List<ParkingSession>();
-
-    public virtual ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
 
     public virtual VehicleType VehicleType { get; set; }
 }

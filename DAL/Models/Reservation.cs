@@ -13,17 +13,13 @@ public partial class Reservation
 
     public Guid VehicleTypeId { get; set; }
 
-    public Guid AssignedSlotId { get; set; }
-
     public DateTime ExpectedEntryTime { get; set; }
-
-    public DateTime ExpectedExitTime { get; set; }
 
     public string Status { get; set; }
 
     public DateTime? CreatedAt { get; set; }
 
-    public virtual ParkingSlot AssignedSlot { get; set; }
+    public virtual ICollection<ParkingSession> ParkingSessions { get; set; } = new List<ParkingSession>();
 
     public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
 

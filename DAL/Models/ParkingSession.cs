@@ -9,6 +9,8 @@ public partial class ParkingSession
 {
     public Guid SessionId { get; set; }
 
+    public Guid? ReservationId { get; set; }
+
     public Guid? CardId { get; set; }
 
     public Guid? DriverUserId { get; set; }
@@ -52,6 +54,8 @@ public partial class ParkingSession
     public virtual ICollection<IncidentReport> IncidentReports { get; set; } = new List<IncidentReport>();
 
     public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
+
+    public virtual Reservation Reservation { get; set; }
 
     public virtual VehicleType VehicleType { get; set; }
 }
