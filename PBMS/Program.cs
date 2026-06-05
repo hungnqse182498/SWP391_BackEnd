@@ -55,6 +55,7 @@ builder.Services.AddScoped<IGateRepository, GateRepository>();
 builder.Services.AddScoped<IPricingPolicyRepository, PricingPolicyRepository>();
 builder.Services.AddScoped<IReservationRepository, ReservationRepository>();
 builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
+builder.Services.AddScoped<IIncidentReportRepository, IncidentReportRepository>();
 
 // Đăng ký Services
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -64,6 +65,14 @@ builder.Services.AddScoped<IFloorService, FloorService>();
 builder.Services.AddScoped<IReservationService, ReservationService>();
 builder.Services.AddScoped<IPayOSService, PayOSService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IGateService, GateService>();
+builder.Services.AddScoped<IParkingSlotService, ParkingSlotService>();
+builder.Services.AddScoped<IParkingCardService, ParkingCardService>();
+builder.Services.AddScoped<IMonthlySubscriptionService, MonthlySubscriptionService>();
+builder.Services.AddScoped<IPricingPolicyService, PricingPolicyService>();
+builder.Services.AddScoped<IParkingSessionService, ParkingSessionService>();
+builder.Services.AddScoped<IIncidentReportService, IncidentReportService>();
+builder.Services.AddScoped<IParkingOperationService, ParkingOperationService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

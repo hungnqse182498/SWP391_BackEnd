@@ -14,10 +14,12 @@ namespace API.Controllers
     {
         private readonly IReservationService _reservationService;
 
-        public ReservationController(IReservationService reservationService, IPaymentService paymentService)
+        public ReservationController(IReservationService reservationService)
+
         {
             _reservationService = reservationService;
         }
+
 
         private Guid GetUserId() => Guid.Parse(User.FindFirst("UserId")!.Value);
         private string GetUserRole() => User.FindFirst(ClaimTypes.Role)?.Value ?? string.Empty;

@@ -18,5 +18,12 @@ namespace DAL.Implements
             return await _context.ParkingCards
                 .FirstOrDefaultAsync(c => c.CardCode == cardCode && c.Status == "Active");
         }
+
+
+        public async Task<ParkingCard> FindByCodeAsync(string cardCode)
+        {
+            var normalizedCode = cardCode.Trim().ToLower();
+            return await _context.ParkingCards.FirstOrDefaultAsync(c => c.CardCode.ToLower() == normalizedCode);
+        }
     }
 }

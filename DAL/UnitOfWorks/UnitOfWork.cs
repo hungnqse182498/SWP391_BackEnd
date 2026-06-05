@@ -30,6 +30,8 @@ namespace DAL.UnitOfWorks
             PricingPolicyRepo = new PricingPolicyRepository(_context);
             ReservationRepo = new ReservationRepository(_context);
             PaymentRepo = new PaymentRepository(_context);
+            IncidentReportRepo = new IncidentReportRepository(_context);
+
         }
 
         public IUserRepository UserRepo { get; private set; }
@@ -44,6 +46,7 @@ namespace DAL.UnitOfWorks
         public IPricingPolicyRepository PricingPolicyRepo { get; private set; }
         public IReservationRepository ReservationRepo { get; private set; }
         public IPaymentRepository PaymentRepo { get; private set; }
+        public IIncidentReportRepository IncidentReportRepo { get; private set; }
 
         public void Dispose()
         {

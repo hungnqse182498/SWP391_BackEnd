@@ -21,6 +21,7 @@ namespace DAL.UnitOfWorks
         IPricingPolicyRepository PricingPolicyRepo { get; }
         IReservationRepository ReservationRepo { get; }
         IPaymentRepository PaymentRepo { get; }
+        IIncidentReportRepository IncidentReportRepo { get; }
 
         Task<int> SaveAsync();  
         Task<bool> SaveChangeAsync();
