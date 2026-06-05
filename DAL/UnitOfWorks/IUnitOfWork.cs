@@ -13,6 +13,15 @@ namespace DAL.UnitOfWorks
         ITokenRepository TokenRepo { get; }
         IVehicleTypeRepository VehicleTypeRepo { get; }
         IFloorRepository FloorRepo { get; }
+        IGateRepository GateRepo { get; }
+        IParkingSlotRepository ParkingSlotRepo { get; }
+        IParkingCardRepository ParkingCardRepo { get; }
+        IMonthlySubscriptionRepository MonthlySubscriptionRepo { get; }
+        IPricingPolicyRepository PricingPolicyRepo { get; }
+        IReservationRepository ReservationRepo { get; }
+        IParkingSessionRepository ParkingSessionRepo { get; }
+        IPaymentRepository PaymentRepo { get; }
+        IIncidentReportRepository IncidentReportRepo { get; }
         Task<int> SaveAsync();  
         Task<bool> SaveChangeAsync();
     }
