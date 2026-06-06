@@ -10,8 +10,6 @@ namespace BLL.Implements
     public class ParkingOperationService : IParkingOperationService
     {
         private readonly IUnitOfWork _unitOfWork;
-        private static readonly string[] GuestFloorKeywords = { "Vãng lai", "Vang lai" };
-        private static readonly string[] ResidentFloorKeywords = { "Tháng", "Thang", "Cư dân", "Cu dan" };
         private static readonly string[] ReservationFloorKeywords = { "Đặt trước", "Dat truoc" };
 
         public ParkingOperationService(IUnitOfWork unitOfWork)
@@ -29,7 +27,7 @@ namespace BLL.Implements
             var activeValidation = await ValidateNoActiveSessionAsync(validation.LicensePlate!, validation.Card);
             if (activeValidation != null) return activeValidation;
 
-            var slot = await FindAvailableSlotAsync(dto.VehicleTypeId, GuestFloorKeywords);
+            var slot = await FindGuestAvailableSlotAsync(dto.VehicleTypeId);
             if (slot == null) return new ResponseDTO("Không còn chỗ trống cho khách vãng lai", 409, false);
 
             var now = DateTime.Now;
@@ -147,7 +145,7 @@ namespace BLL.Implements
             var activeValidation = await ValidateNoActiveSessionAsync(validation.LicensePlate!, validation.Card);
             if (activeValidation != null) return activeValidation;
 
-            var slot = await FindAvailableSlotAsync(dto.VehicleTypeId, ResidentFloorKeywords);
+            var slot = await FindResidentAvailableSlotAsync(dto.VehicleTypeId);
             if (slot == null) return new ResponseDTO("Không còn chỗ trống cho cư dân", 409, false);
 
             var session = new ParkingSession
@@ -401,15 +399,26 @@ namespace BLL.Implements
             return null;
         }
 
-        private async Task<ParkingSlot?> FindAvailableSlotAsync(Guid vehicleTypeId, string[] floorKeywords)
+        private Task<ParkingSlot?> FindGuestAvailableSlotAsync(Guid vehicleTypeId)
         {
-            var slots = await _unitOfWork.ParkingSlotRepo.GetAll()
-                .Include(s => s.Floor)
-                .Where(s => s.VehicleTypeId == vehicleTypeId && s.Status == "Available")
-                .OrderBy(s => s.SlotCode)
-                .ToListAsync();
+            return FindAvailableSlotByResidentFlagAsync(vehicleTypeId, false);
+        }
 
-            return slots.FirstOrDefault(s => FloorMatches(s.Floor?.FloorName, floorKeywords));
+        private Task<ParkingSlot?> FindResidentAvailableSlotAsync(Guid vehicleTypeId)
+        {
+            return FindAvailableSlotByResidentFlagAsync(vehicleTypeId, true);
+        }
+
+        private async Task<ParkingSlot?> FindAvailableSlotByResidentFlagAsync(Guid vehicleTypeId, bool isResident)
+        {
+            return await _unitOfWork.ParkingSlotRepo.GetAll()
+                .Include(s => s.Floor)
+                .Where(s => s.VehicleTypeId == vehicleTypeId
+                            && s.Status == "Available"
+                            && s.Floor != null
+                            && s.Floor.IsResident == isResident)
+                .OrderBy(s => s.SlotCode)
+                .FirstOrDefaultAsync();
         }
 
         private async Task<(ParkingSession? Session, ResponseDTO? Error)> FindActiveSessionAsync(Guid? sessionId, string? licensePlate, Guid? cardId, string? cardCode, bool requireCardWhenNoSessionId)
