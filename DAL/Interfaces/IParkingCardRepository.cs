@@ -10,5 +10,6 @@ namespace DAL.Interfaces
     public interface IParkingCardRepository : IGenericRepository<ParkingCard>
     {
         Task<ParkingCard?> GetActiveCardAsync(string cardCode);
+        Task<ParkingCard> FindByCodeAsync(string cardCode);
     }
 }

@@ -10,5 +10,6 @@ namespace DAL.Interfaces
     public interface IMonthlySubscriptionRepository : IGenericRepository<MonthlySubscription>
     {
         Task<MonthlySubscription?> GetActiveSubscriptionAsync(string licensePlate);
+
     }
 }

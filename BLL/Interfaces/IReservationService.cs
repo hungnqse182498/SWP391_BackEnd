@@ -1,5 +1,7 @@
 ﻿using Common.DTOs;
 using Common.DTOs.Reservation;
+using System;
+using System.Threading.Tasks;
 
 namespace BLL.Interfaces
 {

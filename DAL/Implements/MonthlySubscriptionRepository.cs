@@ -11,6 +11,7 @@ namespace DAL.Implements
 {
     public class MonthlySubscriptionRepository : GenericRepository<MonthlySubscription>, IMonthlySubscriptionRepository
     {
+
         public MonthlySubscriptionRepository(ParkingDBContext context) : base(context) { }
         public async Task<MonthlySubscription?> GetActiveSubscriptionAsync(string licensePlate)
         {
