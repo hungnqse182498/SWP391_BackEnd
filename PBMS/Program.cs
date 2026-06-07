@@ -22,8 +22,6 @@ builder.Services.AddSwaggerDocumentation();
 
 // Cấu hình PayOS
 builder.Services.Configure<PayOSConfig>(builder.Configuration.GetSection("PayOS"));
-// 1. Cấu hình PayOS từ appsettings.json
-builder.Services.Configure<PayOSConfig>(builder.Configuration.GetSection("PayOS"));
 
 // Thêm CORS vào services (Mở đường cho React)
 builder.Services.AddCors(options =>
