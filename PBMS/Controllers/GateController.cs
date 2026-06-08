@@ -1,10 +1,13 @@
 using BLL.Interfaces;
 using Common.DTOs.Gate;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization.Infrastructure;
 using Microsoft.AspNetCore.Mvc;
 
 namespace PBMS.Controllers
 {
     [ApiController]
+    [Authorize]
     [Route("api/[controller]")]
     public class GateController : ControllerBase
     {
@@ -30,6 +33,7 @@ namespace PBMS.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Manager")]
         public async Task<IActionResult> Create([FromBody] CreateGateDTO dto)
         {
             var res = await _gateService.CreateAsync(dto);
@@ -37,6 +41,7 @@ namespace PBMS.Controllers
         }
 
         [HttpPut]
+        [Authorize(Roles = "Manager")]
         public async Task<IActionResult> Update([FromBody] UpdateGateDTO dto)
         {
             var res = await _gateService.UpdateAsync(dto);
@@ -44,6 +49,7 @@ namespace PBMS.Controllers
         }
 
         [HttpDelete("{id:guid}")]
+        [Authorize(Roles = "Manager")]
         public async Task<IActionResult> Delete(Guid id)
         {
             var res = await _gateService.DeleteAsync(id);
