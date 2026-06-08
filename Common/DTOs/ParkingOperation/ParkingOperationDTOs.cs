@@ -4,12 +4,21 @@ namespace Common.DTOs.ParkingOperation
 {
     public class GuestCheckInDTO
     {
-        public string LicensePlate { get; set; }
+        public string LicensePlate { get; set; } = string.Empty;
         public Guid VehicleTypeId { get; set; }
-        public Guid GateId { get; set; }
-        public Guid? CardId { get; set; }
-        public string? CardCode { get; set; }
+        public string GateName { get; set; } = string.Empty;
+        public string CardCode { get; set; } = string.Empty;
         public string? EntryImageUrl { get; set; }
+    }
+
+    public class GuestCheckOutDTO
+    {
+        public string? LicensePlate { get; set; }
+        public string CardCode { get; set; } = string.Empty;
+        public string GateName { get; set; } = string.Empty;
+        public string PaymentMethod { get; set; } = string.Empty;
+        public string? LicensePlateOut { get; set; }
+        public string? ExitImageUrl { get; set; }
     }
 
     public class GuestCheckOutPreviewDTO
@@ -20,10 +29,10 @@ namespace Common.DTOs.ParkingOperation
         public string? CardCode { get; set; }
     }
 
-    public class GuestCheckOutDTO : GuestCheckOutPreviewDTO
+    public class GuestCheckOutLegacyDTO : GuestCheckOutPreviewDTO
     {
         public Guid GateId { get; set; }
-        public string PaymentMethod { get; set; }
+        public string PaymentMethod { get; set; } = string.Empty;
         public string? TransactionReference { get; set; }
         public string? LicensePlateOut { get; set; }
         public string? ExitImageUrl { get; set; }
@@ -31,21 +40,18 @@ namespace Common.DTOs.ParkingOperation
 
     public class ResidentCheckInDTO
     {
-        public string LicensePlate { get; set; }
+        public string LicensePlate { get; set; } = string.Empty;
         public Guid VehicleTypeId { get; set; }
-        public Guid GateId { get; set; }
-        public Guid? CardId { get; set; }
-        public string? CardCode { get; set; }
+        public string GateName { get; set; } = string.Empty;
+        public string CardCode { get; set; } = string.Empty;
         public string? EntryImageUrl { get; set; }
     }
 
     public class ResidentCheckOutDTO
     {
-        public Guid? SessionId { get; set; }
         public string? LicensePlate { get; set; }
-        public Guid GateId { get; set; }
-        public Guid? CardId { get; set; }
-        public string? CardCode { get; set; }
+        public string CardCode { get; set; } = string.Empty;
+        public string GateName { get; set; } = string.Empty;
         public string? LicensePlateOut { get; set; }
         public string? ExitImageUrl { get; set; }
     }

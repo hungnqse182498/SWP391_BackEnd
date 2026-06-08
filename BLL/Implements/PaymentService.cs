@@ -14,6 +14,7 @@ public class PaymentService : IPaymentService
     private static readonly HashSet<string> ValidStatuses = new(StringComparer.OrdinalIgnoreCase)
         {
             "Success",
+            "Pending",
             "Failed"
         };
 
@@ -47,6 +48,8 @@ public class PaymentService : IPaymentService
             payment.PaymentTime = DateTime.UtcNow;
 
             await _unitOfWork.PaymentRepo.UpdateAsync(payment);
+
+            await CompleteCheckoutSessionIfNeededAsync(payment);
 
             if (payment.ReservationId.HasValue)
             {
@@ -163,7 +166,7 @@ public class PaymentService : IPaymentService
         if (string.IsNullOrWhiteSpace(paymentMethod)) return (null, new ResponseDTO("Vui lòng nhập phương thức thanh toán", 400, false));
 
         var normalizedStatus = NormalizeStatus(status);
-        if (normalizedStatus == null) return (null, new ResponseDTO("Trạng thái thanh toán chỉ được là Success hoặc Failed", 400, false));
+        if (normalizedStatus == null) return (null, new ResponseDTO("Trạng thái thanh toán chỉ được là Pending, Success hoặc Failed", 400, false));
 
         var sessionExists = await _unitOfWork.ParkingSessionRepo.AnyAsync(s => s.SessionId == sessionId);
         if (!sessionExists) return (null, new ResponseDTO("Phiên gửi xe không tồn tại", 400, false));
@@ -181,6 +184,51 @@ public class PaymentService : IPaymentService
     {
         if (string.IsNullOrWhiteSpace(status)) return null;
         return ValidStatuses.FirstOrDefault(s => string.Equals(s, status.Trim(), StringComparison.OrdinalIgnoreCase));
+    }
+
+    private async Task CompleteCheckoutSessionIfNeededAsync(Payment payment)
+    {
+        if (!payment.SessionId.HasValue) return;
+        if (!string.Equals(payment.PaymentType, PaymentType.CheckoutFee.ToString(), StringComparison.OrdinalIgnoreCase)) return;
+
+        var session = await _unitOfWork.ParkingSessionRepo.GetByIdAsync(payment.SessionId.Value);
+        if (session == null || session.Status == "Completed") return;
+
+        session.ExitTime ??= payment.PaymentTime;
+        session.LicensePlateOut = string.IsNullOrWhiteSpace(session.LicensePlateOut) ? session.LicensePlateIn : session.LicensePlateOut;
+        session.Status = "Completed";
+
+        if (session.ActualSlotId.HasValue)
+        {
+            var actualSlot = await _unitOfWork.ParkingSlotRepo.GetByIdAsync(session.ActualSlotId.Value);
+            if (actualSlot != null)
+            {
+                actualSlot.Status = "Available";
+                await _unitOfWork.ParkingSlotRepo.UpdateAsync(actualSlot);
+            }
+        }
+
+        if (session.AssignedSlotId.HasValue && session.AssignedSlotId != session.ActualSlotId)
+        {
+            var assignedSlot = await _unitOfWork.ParkingSlotRepo.GetByIdAsync(session.AssignedSlotId.Value);
+            if (assignedSlot != null)
+            {
+                assignedSlot.Status = "Available";
+                await _unitOfWork.ParkingSlotRepo.UpdateAsync(assignedSlot);
+            }
+        }
+
+        if (session.CardId.HasValue)
+        {
+            var card = await _unitOfWork.ParkingCardRepo.GetByIdAsync(session.CardId.Value);
+            if (card != null)
+            {
+                card.Status = "Active";
+                await _unitOfWork.ParkingCardRepo.UpdateAsync(card);
+            }
+        }
+
+        await _unitOfWork.ParkingSessionRepo.UpdateAsync(session);
     }
 
     private static PaymentDTO MapToDTO(Payment payment)
