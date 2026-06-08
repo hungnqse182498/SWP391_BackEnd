@@ -24,5 +24,18 @@ namespace DAL.Implements
         {
             return await _context.Floors.Include(f => f.DedicatedVehicleType).FirstOrDefaultAsync(f => f.FloorId == id);
         }
+
+        public async Task<IEnumerable<Floor>> GetAllWithVehicleTypeAsync()
+        {
+            return await _context.Floors
+                .Include(f => f.DedicatedVehicleType)
+                .ToListAsync();
+        }
+
+        public async Task<bool> IsNameDuplicateAsync(string floorName, Guid? excludeFloorId = null)
+        {
+            return await _context.Floors
+                .AnyAsync(f => f.FloorName == floorName && (!excludeFloorId.HasValue || f.FloorId != excludeFloorId.Value));
+        }
     }
 }

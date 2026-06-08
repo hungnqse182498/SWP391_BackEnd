@@ -8,5 +8,7 @@ namespace DAL.Interfaces
     {
         Task<Floor> FindByNameAsync(string floorName);
         Task<Floor> GetByIdWithVehicleTypeAsync(Guid id);
+        Task<IEnumerable<Floor>> GetAllWithVehicleTypeAsync();
+        Task<bool> IsNameDuplicateAsync(string floorName, Guid? excludeFloorId = null);
     }
 }
