@@ -1,53 +1,83 @@
-using BLL.Interfaces;
+﻿using BLL.Interfaces;
 using Common.DTOs.Reservation;
+using Common.DTOs.Payment;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
-namespace PBMS.Controllers
+namespace API.Controllers
 {
+    [Route("api/reservations")]
     [ApiController]
-    [Route("api/[controller]")]
+    [Authorize]
     public class ReservationController : ControllerBase
     {
         private readonly IReservationService _reservationService;
 
         public ReservationController(IReservationService reservationService)
+
         {
             _reservationService = reservationService;
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetAll()
-        {
-            var res = await _reservationService.GetAllAsync();
-            return StatusCode(res.StatusCode, res);
-        }
 
-        [HttpGet("{id:guid}")]
-        public async Task<IActionResult> GetById(Guid id)
-        {
-            var res = await _reservationService.GetByIdAsync(id);
-            return StatusCode(res.StatusCode, res);
-        }
+        private Guid GetUserId() => Guid.Parse(User.FindFirst("UserId")!.Value);
+        private string GetUserRole() => User.FindFirst(ClaimTypes.Role)?.Value ?? string.Empty;
 
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CreateReservationDTO dto)
+        public async Task<IActionResult> CreateReservation(CreateReservationDTO dto)
         {
-            var res = await _reservationService.CreateAsync(dto);
-            return StatusCode(res.StatusCode, res);
+            var userId = GetUserId();
+            var result = await _reservationService.CreateReservationAsync(userId, dto);
+            return StatusCode(result.StatusCode, result);
         }
 
-        [HttpPut]
-        public async Task<IActionResult> Update([FromBody] UpdateReservationDTO dto)
+        [HttpGet("my-reservations")]
+        public async Task<IActionResult> GetMyReservations()
         {
-            var res = await _reservationService.UpdateAsync(dto);
-            return StatusCode(res.StatusCode, res);
+            var userId = GetUserId();
+            var result = await _reservationService.GetMyReservationsAsync(userId);
+            return StatusCode(result.StatusCode, result);
         }
 
-        [HttpDelete("{id:guid}")]
-        public async Task<IActionResult> Delete(Guid id)
+        [HttpGet("{reservationId}")]
+        public async Task<IActionResult> GetReservationById(Guid reservationId)
         {
-            var res = await _reservationService.DeleteAsync(id);
-            return StatusCode(res.StatusCode, res);
+            var userId = GetUserId();
+            var role = GetUserRole();
+            var result = await _reservationService.GetReservationByIdAsync(reservationId, userId, role);
+            return StatusCode(result.StatusCode, result);
+        }
+
+        [HttpPut("{reservationId}/cancel")]
+        public async Task<IActionResult> CancelReservation(Guid reservationId)
+        {
+            var userId = GetUserId();
+            var result = await _reservationService.CancelReservationAsync(reservationId, userId);
+            return StatusCode(result.StatusCode, result);
+        }
+
+        [HttpGet("check-payment-status/{orderCode}")]
+        public async Task<IActionResult> CheckPaymentStatus(string orderCode)
+        {
+            var result = await _reservationService.CheckPaymentStatusByOrderCodeAsync(orderCode);
+            return StatusCode(result.StatusCode, result);
+        }
+
+        [HttpGet]
+        [Authorize(Roles = "Manager,Staff")]
+        public async Task<IActionResult> GetAllReservations([FromQuery] string? status, [FromQuery] DateTime? date)
+        {
+            var result = await _reservationService.GetAllReservationsAsync(status, date);
+            return StatusCode(result.StatusCode, result);
+        }
+
+        [HttpPut("{reservationId}/status")]
+        [Authorize(Roles = "Manager,Staff")]
+        public async Task<IActionResult> UpdateReservationStatus(Guid reservationId, [FromBody] UpdateReservationStatusDTO dto)
+        {
+            var result = await _reservationService.UpdateReservationStatusAsync(reservationId, dto);
+            return StatusCode(result.StatusCode, result);
         }
     }
 }

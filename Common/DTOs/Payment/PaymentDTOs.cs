@@ -5,7 +5,7 @@ namespace Common.DTOs.Payment
     public class PaymentDTO
     {
         public Guid PaymentId { get; set; }
-        public Guid SessionId { get; set; }
+        public Guid? SessionId { get; set; }
         public Guid? ReservationId { get; set; }
         public decimal Amount { get; set; }
         public string PaymentMethod { get; set; }

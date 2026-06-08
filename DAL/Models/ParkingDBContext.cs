@@ -45,9 +45,9 @@ public partial class ParkingDBContext : DbContext
     {
         modelBuilder.Entity<Floor>(entity =>
         {
-            entity.HasKey(e => e.FloorId).HasName("PK__Floors__49D1E86B5BE35B12");
+            entity.HasKey(e => e.FloorId).HasName("PK__Floors__49D1E86B1DA182CD");
 
-            entity.HasIndex(e => e.FloorName, "UQ__Floors__3D098F354DA69540").IsUnique();
+            entity.HasIndex(e => e.FloorName, "UQ__Floors__3D098F357B82B85E").IsUnique();
 
             entity.Property(e => e.FloorId)
                 .HasDefaultValueSql("(newid())")
@@ -59,12 +59,12 @@ public partial class ParkingDBContext : DbContext
 
             entity.HasOne(d => d.DedicatedVehicleType).WithMany(p => p.Floors)
                 .HasForeignKey(d => d.DedicatedVehicleTypeId)
-                .HasConstraintName("FK__Floors__Dedicate__412EB0B6");
+                .HasConstraintName("FK__Floors__Dedicate__4222D4EF");
         });
 
         modelBuilder.Entity<Gate>(entity =>
         {
-            entity.HasKey(e => e.GateId).HasName("PK__Gates__9582C630B45C4515");
+            entity.HasKey(e => e.GateId).HasName("PK__Gates__9582C630D1BFC591");
 
             entity.Property(e => e.GateId)
                 .HasDefaultValueSql("(newid())")
@@ -81,12 +81,12 @@ public partial class ParkingDBContext : DbContext
             entity.HasOne(d => d.Floor).WithMany(p => p.Gates)
                 .HasForeignKey(d => d.FloorId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Gates__FloorID__5EBF139D");
+                .HasConstraintName("FK__Gates__FloorID__60A75C0F");
         });
 
         modelBuilder.Entity<IncidentReport>(entity =>
         {
-            entity.HasKey(e => e.IncidentId).HasName("PK__Incident__3D80539293605000");
+            entity.HasKey(e => e.IncidentId).HasName("PK__Incident__3D8053921259FD5C");
 
             entity.Property(e => e.IncidentId)
                 .HasDefaultValueSql("(newid())")
@@ -109,23 +109,23 @@ public partial class ParkingDBContext : DbContext
 
             entity.HasOne(d => d.HandledByStaff).WithMany(p => p.IncidentReportHandledByStaffs)
                 .HasForeignKey(d => d.HandledByStaffId)
-                .HasConstraintName("FK__IncidentR__Handl__0D7A0286");
+                .HasConstraintName("FK__IncidentR__Handl__0F624AF8");
 
             entity.HasOne(d => d.ReportedByUser).WithMany(p => p.IncidentReportReportedByUsers)
                 .HasForeignKey(d => d.ReportedByUserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__IncidentR__Repor__0C85DE4D");
+                .HasConstraintName("FK__IncidentR__Repor__0E6E26BF");
 
             entity.HasOne(d => d.Session).WithMany(p => p.IncidentReports)
                 .HasForeignKey(d => d.SessionId)
-                .HasConstraintName("FK__IncidentR__Sessi__0B91BA14");
+                .HasConstraintName("FK__IncidentR__Sessi__0D7A0286");
         });
 
         modelBuilder.Entity<MonthlySubscription>(entity =>
         {
-            entity.HasKey(e => e.SubscriptionId).HasName("PK__MonthlyS__9A2B24BD6047F1E8");
+            entity.HasKey(e => e.SubscriptionId).HasName("PK__MonthlyS__9A2B24BDC5318289");
 
-            entity.HasIndex(e => e.LicensePlate, "UQ__MonthlyS__026BC15CA9CB3FF7").IsUnique();
+            entity.HasIndex(e => e.LicensePlate, "UQ__MonthlyS__026BC15CA603D321").IsUnique();
 
             entity.Property(e => e.SubscriptionId)
                 .HasDefaultValueSql("(newid())")
@@ -147,19 +147,19 @@ public partial class ParkingDBContext : DbContext
             entity.HasOne(d => d.User).WithMany(p => p.MonthlySubscriptions)
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__MonthlySu__UserI__5165187F");
+                .HasConstraintName("FK__MonthlySu__UserI__52593CB8");
 
             entity.HasOne(d => d.VehicleType).WithMany(p => p.MonthlySubscriptions)
                 .HasForeignKey(d => d.VehicleTypeId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__MonthlySu__Vehic__52593CB8");
+                .HasConstraintName("FK__MonthlySu__Vehic__534D60F1");
         });
 
         modelBuilder.Entity<ParkingCard>(entity =>
         {
-            entity.HasKey(e => e.CardId).HasName("PK__ParkingC__55FECD8EB0D8EB82");
+            entity.HasKey(e => e.CardId).HasName("PK__ParkingC__55FECD8E539D7B47");
 
-            entity.HasIndex(e => e.CardCode, "UQ__ParkingC__3D53170760A78497").IsUnique();
+            entity.HasIndex(e => e.CardCode, "UQ__ParkingC__3D531707B0C5A533").IsUnique();
 
             entity.Property(e => e.CardId)
                 .HasDefaultValueSql("(newid())")
@@ -176,7 +176,7 @@ public partial class ParkingDBContext : DbContext
 
         modelBuilder.Entity<ParkingSession>(entity =>
         {
-            entity.HasKey(e => e.SessionId).HasName("PK__ParkingS__C9F492706ED798BA");
+            entity.HasKey(e => e.SessionId).HasName("PK__ParkingS__C9F49270024F0FD4");
 
             entity.Property(e => e.SessionId)
                 .HasDefaultValueSql("(newid())")
@@ -210,44 +210,49 @@ public partial class ParkingDBContext : DbContext
 
             entity.HasOne(d => d.ActualSlot).WithMany(p => p.ParkingSessionActualSlots)
                 .HasForeignKey(d => d.ActualSlotId)
-                .HasConstraintName("FK__ParkingSe__Actua__7F2BE32F");
+                .HasConstraintName("FK__ParkingSe__Actua__01142BA1");
 
             entity.HasOne(d => d.AssignedSlot).WithMany(p => p.ParkingSessionAssignedSlots)
                 .HasForeignKey(d => d.AssignedSlotId)
-                .HasConstraintName("FK__ParkingSe__Assig__7E37BEF6");
+                .HasConstraintName("FK__ParkingSe__Assig__00200768");
 
             entity.HasOne(d => d.Card).WithMany(p => p.ParkingSessions)
                 .HasForeignKey(d => d.CardId)
-                .HasConstraintName("FK__ParkingSe__CardI__797309D9");
+                .HasConstraintName("FK__ParkingSe__CardI__7B5B524B");
 
             entity.HasOne(d => d.DriverUser).WithMany(p => p.ParkingSessions)
                 .HasForeignKey(d => d.DriverUserId)
-                .HasConstraintName("FK__ParkingSe__Drive__7A672E12");
+                .HasConstraintName("FK__ParkingSe__Drive__7C4F7684");
 
             entity.HasOne(d => d.EntryGate).WithMany(p => p.ParkingSessionEntryGates)
                 .HasForeignKey(d => d.EntryGateId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__ParkingSe__Entry__7C4F7684");
+                .HasConstraintName("FK__ParkingSe__Entry__7E37BEF6");
 
             entity.HasOne(d => d.ExitGate).WithMany(p => p.ParkingSessionExitGates)
                 .HasForeignKey(d => d.ExitGateId)
-                .HasConstraintName("FK__ParkingSe__ExitG__7D439ABD");
+                .HasConstraintName("FK__ParkingSe__ExitG__7F2BE32F");
+
+            entity.HasOne(d => d.Reservation).WithMany(p => p.ParkingSessions)
+                .HasForeignKey(d => d.ReservationId)
+                .HasConstraintName("FK__ParkingSe__Reser__7A672E12");
 
             entity.HasOne(d => d.VehicleType).WithMany(p => p.ParkingSessions)
                 .HasForeignKey(d => d.VehicleTypeId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__ParkingSe__Vehic__7B5B524B");
+                .HasConstraintName("FK__ParkingSe__Vehic__7D439ABD");
         });
 
         modelBuilder.Entity<ParkingSlot>(entity =>
         {
-            entity.HasKey(e => e.SlotId).HasName("PK__ParkingS__0A124A4FF57F0C09");
+            entity.HasKey(e => e.SlotId).HasName("PK__ParkingS__0A124A4F16E16784");
 
-            entity.HasIndex(e => e.SlotCode, "UQ__ParkingS__38BD98CC6195FC4F").IsUnique();
+            entity.HasIndex(e => e.SlotCode, "UQ__ParkingS__38BD98CC799F73C3").IsUnique();
 
             entity.Property(e => e.SlotId)
                 .HasDefaultValueSql("(newid())")
                 .HasColumnName("SlotID");
+            entity.Property(e => e.AssignedUserId).HasColumnName("AssignedUserID");
             entity.Property(e => e.FloorId).HasColumnName("FloorID");
             entity.Property(e => e.SlotCode)
                 .IsRequired()
@@ -259,20 +264,24 @@ public partial class ParkingDBContext : DbContext
                 .HasDefaultValue("Available");
             entity.Property(e => e.VehicleTypeId).HasColumnName("VehicleTypeID");
 
+            entity.HasOne(d => d.AssignedUser).WithMany(p => p.ParkingSlots)
+                .HasForeignKey(d => d.AssignedUserId)
+                .HasConstraintName("FK__ParkingSl__Assig__5BE2A6F2");
+
             entity.HasOne(d => d.Floor).WithMany(p => p.ParkingSlots)
                 .HasForeignKey(d => d.FloorId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__ParkingSl__Floor__59063A47");
+                .HasConstraintName("FK__ParkingSl__Floor__59FA5E80");
 
             entity.HasOne(d => d.VehicleType).WithMany(p => p.ParkingSlots)
                 .HasForeignKey(d => d.VehicleTypeId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__ParkingSl__Vehic__59FA5E80");
+                .HasConstraintName("FK__ParkingSl__Vehic__5AEE82B9");
         });
 
         modelBuilder.Entity<Payment>(entity =>
         {
-            entity.HasKey(e => e.PaymentId).HasName("PK__Payments__9B556A58AC63D58F");
+            entity.HasKey(e => e.PaymentId).HasName("PK__Payments__9B556A580E4D207D");
 
             entity.Property(e => e.PaymentId)
                 .HasDefaultValueSql("(newid())")
@@ -285,8 +294,12 @@ public partial class ParkingDBContext : DbContext
             entity.Property(e => e.PaymentStatus)
                 .HasMaxLength(10)
                 .IsUnicode(false)
-                .HasDefaultValue("Success");
+                .HasDefaultValue("Pending");
             entity.Property(e => e.PaymentTime).HasColumnType("datetime");
+            entity.Property(e => e.PaymentType)
+                .IsRequired()
+                .HasMaxLength(50)
+                .IsUnicode(false);
             entity.Property(e => e.ReservationId).HasColumnName("ReservationID");
             entity.Property(e => e.SessionId).HasColumnName("SessionID");
             entity.Property(e => e.TransactionReference)
@@ -295,17 +308,16 @@ public partial class ParkingDBContext : DbContext
 
             entity.HasOne(d => d.Reservation).WithMany(p => p.Payments)
                 .HasForeignKey(d => d.ReservationId)
-                .HasConstraintName("FK__Payments__Reserv__05D8E0BE");
+                .HasConstraintName("FK__Payments__Reserv__07C12930");
 
             entity.HasOne(d => d.Session).WithMany(p => p.Payments)
                 .HasForeignKey(d => d.SessionId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Payments__Sessio__04E4BC85");
+                .HasConstraintName("FK__Payments__Sessio__06CD04F7");
         });
 
         modelBuilder.Entity<PricingPolicy>(entity =>
         {
-            entity.HasKey(e => e.PolicyId).HasName("PK__PricingP__2E13394484FE7A2C");
+            entity.HasKey(e => e.PolicyId).HasName("PK__PricingP__2E133944769DA01E");
 
             entity.Property(e => e.PolicyId)
                 .HasDefaultValueSql("(newid())")
@@ -325,14 +337,14 @@ public partial class ParkingDBContext : DbContext
             entity.HasOne(d => d.VehicleType).WithMany(p => p.PricingPolicies)
                 .HasForeignKey(d => d.VehicleTypeId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__PricingPo__Vehic__6B24EA82");
+                .HasConstraintName("FK__PricingPo__Vehic__6D0D32F4");
         });
 
         modelBuilder.Entity<RefreshToken>(entity =>
         {
-            entity.HasKey(e => e.RefreshTokenId).HasName("PK__RefreshT__F5845E59D5C309B8");
+            entity.HasKey(e => e.RefreshTokenId).HasName("PK__RefreshT__F5845E59377E1599");
 
-            entity.HasIndex(e => e.RefreshTokenKey, "UQ__RefreshT__08D6172D8C4CC8FC").IsUnique();
+            entity.HasIndex(e => e.RefreshTokenKey, "UQ__RefreshT__08D6172D08F928A4").IsUnique();
 
             entity.Property(e => e.RefreshTokenId)
                 .HasDefaultValueSql("(newid())")
@@ -350,22 +362,20 @@ public partial class ParkingDBContext : DbContext
             entity.HasOne(d => d.User).WithMany(p => p.RefreshTokens)
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__RefreshTo__UserI__14270015");
+                .HasConstraintName("FK__RefreshTo__UserI__160F4887");
         });
 
         modelBuilder.Entity<Reservation>(entity =>
         {
-            entity.HasKey(e => e.ReservationId).HasName("PK__Reservat__B7EE5F04E0C57FD1");
+            entity.HasKey(e => e.ReservationId).HasName("PK__Reservat__B7EE5F048F274E13");
 
             entity.Property(e => e.ReservationId)
                 .HasDefaultValueSql("(newid())")
                 .HasColumnName("ReservationID");
-            entity.Property(e => e.AssignedSlotId).HasColumnName("AssignedSlotID");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
             entity.Property(e => e.ExpectedEntryTime).HasColumnType("datetime");
-            entity.Property(e => e.ExpectedExitTime).HasColumnType("datetime");
             entity.Property(e => e.Status)
                 .HasMaxLength(15)
                 .IsUnicode(false)
@@ -373,27 +383,22 @@ public partial class ParkingDBContext : DbContext
             entity.Property(e => e.UserId).HasColumnName("UserID");
             entity.Property(e => e.VehicleTypeId).HasColumnName("VehicleTypeID");
 
-            entity.HasOne(d => d.AssignedSlot).WithMany(p => p.Reservations)
-                .HasForeignKey(d => d.AssignedSlotId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Reservati__Assig__73BA3083");
-
             entity.HasOne(d => d.User).WithMany(p => p.Reservations)
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Reservati__UserI__71D1E811");
+                .HasConstraintName("FK__Reservati__UserI__73BA3083");
 
             entity.HasOne(d => d.VehicleType).WithMany(p => p.Reservations)
                 .HasForeignKey(d => d.VehicleTypeId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Reservati__Vehic__72C60C4A");
+                .HasConstraintName("FK__Reservati__Vehic__74AE54BC");
         });
 
         modelBuilder.Entity<Role>(entity =>
         {
-            entity.HasKey(e => e.RoleId).HasName("PK__Roles__8AFACE3A611FFCBA");
+            entity.HasKey(e => e.RoleId).HasName("PK__Roles__8AFACE3A6244CBE9");
 
-            entity.HasIndex(e => e.RoleName, "UQ__Roles__8A2B616088BE0FC6").IsUnique();
+            entity.HasIndex(e => e.RoleName, "UQ__Roles__8A2B61603F9B9E23").IsUnique();
 
             entity.Property(e => e.RoleId)
                 .HasDefaultValueSql("(newid())")
@@ -406,13 +411,13 @@ public partial class ParkingDBContext : DbContext
 
         modelBuilder.Entity<User>(entity =>
         {
-            entity.HasKey(e => e.UserId).HasName("PK__Users__1788CCAC74BB1CF2");
+            entity.HasKey(e => e.UserId).HasName("PK__Users__1788CCACBB9718C6");
 
-            entity.HasIndex(e => e.PhoneNumber, "UQ__Users__85FB4E384DBEB242").IsUnique();
+            entity.HasIndex(e => e.PhoneNumber, "UQ__Users__85FB4E38396FA6A9").IsUnique();
 
-            entity.HasIndex(e => e.Email, "UQ__Users__A9D10534B1ED5E35").IsUnique();
+            entity.HasIndex(e => e.Email, "UQ__Users__A9D105343DBC257C").IsUnique();
 
-            entity.HasIndex(e => e.UserName, "UQ__Users__C9F28456038767D5").IsUnique();
+            entity.HasIndex(e => e.UserName, "UQ__Users__C9F284562CA03040").IsUnique();
 
             entity.Property(e => e.UserId)
                 .HasDefaultValueSql("(newid())")
@@ -448,14 +453,14 @@ public partial class ParkingDBContext : DbContext
             entity.HasOne(d => d.Role).WithMany(p => p.Users)
                 .HasForeignKey(d => d.RoleId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Users__RoleID__4AB81AF0");
+                .HasConstraintName("FK__Users__RoleID__4BAC3F29");
         });
 
         modelBuilder.Entity<VehicleType>(entity =>
         {
-            entity.HasKey(e => e.VehicleTypeId).HasName("PK__VehicleT__9F449623279124F0");
+            entity.HasKey(e => e.VehicleTypeId).HasName("PK__VehicleT__9F4496234AA8AA4F");
 
-            entity.HasIndex(e => e.TypeName, "UQ__VehicleT__D4E7DFA83EEB21DD").IsUnique();
+            entity.HasIndex(e => e.TypeName, "UQ__VehicleT__D4E7DFA8AB81505C").IsUnique();
 
             entity.Property(e => e.VehicleTypeId)
                 .HasDefaultValueSql("(newid())")

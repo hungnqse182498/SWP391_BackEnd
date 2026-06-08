@@ -1,224 +1,243 @@
-using BLL.Interfaces;
+﻿using BLL.Interfaces;
 using Common.DTOs;
 using Common.DTOs.Reservation;
+using Common.Enums;
 using DAL.Models;
 using DAL.UnitOfWorks;
 using Microsoft.EntityFrameworkCore;
 
-namespace BLL.Implements
+public class ReservationService : IReservationService
 {
-    public class ReservationService : IReservationService
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly IPayOSService _payOSService;
+
+    public ReservationService(IUnitOfWork unitOfWork, IPayOSService payOSService)
     {
-        private readonly IUnitOfWork _unitOfWork;
-        private static readonly HashSet<string> ValidStatuses = new(StringComparer.OrdinalIgnoreCase)
+        _unitOfWork = unitOfWork;
+        _payOSService = payOSService;
+    }
+
+    public async Task<ResponseDTO> CreateReservationAsync(Guid userId, CreateReservationDTO dto)
+    {
+        await _unitOfWork.BeginTransactionAsync();
+        try
         {
-            "Pending",
-            "Confirmed",
-            "CheckedIn",
-            "Completed",
-            "Cancelled",
-            "Expired"
-        };
+            if (dto.ExpectedEntryTime <= DateTime.UtcNow)
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                return new ResponseDTO("Thời gian vào phải lớn hơn thời gian hiện tại", 400);
+            }
 
-        public ReservationService(IUnitOfWork unitOfWork)
-        {
-            _unitOfWork = unitOfWork;
-        }
+            var user = await _unitOfWork.UserRepo.GetByIdAsync(userId);
+            if (user == null)
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                return new ResponseDTO("Không tìm thấy người dùng", 404);
+            }
 
-        public async Task<ResponseDTO> GetAllAsync()
-        {
-            var reservations = await _unitOfWork.ReservationRepo.GetAll()
-                .Include(r => r.User)
-                .Include(r => r.VehicleType)
-                .Include(r => r.AssignedSlot)
-                .OrderByDescending(r => r.ExpectedEntryTime)
-                .ToListAsync();
+            var carVehicleType = await _unitOfWork.VehicleTypeRepo.FindByNameAsync("Ô tô");
+            if (carVehicleType == null)
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                return new ResponseDTO("Không tìm thấy loại phương tiện", 500);
+            }
 
-            return new ResponseDTO("Lấy danh sách đặt chỗ thành công", 200, true, reservations.Select(MapToDTO).ToList());
-        }
+            var pricing = await _unitOfWork.PricingPolicyRepo.GetActivePolicyAsync(carVehicleType.VehicleTypeId);
+            if (pricing == null)
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                return new ResponseDTO("Không tìm thấy chính sách giá", 404);
+            }
 
-        public async Task<ResponseDTO> GetByIdAsync(Guid id)
-        {
-            if (id == Guid.Empty) return new ResponseDTO("Vui lòng nhập ReservationId", 400, false);
-
-            var reservation = await _unitOfWork.ReservationRepo.GetAll()
-                .Include(r => r.User)
-                .Include(r => r.VehicleType)
-                .Include(r => r.AssignedSlot)
-                .FirstOrDefaultAsync(r => r.ReservationId == id);
-
-            if (reservation == null) return new ResponseDTO("Không tìm thấy đặt chỗ", 404, false);
-            return new ResponseDTO("Lấy thông tin đặt chỗ thành công", 200, true, MapToDTO(reservation));
-        }
-
-        public async Task<ResponseDTO> CreateAsync(CreateReservationDTO dto)
-        {
-            if (dto == null) return new ResponseDTO("Dữ liệu tạo đặt chỗ không hợp lệ", 400, false);
-
-            var validation = await ValidateReservationAsync(dto.UserId, dto.VehicleTypeId, dto.AssignedSlotId, dto.ExpectedEntryTime, dto.ExpectedExitTime, dto.Status ?? "Confirmed");
-            if (validation.Error != null) return validation.Error;
+            decimal depositAmount = pricing.BasePrice;
 
             var reservation = new Reservation
             {
                 ReservationId = Guid.NewGuid(),
-                UserId = dto.UserId,
-                VehicleTypeId = dto.VehicleTypeId,
-                AssignedSlotId = dto.AssignedSlotId,
+                UserId = userId,
+                VehicleTypeId = carVehicleType.VehicleTypeId,
                 ExpectedEntryTime = dto.ExpectedEntryTime,
-                ExpectedExitTime = dto.ExpectedExitTime,
-                Status = validation.Status!,
+                Status = ReservationStatus.Pending.ToString(),
                 CreatedAt = DateTime.UtcNow
             };
-
-            if (ShouldReserveSlot(reservation.Status))
-            {
-                validation.Slot!.Status = "Reserved";
-                await _unitOfWork.ParkingSlotRepo.UpdateAsync(validation.Slot);
-            }
-
             await _unitOfWork.ReservationRepo.AddAsync(reservation);
-            await _unitOfWork.SaveChangeAsync();
-            reservation.User = validation.User;
-            reservation.VehicleType = validation.VehicleType;
-            reservation.AssignedSlot = validation.Slot;
 
-            return new ResponseDTO("Tạo đặt chỗ thành công", 201, true, MapToDTO(reservation));
+            var payment = new Payment
+            {
+                PaymentId = Guid.NewGuid(),
+                ReservationId = reservation.ReservationId,
+                Amount = depositAmount,
+                PaymentMethod = PaymentMethod.PayOS.ToString(),
+                PaymentStatus = PaymentStatus.Pending.ToString(),
+                PaymentType = PaymentType.Deposit.ToString(),
+                PaymentTime = DateTime.UtcNow,
+                TransactionReference = string.Empty
+            };
+            await _unitOfWork.PaymentRepo.AddAsync(payment);
+            await _unitOfWork.SaveAsync();
+
+            var paymentUrl = await _payOSService.CreatePaymentLinkAsync(payment);
+
+            string paymentLinkId = "";
+            if (!string.IsNullOrEmpty(paymentUrl))
+            {
+                paymentLinkId = paymentUrl.Substring(paymentUrl.LastIndexOf('/') + 1);
+            }
+
+            await _unitOfWork.PaymentRepo.UpdateAsync(payment);
+            await _unitOfWork.SaveAsync();
+            await _unitOfWork.CommitTransactionAsync();
+
+            return new ResponseDTO("Reservation created successfully", 200, true,
+                new CreateReservationResponseDTO
+                {
+                    ReservationId = reservation.ReservationId,
+                    PaymentId = payment.PaymentId,
+                    DepositAmount = depositAmount,
+                    PaymentLinkId = paymentLinkId,
+                    PaymentUrl = paymentUrl,
+                    OrderCode = payment.TransactionReference
+                });
         }
-
-        public async Task<ResponseDTO> UpdateAsync(UpdateReservationDTO dto)
+        catch (Exception ex)
         {
-            if (dto == null || dto.ReservationId == Guid.Empty) return new ResponseDTO("Dữ liệu cập nhật đặt chỗ không hợp lệ", 400, false);
+            await _unitOfWork.RollbackTransactionAsync();
+            return new ResponseDTO(ex.Message, 500);
+        }
+    }
 
-            var reservation = await _unitOfWork.ReservationRepo.GetByIdAsync(dto.ReservationId);
-            if (reservation == null) return new ResponseDTO("Không tìm thấy đặt chỗ", 404, false);
+    public async Task<ResponseDTO> CheckPaymentStatusByOrderCodeAsync(string orderCode)
+    {
+        try
+        {
+            var payment = await _unitOfWork.PaymentRepo.GetByOrderCodeAsync(orderCode);
 
-            var previousSlotId = reservation.AssignedSlotId;
-            var previousStatus = reservation.Status;
-            var validation = await ValidateReservationAsync(dto.UserId, dto.VehicleTypeId, dto.AssignedSlotId, dto.ExpectedEntryTime, dto.ExpectedExitTime, dto.Status);
-            if (validation.Error != null) return validation.Error;
-
-            reservation.UserId = dto.UserId;
-            reservation.VehicleTypeId = dto.VehicleTypeId;
-            reservation.AssignedSlotId = dto.AssignedSlotId;
-            reservation.ExpectedEntryTime = dto.ExpectedEntryTime;
-            reservation.ExpectedExitTime = dto.ExpectedExitTime;
-            reservation.Status = validation.Status!;
-
-            if (previousSlotId != dto.AssignedSlotId && ShouldReserveSlot(previousStatus))
+            if (payment == null)
             {
-                var oldSlot = await _unitOfWork.ParkingSlotRepo.GetByIdAsync(previousSlotId);
-                if (oldSlot != null && oldSlot.Status == "Reserved") oldSlot.Status = "Available";
+                return new ResponseDTO("Không tìm thấy thanh toán", 404);
             }
 
-            if (ShouldReserveSlot(reservation.Status))
+            var reservation = await _unitOfWork.ReservationRepo.GetByIdAsync(payment.ReservationId.Value);
+
+            return new ResponseDTO("Kiểm tra trạng thái thành công", 200, true, new
             {
-                validation.Slot!.Status = "Reserved";
-                await _unitOfWork.ParkingSlotRepo.UpdateAsync(validation.Slot);
+                PaymentStatus = payment.PaymentStatus,
+                ReservationStatus = reservation?.Status,
+                ReservationId = payment.ReservationId
+            });
+        }
+        catch (Exception ex)
+        {
+            return new ResponseDTO(ex.Message, 500);
+        }
+    }
+
+    public async Task<ResponseDTO> GetMyReservationsAsync(Guid userId)
+    {
+        try
+        {
+            var reservations = await _unitOfWork.ReservationRepo.GetByUserIdWithPaymentsAsync(userId);
+            return new ResponseDTO("Lấy thông tin đặt chỗ của người dùng thành công", 200, true, reservations);
+        }
+        catch (Exception ex)
+        {
+            return new ResponseDTO(ex.Message, 500);
+        }
+    }
+
+    public async Task<ResponseDTO> GetReservationByIdAsync(Guid reservationId, Guid userId, string userRole)
+    {
+        try
+        {
+            var reservation = await _unitOfWork.ReservationRepo.GetDetailWithRelationsAsync(reservationId);
+
+            if (reservation == null)
+            {
+                return new ResponseDTO("Không tìm thấy thông tin đặt chỗ", 404);
             }
-            else if (validation.Slot!.Status == "Reserved")
+
+            if (userRole != "Manager" && userRole != "Staff" && reservation.UserId != userId)
             {
-                validation.Slot.Status = "Available";
-                await _unitOfWork.ParkingSlotRepo.UpdateAsync(validation.Slot);
+                return new ResponseDTO("Bạn không có quyền xem thông tin đặt chỗ này", 403);
+            }
+
+            return new ResponseDTO("Lấy thông tin đặt chỗ theo id thành công", 200, true, reservation);
+        }
+        catch (Exception ex)
+        {
+            return new ResponseDTO(ex.Message, 500);
+        }
+    }
+
+    public async Task<ResponseDTO> CancelReservationAsync(Guid reservationId, Guid userId)
+    {
+        try
+        {
+            var reservation = await _unitOfWork.ReservationRepo.GetByIdAsync(reservationId);
+
+            if (reservation == null)
+                return new ResponseDTO("Không tìm thấy thông tin đặt chỗ", 404);
+
+            if (reservation.UserId != userId)
+                return new ResponseDTO("Bạn không phải là chủ sở hữu của thông tin đặt chỗ này", 403);
+
+            if (reservation.Status == ReservationStatus.Completed.ToString())
+                return new ResponseDTO("Đặt chỗ đã hoàn tất", 400);
+
+            if (reservation.Status == ReservationStatus.Cancelled.ToString())
+                return new ResponseDTO("Đặt chỗ đã bị hủy", 400);
+
+            reservation.Status = ReservationStatus.Cancelled.ToString();
+
+            var payment = await _unitOfWork.PaymentRepo.FirstOrDefaultAsync(p => p.ReservationId == reservationId);
+            if (payment != null && payment.PaymentStatus == PaymentStatus.Pending.ToString())
+            {
+                payment.PaymentStatus = PaymentStatus.Failed.ToString();
+                await _unitOfWork.PaymentRepo.UpdateAsync(payment);
             }
 
             await _unitOfWork.ReservationRepo.UpdateAsync(reservation);
-            await _unitOfWork.SaveChangeAsync();
-            reservation.User = validation.User;
-            reservation.VehicleType = validation.VehicleType;
-            reservation.AssignedSlot = validation.Slot;
+            await _unitOfWork.SaveAsync();
 
-            return new ResponseDTO("Cập nhật đặt chỗ thành công", 200, true, MapToDTO(reservation));
+            return new ResponseDTO("Đã hủy đặt chỗ thành công", 200, true);
         }
-
-        public async Task<ResponseDTO> DeleteAsync(Guid id)
+        catch (Exception ex)
         {
-            if (id == Guid.Empty) return new ResponseDTO("Vui lòng nhập ReservationId", 400, false);
-
-            var reservation = await _unitOfWork.ReservationRepo.GetByIdAsync(id);
-            if (reservation == null) return new ResponseDTO("Không tìm thấy đặt chỗ", 404, false);
-
-            try
-            {
-                var slot = await _unitOfWork.ParkingSlotRepo.GetByIdAsync(reservation.AssignedSlotId);
-                if (slot != null && slot.Status == "Reserved")
-                {
-                    slot.Status = "Available";
-                    await _unitOfWork.ParkingSlotRepo.UpdateAsync(slot);
-                }
-
-                _unitOfWork.ReservationRepo.Delete(reservation);
-                await _unitOfWork.SaveChangeAsync();
-                return new ResponseDTO("Xóa đặt chỗ thành công", 200, true);
-            }
-            catch (Exception ex)
-            {
-                return new ResponseDTO($"Lỗi xóa đặt chỗ: {ex.Message}", 500, false);
-            }
+            return new ResponseDTO(ex.Message, 500);
         }
+    }
 
-        private async Task<(User? User, VehicleType? VehicleType, ParkingSlot? Slot, string? Status, ResponseDTO? Error)> ValidateReservationAsync(
-            Guid userId,
-            Guid vehicleTypeId,
-            Guid assignedSlotId,
-            DateTime expectedEntryTime,
-            DateTime expectedExitTime,
-            string? status)
+    public async Task<ResponseDTO> GetAllReservationsAsync(string? status, DateTime? date)
+    {
+        try
         {
-            if (userId == Guid.Empty) return (null, null, null, null, new ResponseDTO("Vui lòng chọn người đặt", 400, false));
-            if (vehicleTypeId == Guid.Empty) return (null, null, null, null, new ResponseDTO("Vui lòng chọn loại phương tiện", 400, false));
-            if (assignedSlotId == Guid.Empty) return (null, null, null, null, new ResponseDTO("Vui lòng chọn vị trí đỗ", 400, false));
-            if (expectedExitTime <= expectedEntryTime) return (null, null, null, null, new ResponseDTO("Thời gian ra dự kiến phải sau thời gian vào", 400, false));
-
-            var normalizedStatus = NormalizeStatus(status);
-            if (normalizedStatus == null) return (null, null, null, null, new ResponseDTO("Trạng thái đặt chỗ không hợp lệ", 400, false));
-
-            var user = await _unitOfWork.UserRepo.GetByIdWithRoleAsync(userId);
-            if (user == null) return (null, null, null, null, new ResponseDTO("Người đặt không tồn tại", 400, false));
-
-            var vehicleType = await _unitOfWork.VehicleTypeRepo.GetByIdAsync(vehicleTypeId);
-            if (vehicleType == null) return (null, null, null, null, new ResponseDTO("Loại phương tiện không tồn tại", 400, false));
-
-            var slot = await _unitOfWork.ParkingSlotRepo.GetAll()
-                .Include(s => s.Floor)
-                .FirstOrDefaultAsync(s => s.SlotId == assignedSlotId);
-            if (slot == null) return (null, null, null, null, new ResponseDTO("Vị trí đỗ không tồn tại", 400, false));
-            if (slot.VehicleTypeId != vehicleTypeId) return (null, null, null, null, new ResponseDTO("Vị trí đỗ không phù hợp loại phương tiện", 400, false));
-            if (ShouldReserveSlot(normalizedStatus) && slot.Status != "Available" && slot.Status != "Reserved")
-            {
-                return (null, null, null, null, new ResponseDTO("Vị trí đỗ không khả dụng để đặt trước", 409, false));
-            }
-
-            return (user, vehicleType, slot, normalizedStatus, null);
+            var reservations = await _unitOfWork.ReservationRepo.GetByAdminFiltersAsync(status, date);
+            return new ResponseDTO("Lấy danh sách thông tin đặt chỗ thành công", 200, true, reservations);
         }
-
-        private static bool ShouldReserveSlot(string? status)
+        catch (Exception ex)
         {
-            return string.Equals(status, "Pending", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(status, "Confirmed", StringComparison.OrdinalIgnoreCase);
+            return new ResponseDTO(ex.Message, 500);
         }
+    }
 
-        private static string? NormalizeStatus(string? status)
+    public async Task<ResponseDTO> UpdateReservationStatusAsync(Guid reservationId, UpdateReservationStatusDTO dto)
+    {
+        try
         {
-            if (string.IsNullOrWhiteSpace(status)) return null;
-            return ValidStatuses.FirstOrDefault(s => string.Equals(s, status.Trim(), StringComparison.OrdinalIgnoreCase));
+            var reservation = await _unitOfWork.ReservationRepo.GetByIdAsync(reservationId);
+            if (reservation == null)
+                return new ResponseDTO("Không tìm thấy thông tin đặt chỗ", 404);
+
+            reservation.Status = dto.Status;
+            await _unitOfWork.ReservationRepo.UpdateAsync(reservation);
+            await _unitOfWork.SaveAsync();
+
+            return new ResponseDTO($"Trạng thái đặt chỗ đã được cập nhật thành {dto.Status}", 200, true);
         }
-
-        private static ReservationDTO MapToDTO(Reservation reservation)
+        catch (Exception ex)
         {
-            return new ReservationDTO
-            {
-                ReservationId = reservation.ReservationId,
-                UserId = reservation.UserId,
-                UserFullName = reservation.User?.FullName,
-                VehicleTypeId = reservation.VehicleTypeId,
-                VehicleTypeName = reservation.VehicleType?.TypeName,
-                AssignedSlotId = reservation.AssignedSlotId,
-                AssignedSlotCode = reservation.AssignedSlot?.SlotCode,
-                ExpectedEntryTime = reservation.ExpectedEntryTime,
-                ExpectedExitTime = reservation.ExpectedExitTime,
-                Status = reservation.Status,
-                CreatedAt = reservation.CreatedAt
-            };
+            return new ResponseDTO(ex.Message, 500);
         }
     }
 }
+

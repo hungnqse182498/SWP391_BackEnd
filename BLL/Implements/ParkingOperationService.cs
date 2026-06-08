@@ -218,30 +218,22 @@ namespace BLL.Implements
             var reservation = await _unitOfWork.ReservationRepo.GetAll()
                 .Include(r => r.User)
                 .Include(r => r.VehicleType)
-                .Include(r => r.AssignedSlot)
-                    .ThenInclude(s => s.Floor)
                 .FirstOrDefaultAsync(r => r.ReservationId == dto.ReservationId);
 
             if (reservation == null) return new ResponseDTO("Không tìm thấy đặt chỗ", 404, false);
+
             if (!string.Equals(reservation.Status, "Confirmed", StringComparison.OrdinalIgnoreCase))
             {
                 return new ResponseDTO("Đặt chỗ phải ở trạng thái Confirmed để check-in", 400, false);
             }
 
             var now = DateTime.Now;
-            if (now < reservation.ExpectedEntryTime.AddMinutes(-30) || now > reservation.ExpectedExitTime)
-            {
-                return new ResponseDTO("Chưa đến hoặc đã quá thời gian check-in đặt trước", 400, false);
-            }
+            var minEntryTime = reservation.ExpectedEntryTime.AddMinutes(-30);
+            var maxEntryTime = reservation.ExpectedEntryTime.AddMinutes(30); 
 
-            if (reservation.AssignedSlot.Status != "Reserved")
+            if (now < minEntryTime || now > maxEntryTime)
             {
-                return new ResponseDTO("Vị trí đặt trước không còn ở trạng thái Reserved", 409, false);
-            }
-
-            if (!FloorMatches(reservation.AssignedSlot.Floor?.FloorName, ReservationFloorKeywords))
-            {
-                return new ResponseDTO("Vị trí đặt trước phải thuộc tầng ô tô đặt trước", 400, false);
+                return new ResponseDTO("Ngoài khung giờ cho phép check-in đặt trước (Chỉ áp dụng trong khoảng -30p đến +30p so với giờ hẹn)", 400, false);
             }
 
             var cardResult = await ResolveCardAsync(dto.CardId, dto.CardCode, false, true);
@@ -251,6 +243,17 @@ namespace BLL.Implements
             var activeValidation = await ValidateNoActiveSessionAsync(licensePlate, cardResult.Card);
             if (activeValidation != null) return activeValidation;
 
+            var availableSlot = await _unitOfWork.ParkingSlotRepo.GetAll()
+                .Include(s => s.Floor)
+                .FirstOrDefaultAsync(s => s.Status == "Available" &&
+                                          s.VehicleTypeId == reservation.VehicleTypeId &&
+                                          FloorMatches(s.Floor.FloorName, ReservationFloorKeywords));
+
+            if (availableSlot == null)
+            {
+                return new ResponseDTO("Hệ thống hết vị trí trống khả dụng cho ô tô đặt trước tại thời điểm này", 409, false);
+            }
+          
             var session = new ParkingSession
             {
                 SessionId = Guid.NewGuid(),
@@ -261,18 +264,18 @@ namespace BLL.Implements
                 VehicleTypeId = reservation.VehicleTypeId,
                 EntryTime = now,
                 EntryGateId = dto.GateId,
-                AssignedSlotId = reservation.AssignedSlotId,
-                ActualSlotId = reservation.AssignedSlotId,
+                AssignedSlotId = availableSlot.SlotId,
+                ActualSlotId = availableSlot.SlotId,
                 Status = "Active"
             };
 
-            reservation.Status = "CheckedIn";
-            reservation.AssignedSlot.Status = "Occupied";
-            if (cardResult.Card != null) cardResult.Card.Status = "InUse";
+            reservation.Status = "CheckedIn";             
+            availableSlot.Status = "Occupied";        
+            if (cardResult.Card != null) cardResult.Card.Status = "InUse"; 
 
             await _unitOfWork.ParkingSessionRepo.AddAsync(session);
             await _unitOfWork.ReservationRepo.UpdateAsync(reservation);
-            await _unitOfWork.ParkingSlotRepo.UpdateAsync(reservation.AssignedSlot);
+            await _unitOfWork.ParkingSlotRepo.UpdateAsync(availableSlot);
             if (cardResult.Card != null) await _unitOfWork.ParkingCardRepo.UpdateAsync(cardResult.Card);
             await _unitOfWork.SaveChangeAsync();
 

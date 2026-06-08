@@ -15,9 +15,10 @@ namespace DAL.Implements
             _context = context;
         }
 
-        public async Task<VehicleType> FindByNameAsync(string typeName)
+        public async Task<VehicleType?> FindByNameAsync(string typeName)
         {
-            return await _context.VehicleTypes.FirstOrDefaultAsync(v => v.TypeName == typeName);
+            if (string.IsNullOrWhiteSpace(typeName)) return null;
+            return await _context.VehicleTypes.FirstOrDefaultAsync(v => v.TypeName.ToLower() == typeName.ToLower());
         }
     }
 }

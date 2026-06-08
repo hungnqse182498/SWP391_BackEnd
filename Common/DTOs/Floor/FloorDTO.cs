@@ -9,5 +9,6 @@ namespace Common.DTOs.Floor
         public Guid? DedicatedVehicleTypeId { get; set; }
         public string? DedicatedVehicleTypeName { get; set; }
         public int TotalCapacity { get; set; }
+        public bool IsResident { get; set; }
     }
 }

@@ -9,13 +9,15 @@ public partial class Payment
 {
     public Guid PaymentId { get; set; }
 
-    public Guid SessionId { get; set; }
+    public Guid? SessionId { get; set; }
 
     public Guid? ReservationId { get; set; }
 
     public decimal Amount { get; set; }
 
     public string PaymentMethod { get; set; }
+
+    public string PaymentType { get; set; }
 
     public DateTime PaymentTime { get; set; }
 

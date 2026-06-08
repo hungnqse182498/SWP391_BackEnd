@@ -1,5 +1,11 @@
-using DAL.Interfaces;
+﻿using DAL.Interfaces;
 using DAL.Models;
+using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace DAL.Implements
 {
@@ -7,6 +13,43 @@ namespace DAL.Implements
     {
         public ReservationRepository(ParkingDBContext context) : base(context)
         {
+        }
+
+        public async Task<List<Reservation>> GetByUserIdWithPaymentsAsync(Guid userId)
+        {
+            return await _context.Reservations
+                .Include(r => r.Payments)
+                .Where(x => x.UserId == userId)
+                .ToListAsync();
+        }
+
+        public async Task<Reservation?> GetDetailWithRelationsAsync(Guid reservationId)
+        {
+            return await _context.Reservations
+                .Include(r => r.VehicleType)
+                .Include(r => r.Payments)
+                .FirstOrDefaultAsync(r => r.ReservationId == reservationId);
+        }
+
+        public async Task<List<Reservation>> GetByAdminFiltersAsync(string? status, DateTime? date)
+        {
+            IQueryable<Reservation> query = _context.Reservations
+                .Include(r => r.Payments)
+                .Include(r => r.User);
+
+            if (!string.IsNullOrEmpty(status))
+            {
+                query = query.Where(x => x.Status == status);
+            }
+
+            if (date.HasValue)
+            {
+                query = query.Where(x => x.ExpectedEntryTime.Date == date.Value.Date);
+            }
+
+            query = query.OrderByDescending(x => x.CreatedAt);
+
+            return await query.ToListAsync();
         }
     }
 }

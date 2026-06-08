@@ -37,7 +37,8 @@ namespace BLL.Implements
                 FloorName = f.FloorName,
                 DedicatedVehicleTypeId = f.DedicatedVehicleTypeId,
                 DedicatedVehicleTypeName = f.DedicatedVehicleType?.TypeName,
-                TotalCapacity = f.TotalCapacity
+                TotalCapacity = f.TotalCapacity,
+                IsResident = f.IsResident
             }).ToList();
 
             return new ResponseDTO("Lấy danh sách tầng thành công", 200, true, dtos);
@@ -58,7 +59,8 @@ namespace BLL.Implements
                 FloorName = floor.FloorName,
                 DedicatedVehicleTypeId = floor.DedicatedVehicleTypeId,
                 DedicatedVehicleTypeName = floor.DedicatedVehicleType?.TypeName,
-                TotalCapacity = floor.TotalCapacity
+                TotalCapacity = floor.TotalCapacity,
+                IsResident = floor.IsResident
             };
 
             return new ResponseDTO("Lấy thông tin tầng thành công", 200, true, dto);
@@ -90,7 +92,8 @@ namespace BLL.Implements
                 FloorId = Guid.NewGuid(),
                 FloorName = name,
                 DedicatedVehicleTypeId = dto.DedicatedVehicleTypeId,
-                TotalCapacity = dto.TotalCapacity
+                TotalCapacity = dto.TotalCapacity,
+                IsResident = dto.IsResident
             };
 
             try
@@ -104,10 +107,10 @@ namespace BLL.Implements
                     FloorName = entity.FloorName,
                     DedicatedVehicleTypeId = entity.DedicatedVehicleTypeId,
                     DedicatedVehicleTypeName = null,
-                    TotalCapacity = entity.TotalCapacity
+                    TotalCapacity = entity.TotalCapacity,
+                    IsResident = entity.IsResident
                 };
 
-                // try to set DedicatedVehicleTypeName if provided
                 if (entity.DedicatedVehicleTypeId.HasValue)
                 {
                     var vt = await _unitOfWork.VehicleTypeRepo.GetByIdAsync(entity.DedicatedVehicleTypeId.Value);
@@ -167,7 +170,8 @@ namespace BLL.Implements
                     FloorName = existing.FloorName,
                     DedicatedVehicleTypeId = existing.DedicatedVehicleTypeId,
                     DedicatedVehicleTypeName = existing.DedicatedVehicleType?.TypeName,
-                    TotalCapacity = existing.TotalCapacity
+                    TotalCapacity = existing.TotalCapacity,
+                    IsResident = existing.IsResident
                 };
 
                 // refresh DedicatedVehicleTypeName if needed
