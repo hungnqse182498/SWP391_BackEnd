@@ -42,4 +42,9 @@ namespace Common.DTOs.IncidentReport
         public DateTime? ResolvedAt { get; set; }
         public string? ResolutionNotes { get; set; }
     }
+
+    public class ResolveIncidentDTO
+    {
+        public string ResolutionNotes { get; set; }
+    }
 }
