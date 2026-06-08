@@ -1,4 +1,5 @@
 ﻿using BLL.Interfaces;
+using Common.Enums;
 using Common.Settings;
 using DAL.Models;
 using Microsoft.Extensions.Options;
@@ -25,11 +26,13 @@ public class PayOSService : IPayOSService
     {
         long orderCode = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
+        var descriptionPrefix = payment.PaymentType == PaymentType.CheckoutFee.ToString() ? "PARK" : "RES";
+
         var request = new CreatePaymentLinkRequest
         {
             OrderCode = orderCode,
             Amount = (int)payment.Amount,
-            Description = $"RES-{payment.PaymentId.ToString()[..8]}",
+            Description = $"{descriptionPrefix}-{payment.PaymentId.ToString()[..8]}",
             ReturnUrl = _config.ReturnUrl,
             CancelUrl = _config.CancelUrl
         };

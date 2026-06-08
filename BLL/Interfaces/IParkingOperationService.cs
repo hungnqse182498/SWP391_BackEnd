@@ -8,7 +8,6 @@ namespace BLL.Interfaces
     public interface IParkingOperationService
     {
         Task<ResponseDTO> GuestCheckInAsync(GuestCheckInDTO dto);
-        Task<ResponseDTO> GuestCheckOutPreviewAsync(GuestCheckOutPreviewDTO dto);
         Task<ResponseDTO> GuestCheckOutAsync(GuestCheckOutDTO dto);
         Task<ResponseDTO> ResidentCheckInAsync(ResidentCheckInDTO dto);
         Task<ResponseDTO> ResidentCheckOutAsync(ResidentCheckOutDTO dto);

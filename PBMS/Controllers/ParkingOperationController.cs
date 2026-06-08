@@ -24,13 +24,6 @@ namespace PBMS.Controllers
             return StatusCode(res.StatusCode, res);
         }
 
-        [HttpPost("guest/check-out/preview")]
-        public async Task<IActionResult> GuestCheckOutPreview([FromBody] GuestCheckOutPreviewDTO dto)
-        {
-            var res = await _parkingOperationService.GuestCheckOutPreviewAsync(dto);
-            return StatusCode(res.StatusCode, res);
-        }
-
         [HttpPost("guest/check-out")]
         public async Task<IActionResult> GuestCheckOut([FromBody] GuestCheckOutDTO dto)
         {
