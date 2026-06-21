@@ -1,4 +1,4 @@
-﻿using BLL.Implements;
+using BLL.Implements;
 using BLL.Interfaces;
 using Common.Settings;
 using DAL.Implements;
@@ -71,6 +71,10 @@ builder.Services.AddScoped<IPricingPolicyService, PricingPolicyService>();
 builder.Services.AddScoped<IParkingSessionService, ParkingSessionService>();
 builder.Services.AddScoped<IIncidentReportService, IncidentReportService>();
 builder.Services.AddScoped<IParkingOperationService, ParkingOperationService>();
+builder.Services.AddHttpClient<IOcrService, OcrService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -84,6 +88,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 
 app.UseCors("AllowReactApp");
 
