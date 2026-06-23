@@ -23,54 +23,122 @@ public class PaymentService : IPaymentService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<ResponseDTO> PayOSWebhookAsync(PayOSWebhookDTO dto)
+
+    public async Task PayOSWebhookAsync(PayOSWebhookDTO dto)
     {
-        await _unitOfWork.BeginTransactionAsync();
+        if (dto?.Data == null) return;
 
-        try
+        var orderCode = dto.Data.OrderCode.ToString();
+
+        var payment = await _unitOfWork.PaymentRepo
+            .FirstOrDefaultAsync(x => x.TransactionReference == orderCode);
+
+        if (payment == null) return;
+
+        if (payment.PaymentStatus == PaymentStatus.Success.ToString())
+            return;
+
+        payment.PaymentStatus = dto.Code == "00"
+            ? PaymentStatus.Success.ToString()
+            : PaymentStatus.Failed.ToString();
+
+        payment.PaymentTime = DateTime.UtcNow;
+
+        await _unitOfWork.PaymentRepo.UpdateAsync(payment);
+        await DispatchPaymentAsync(payment);
+        await _unitOfWork.SaveAsync();
+    }
+
+    //2
+    private async Task DispatchPaymentAsync(Payment payment)
+    {
+        if (payment.PaymentStatus != PaymentStatus.Success.ToString())
+            return;
+
+        switch (payment.PaymentType)
         {
-            var payment = await _unitOfWork.PaymentRepo.FirstOrDefaultAsync(x => x.TransactionReference == dto.Data.OrderCode.ToString());
+            case var t when t == PaymentType.Deposit.ToString():
+                await HandleReservationAsync(payment);
+                break;
 
-            if (payment == null)
-            {
-                await _unitOfWork.RollbackTransactionAsync();
-                return new ResponseDTO("Không tìm thấy thanh toán", 404);
-            }
+            case var t when t == PaymentType.SubscriptionFee.ToString():
+                await ActivateSubscriptionAsync(payment.SubscriptionId!.Value);
+                break;
 
-            if (payment.PaymentStatus ==
-                PaymentStatus.Success.ToString())
-            {
-                await _unitOfWork.RollbackTransactionAsync();
-                return new ResponseDTO("Thanh toán đã được xử lý", 400);
-            }
-
-            payment.PaymentStatus = PaymentStatus.Success.ToString();
-            payment.PaymentTime = DateTime.UtcNow;
-
-            await _unitOfWork.PaymentRepo.UpdateAsync(payment);
-
-            await CompleteCheckoutSessionIfNeededAsync(payment);
-
-            if (payment.ReservationId.HasValue)
-            {
-                var reservation = await _unitOfWork.ReservationRepo.GetByIdAsync(payment.ReservationId.Value);
-                if (reservation != null)
-                {
-                    reservation.Status = ReservationStatus.Confirmed.ToString();
-                    await _unitOfWork.ReservationRepo.UpdateAsync(reservation);
-                }
-            }
-
-            await _unitOfWork.SaveAsync();
-            await _unitOfWork.CommitTransactionAsync();
-
-            return new ResponseDTO("Thanh toán thành công", 200, true);
+            case var t when t == PaymentType.SubscriptionRenewal.ToString():
+                await CompleteRenewalAsync(payment);
+                break;
         }
-        catch (Exception ex)
+    }
+
+    //3
+    private async Task HandleReservationAsync(Payment payment)
+    {
+        var reservation = await _unitOfWork.ReservationRepo
+            .GetByIdAsync(payment.ReservationId.Value);
+
+        if (reservation != null)
         {
-            await _unitOfWork.RollbackTransactionAsync();
-            return new ResponseDTO(ex.Message, 500);
+            reservation.Status = ReservationStatus.Confirmed.ToString();
+            await _unitOfWork.ReservationRepo.UpdateAsync(reservation);
         }
+    }
+
+    //4
+    private async Task ActivateSubscriptionAsync(Guid subscriptionId)
+    {
+        var subscription = await _unitOfWork.MonthlySubscriptionRepo.GetAll()
+            .Include(s => s.Package)
+            .FirstOrDefaultAsync(s => s.SubscriptionId == subscriptionId);
+        if (subscription == null) return;
+
+        subscription.Status = "Active";
+
+        if (subscription.Package.RequireFixedSlot == true && !subscription.FixedSlotId.HasValue)
+        {
+            var slot = await _unitOfWork.ParkingSlotRepo.GetAll()
+                .Where(x => x.VehicleTypeId == subscription.VehicleTypeId && x.Status == "Available")
+                .OrderBy(x => x.SlotCode)
+                .FirstOrDefaultAsync();
+
+            if (slot != null)
+            {
+                slot.Status = "Reserved";
+                slot.AssignedUserId = subscription.UserId;
+                subscription.FixedSlotId = slot.SlotId;
+                await _unitOfWork.ParkingSlotRepo.UpdateAsync(slot);
+            }
+        }
+
+        await _unitOfWork.MonthlySubscriptionRepo.UpdateAsync(subscription);
+    }
+
+    //5
+    private async Task CompleteRenewalAsync(Payment payment)
+    {
+        var subscription = await _unitOfWork.MonthlySubscriptionRepo.GetByIdAsync(payment.SubscriptionId!.Value);
+        if (subscription == null || subscription.Price <= 0) return;
+
+        var months = Math.Max(1, (int)Math.Round(payment.Amount / subscription.Price, MidpointRounding.AwayFromZero));
+        var oldEnd = subscription.EndDate;
+        var start = subscription.EndDate < DateTime.Now ? DateTime.Now : subscription.EndDate;
+        var newEnd = start.AddMonths(months);
+
+        subscription.EndDate = newEnd;
+        subscription.Status = "Active";
+
+        var renewal = new SubscriptionRenewal
+        {
+            RenewalId = Guid.NewGuid(),
+            SubscriptionId = subscription.SubscriptionId,
+            OldEndDate = oldEnd,
+            NewEndDate = newEnd,
+            Amount = payment.Amount,
+            RenewalDate = DateTime.Now
+        };
+
+        await _unitOfWork.SubscriptionRenewalRepo.AddAsync(renewal);
+        await _unitOfWork.MonthlySubscriptionRepo.UpdateAsync(subscription);
     }
 
     public async Task<ResponseDTO> GetAllAsync()
@@ -215,16 +283,6 @@ public class PaymentService : IPaymentService
             {
                 assignedSlot.Status = "Available";
                 await _unitOfWork.ParkingSlotRepo.UpdateAsync(assignedSlot);
-            }
-        }
-
-        if (session.CardId.HasValue)
-        {
-            var card = await _unitOfWork.ParkingCardRepo.GetByIdAsync(session.CardId.Value);
-            if (card != null)
-            {
-                card.Status = "Active";
-                await _unitOfWork.ParkingCardRepo.UpdateAsync(card);
             }
         }
 

@@ -89,7 +89,7 @@ public class ReservationService : IReservationService
             await _unitOfWork.CommitTransactionAsync();
 
             return new ResponseDTO("Reservation created successfully", 200, true,
-                new CreateReservationResponseDTO
+                new CreateReservationPaymentDTO
                 {
                     ReservationId = reservation.ReservationId,
                     PaymentId = payment.PaymentId,
@@ -103,6 +103,100 @@ public class ReservationService : IReservationService
         {
             await _unitOfWork.RollbackTransactionAsync();
             return new ResponseDTO(ex.Message, 500);
+        }
+    }
+
+    public async Task<ResponseDTO> CreatePaymentLinkForReservationAsync(Guid reservationId, Guid userId)
+    {
+        try
+        {
+            if (reservationId == Guid.Empty)
+                return new ResponseDTO("Vui lòng cung cấp ReservationId", 400, false);
+
+            var reservation = await _unitOfWork.ReservationRepo.GetByIdAsync(reservationId);
+            if (reservation == null)
+                return new ResponseDTO("Không tìm thấy thông tin đặt chỗ", 404, false);
+
+            if (userId != Guid.Empty && reservation.UserId != userId)
+                return new ResponseDTO("Bạn không có quyền thanh toán cho đặt chỗ này", 403, false);
+
+            if (string.Equals(reservation.Status, ReservationStatus.Confirmed.ToString(), StringComparison.OrdinalIgnoreCase))
+                return new ResponseDTO("Đặt chỗ này đã được thanh toán và xác nhận thành công", 400, false);
+
+            if (string.Equals(reservation.Status, ReservationStatus.CheckedIn.ToString(), StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(reservation.Status, ReservationStatus.Completed.ToString(), StringComparison.OrdinalIgnoreCase))
+                return new ResponseDTO("Lượt đặt chỗ này đã hoặc đang được sử dụng", 400, false);
+
+            if (string.Equals(reservation.Status, ReservationStatus.Cancelled.ToString(), StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(reservation.Status, ReservationStatus.NoShow.ToString(), StringComparison.OrdinalIgnoreCase))
+                return new ResponseDTO("Đặt chỗ đã bị hủy hoặc quá hạn, không thể thanh toán", 400, false);
+
+            var pricing = await _unitOfWork.PricingPolicyRepo.GetActivePolicyAsync(reservation.VehicleTypeId);
+            if (pricing == null)
+            {
+                return new ResponseDTO("Không tìm thấy chính sách giá cho loại phương tiện này", 404, false);
+            }
+            decimal depositAmount = pricing.BasePrice;
+
+            string newOrderCode = DateTime.UtcNow.Ticks.ToString().Substring(5, 10);
+
+            var payment = await _unitOfWork.PaymentRepo.FirstOrDefaultAsync(p =>
+                p.ReservationId == reservationId &&
+                p.PaymentType == PaymentType.Deposit.ToString() &&
+                p.PaymentStatus == PaymentStatus.Pending.ToString());
+
+            if (payment == null)
+            {
+                payment = new Payment
+                {
+                    PaymentId = Guid.NewGuid(),
+                    ReservationId = reservation.ReservationId,
+                    Amount = depositAmount,
+                    PaymentMethod = PaymentMethod.PayOS.ToString(),
+                    PaymentStatus = PaymentStatus.Pending.ToString(),
+                    PaymentType = PaymentType.Deposit.ToString(),
+                    PaymentTime = DateTime.UtcNow,
+                    TransactionReference = newOrderCode
+                };
+                await _unitOfWork.PaymentRepo.AddAsync(payment);
+            }
+            else
+            {
+                payment.TransactionReference = newOrderCode;
+                payment.PaymentTime = DateTime.UtcNow;
+                await _unitOfWork.PaymentRepo.UpdateAsync(payment);
+            }
+
+            await _unitOfWork.SaveAsync();
+
+            string paymentUrl = string.Empty;
+            string paymentLinkId = string.Empty;
+            try
+            {
+                paymentUrl = await _payOSService.CreatePaymentLinkAsync(payment);
+                if (!string.IsNullOrEmpty(paymentUrl))
+                {
+                    paymentLinkId = paymentUrl.Substring(paymentUrl.LastIndexOf('/') + 1);
+                }
+            }
+            catch (Exception ex)
+            {
+                return new ResponseDTO($"Lỗi khi kết nối cổng thanh toán PayOS: {ex.Message}", 500, false);
+            }
+
+            return new ResponseDTO("Tạo lại link thanh toán thành công", 200, true, new CreateReservationPaymentDTO
+            {
+                ReservationId = reservation.ReservationId,
+                PaymentId = payment.PaymentId,
+                DepositAmount = payment.Amount,
+                PaymentLinkId = paymentLinkId,
+                PaymentUrl = paymentUrl,
+                OrderCode = newOrderCode
+            });
+        }
+        catch (Exception ex)
+        {
+            return new ResponseDTO(ex.Message, 500, false);
         }
     }
 
@@ -136,12 +230,23 @@ public class ReservationService : IReservationService
     {
         try
         {
+            if (userId == Guid.Empty)
+                return new ResponseDTO("Vui lòng đăng nhập hệ thống", 400, false);
+
             var reservations = await _unitOfWork.ReservationRepo.GetByUserIdWithPaymentsAsync(userId);
-            return new ResponseDTO("Lấy thông tin đặt chỗ của người dùng thành công", 200, true, reservations);
+            var reservationList = reservations.ToList();
+
+            if (reservationList.Count == 0)
+            {
+                return new ResponseDTO("Bạn không có lịch sử đặt chỗ nào", 404, false);
+            }
+
+            var dtos = reservationList.Select(MapToDTO).ToList();
+            return new ResponseDTO("Lấy thông tin đặt chỗ của người dùng thành công", 200, true, dtos);
         }
         catch (Exception ex)
         {
-            return new ResponseDTO(ex.Message, 500);
+            return new ResponseDTO(ex.Message, 500, false);
         }
     }
 
@@ -149,23 +254,25 @@ public class ReservationService : IReservationService
     {
         try
         {
-            var reservation = await _unitOfWork.ReservationRepo.GetDetailWithRelationsAsync(reservationId);
+            if (reservationId == Guid.Empty)
+                return new ResponseDTO("Vui lòng nhập ReservationId", 400, false);
 
+            var reservation = await _unitOfWork.ReservationRepo.GetDetailWithRelationsAsync(reservationId);
             if (reservation == null)
             {
-                return new ResponseDTO("Không tìm thấy thông tin đặt chỗ", 404);
+                return new ResponseDTO("Không tìm thấy thông tin đặt chỗ", 404, false);
             }
 
             if (userRole != "Manager" && userRole != "Staff" && reservation.UserId != userId)
             {
-                return new ResponseDTO("Bạn không có quyền xem thông tin đặt chỗ này", 403);
+                return new ResponseDTO("Bạn không có quyền xem thông tin đặt chỗ này", 403, false);
             }
 
-            return new ResponseDTO("Lấy thông tin đặt chỗ theo id thành công", 200, true, reservation);
+            return new ResponseDTO("Lấy thông tin đặt chỗ theo id thành công", 200, true, MapToDTO(reservation));
         }
         catch (Exception ex)
         {
-            return new ResponseDTO(ex.Message, 500);
+            return new ResponseDTO(ex.Message, 500, false);
         }
     }
 
@@ -239,5 +346,19 @@ public class ReservationService : IReservationService
             return new ResponseDTO(ex.Message, 500);
         }
     }
-}
 
+    private static ReservationDTO MapToDTO(Reservation reservation)
+    {
+        return new ReservationDTO
+        {
+            ReservationId = reservation.ReservationId,
+            UserId = reservation.UserId,
+            UserFullName = reservation.User?.FullName ?? "N/A",
+            VehicleTypeId = reservation.VehicleTypeId,
+            VehicleTypeName = reservation.VehicleType?.TypeName ?? "N/A",
+            ExpectedEntryTime = reservation.ExpectedEntryTime,
+            Status = reservation.Status,
+            CreatedAt = reservation.CreatedAt,
+        };
+    }
+}

@@ -9,7 +9,5 @@ namespace DAL.Interfaces
 {
     public interface IParkingSessionRepository : IGenericRepository<ParkingSession>
     {
-        Task<ParkingSession?> GetActiveSessionByCardIdAsync(Guid cardId);
-        Task<ParkingSession?> GetActiveSessionByPlateAsync(string licensePlate);
     }
 }

@@ -1,5 +1,5 @@
 using Common.DTOs;
-using Common.DTOs.MonthlySubscription;
+using Common.DTOs.Subscription;
 using System;
 using System.Threading.Tasks;
 
@@ -7,10 +7,11 @@ namespace BLL.Interfaces
 {
     public interface IMonthlySubscriptionService
     {
-        Task<ResponseDTO> GetAllAsync();
-        Task<ResponseDTO> GetByIdAsync(Guid id);
-        Task<ResponseDTO> CreateAsync(CreateMonthlySubscriptionDTO dto);
-        Task<ResponseDTO> UpdateAsync(UpdateMonthlySubscriptionDTO dto);
-        Task<ResponseDTO> DeleteAsync(Guid id);
+        Task<ResponseDTO> RegisterAsync(Guid userId, RegisterMonthlySubscriptionDTO dto);
+        Task<ResponseDTO> CreatePaymentAsync(Guid subscriptionId, Guid userId);
+        Task<ResponseDTO> GetMyAsync(Guid userId);
+        Task<ResponseDTO> GetByUserAsync(Guid userId);
+        Task<ResponseDTO> GetDetailAsync(Guid id);
+        Task<ResponseDTO> CancelAsync(Guid id);
     }
 }

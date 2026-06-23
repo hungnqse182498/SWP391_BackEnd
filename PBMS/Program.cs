@@ -46,7 +46,6 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IVehicleTypeRepository, VehicleTypeRepository>();
 builder.Services.AddScoped<IFloorRepository, FloorRepository>();
 builder.Services.AddScoped<IParkingSessionRepository, ParkingSessionRepository>();
-builder.Services.AddScoped<IParkingCardRepository, ParkingCardRepository>();
 builder.Services.AddScoped<IParkingSlotRepository, ParkingSlotRepository>();
 builder.Services.AddScoped<IMonthlySubscriptionRepository, MonthlySubscriptionRepository>();
 builder.Services.AddScoped<IGateRepository, GateRepository>();
@@ -54,6 +53,9 @@ builder.Services.AddScoped<IPricingPolicyRepository, PricingPolicyRepository>();
 builder.Services.AddScoped<IReservationRepository, ReservationRepository>();
 builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IIncidentReportRepository, IncidentReportRepository>();
+builder.Services.AddScoped<ISubscriptionPackageRepository, SubscriptionPackageRepository>();
+builder.Services.AddScoped<IVehicleChangeRequestRepository, VehicleChangeRequestRepository>();
+builder.Services.AddScoped<ISubscriptionRenewalRepository, SubscriptionRenewalRepository>();
 
 // Đăng ký Services
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -63,9 +65,9 @@ builder.Services.AddScoped<IFloorService, FloorService>();
 builder.Services.AddScoped<IReservationService, ReservationService>();
 builder.Services.AddScoped<IPayOSService, PayOSService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<ISubscriptionPackageService, SubscriptionPackageService>();
 builder.Services.AddScoped<IGateService, GateService>();
 builder.Services.AddScoped<IParkingSlotService, ParkingSlotService>();
-builder.Services.AddScoped<IParkingCardService, ParkingCardService>();
 builder.Services.AddScoped<IMonthlySubscriptionService, MonthlySubscriptionService>();
 builder.Services.AddScoped<IPricingPolicyService, PricingPolicyService>();
 builder.Services.AddScoped<IParkingSessionService, ParkingSessionService>();
@@ -75,6 +77,8 @@ builder.Services.AddHttpClient<IOcrService, OcrService>(client =>
 {
     client.Timeout = TimeSpan.FromSeconds(30);
 });
+builder.Services.AddScoped<ISubscriptionRenewalService, SubscriptionRenewalService>();
+builder.Services.AddScoped<IVehicleChangeRequestService, VehicleChangeRequestService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

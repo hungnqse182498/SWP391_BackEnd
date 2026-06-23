@@ -44,13 +44,12 @@ namespace BLL.Implements
         {
             if (dto == null) return new ResponseDTO("Dữ liệu tạo phiên gửi xe không hợp lệ", 400, false);
 
-            var validation = await ValidateSessionAsync(dto.CardId, dto.DriverUserId, dto.LicensePlateIn, null, dto.VehicleTypeId, dto.EntryGateId, null, dto.AssignedSlotId, dto.ActualSlotId, dto.Status ?? "Active");
+            var validation = await ValidateSessionAsync(dto.DriverUserId, dto.LicensePlateIn, null, dto.VehicleTypeId, dto.EntryGateId, null, dto.AssignedSlotId, dto.ActualSlotId, dto.Status ?? "Active");
             if (validation.Error != null) return validation.Error;
 
             var session = new ParkingSession
             {
                 SessionId = Guid.NewGuid(),
-                CardId = dto.CardId,
                 DriverUserId = dto.DriverUserId,
                 LicensePlateIn = NormalizePlate(dto.LicensePlateIn),
                 EntryImageUrl = string.IsNullOrWhiteSpace(dto.EntryImageUrl) ? null : dto.EntryImageUrl.Trim(),
@@ -75,10 +74,9 @@ namespace BLL.Implements
             var session = await _unitOfWork.ParkingSessionRepo.GetByIdAsync(dto.SessionId);
             if (session == null) return new ResponseDTO("Không tìm thấy phiên gửi xe", 404, false);
 
-            var validation = await ValidateSessionAsync(dto.CardId, dto.DriverUserId, dto.LicensePlateIn, dto.LicensePlateOut, dto.VehicleTypeId, dto.EntryGateId, dto.ExitGateId, dto.AssignedSlotId, dto.ActualSlotId, dto.Status);
+            var validation = await ValidateSessionAsync(dto.DriverUserId, dto.LicensePlateIn, dto.LicensePlateOut, dto.VehicleTypeId, dto.EntryGateId, dto.ExitGateId, dto.AssignedSlotId, dto.ActualSlotId, dto.Status);
             if (validation.Error != null) return validation.Error;
 
-            session.CardId = dto.CardId;
             session.DriverUserId = dto.DriverUserId;
             session.LicensePlateIn = NormalizePlate(dto.LicensePlateIn);
             session.LicensePlateOut = string.IsNullOrWhiteSpace(dto.LicensePlateOut) ? null : NormalizePlate(dto.LicensePlateOut);
@@ -121,7 +119,6 @@ namespace BLL.Implements
         private IQueryable<ParkingSession> QueryWithIncludes()
         {
             return _unitOfWork.ParkingSessionRepo.GetAll()
-                .Include(s => s.Card)
                 .Include(s => s.DriverUser)
                 .Include(s => s.VehicleType)
                 .Include(s => s.EntryGate)
@@ -131,7 +128,6 @@ namespace BLL.Implements
         }
 
         private async Task<(string? Status, ResponseDTO? Error)> ValidateSessionAsync(
-            Guid? cardId,
             Guid? driverUserId,
             string? licensePlateIn,
             string? licensePlateOut,
@@ -161,10 +157,6 @@ namespace BLL.Implements
                 if (exitGate == null) return (null, new ResponseDTO("Cổng ra không tồn tại", 400, false));
             }
 
-            if (cardId.HasValue && !await _unitOfWork.ParkingCardRepo.AnyAsync(c => c.CardId == cardId.Value))
-            {
-                return (null, new ResponseDTO("Thẻ xe không tồn tại", 400, false));
-            }
 
             if (driverUserId.HasValue && !await _unitOfWork.UserRepo.AnyAsync(u => u.UserId == driverUserId.Value))
             {
@@ -205,8 +197,6 @@ namespace BLL.Implements
             return new ParkingSessionDTO
             {
                 SessionId = session.SessionId,
-                CardId = session.CardId,
-                CardCode = session.Card?.CardCode,
                 DriverUserId = session.DriverUserId,
                 DriverFullName = session.DriverUser?.FullName,
                 LicensePlateIn = session.LicensePlateIn,

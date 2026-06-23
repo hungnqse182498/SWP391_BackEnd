@@ -14,7 +14,6 @@ namespace DAL.UnitOfWorks
         IVehicleTypeRepository VehicleTypeRepo { get; }
         IFloorRepository FloorRepo { get; }
         IParkingSessionRepository ParkingSessionRepo { get; }
-        IParkingCardRepository ParkingCardRepo { get; }
         IParkingSlotRepository ParkingSlotRepo { get; }
         IMonthlySubscriptionRepository MonthlySubscriptionRepo { get; }
         IGateRepository GateRepo { get; }
@@ -22,6 +21,10 @@ namespace DAL.UnitOfWorks
         IReservationRepository ReservationRepo { get; }
         IPaymentRepository PaymentRepo { get; }
         IIncidentReportRepository IncidentReportRepo { get; }
+        ISubscriptionPackageRepository SubscriptionPackageRepo { get; }
+        IVehicleChangeRequestRepository VehicleChangeRequestRepo { get; }
+        ISubscriptionRenewalRepository SubscriptionRenewalRepo { get; }
+
 
         Task<int> SaveAsync();  
         Task<bool> SaveChangeAsync();

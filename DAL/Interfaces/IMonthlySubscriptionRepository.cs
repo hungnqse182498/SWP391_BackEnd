@@ -9,7 +9,8 @@ namespace DAL.Interfaces
 {
     public interface IMonthlySubscriptionRepository : IGenericRepository<MonthlySubscription>
     {
-        Task<MonthlySubscription?> GetActiveSubscriptionAsync(string licensePlate);
-
+        Task<List<MonthlySubscription>> GetByUserAsync(Guid userId);
+        Task<MonthlySubscription?> GetDetailAsync(Guid id);
+        Task<bool> HasUsablePlateAsync(string plate, Guid? ignoredSubscriptionId = null);
     }
 }

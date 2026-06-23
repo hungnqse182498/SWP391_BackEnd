@@ -32,6 +32,15 @@ namespace API.Controllers
             return StatusCode(result.StatusCode, result);
         }
 
+        [HttpPost("{id}/recreate-payment")]
+        public async Task<IActionResult> RecreatePaymentLink(Guid id)
+        {
+            var userId = GetUserId();
+            var result = await _reservationService.CreatePaymentLinkForReservationAsync(id, userId);
+            return StatusCode(result.StatusCode, result);
+        }
+
+
         [HttpGet("my-reservations")]
         public async Task<IActionResult> GetMyReservations()
         {

@@ -11,8 +11,6 @@ public partial class ParkingSession
 
     public Guid? ReservationId { get; set; }
 
-    public Guid? CardId { get; set; }
-
     public Guid? DriverUserId { get; set; }
 
     public string LicensePlateIn { get; set; }
@@ -42,8 +40,6 @@ public partial class ParkingSession
     public virtual ParkingSlot ActualSlot { get; set; }
 
     public virtual ParkingSlot AssignedSlot { get; set; }
-
-    public virtual ParkingCard Card { get; set; }
 
     public virtual User DriverUser { get; set; }
 

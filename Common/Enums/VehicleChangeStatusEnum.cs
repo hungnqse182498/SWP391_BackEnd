@@ -4,10 +4,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Common.DTOs.Reservation
+namespace Common.Enums
 {
-    public class CreateReservationDTO
+    public enum VehicleChangeStatusEnum
     {
-        public DateTime ExpectedEntryTime { get; set; }
+        Pending = 0,
+        Approved = 1,
+        Rejected = 2
     }
 }

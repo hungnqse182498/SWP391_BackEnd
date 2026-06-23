@@ -37,9 +37,13 @@ public partial class User
 
     public virtual ICollection<ParkingSlot> ParkingSlots { get; set; } = new List<ParkingSlot>();
 
+    public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
+
     public virtual ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
 
     public virtual ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
 
     public virtual Role Role { get; set; }
+
+    public virtual ICollection<VehicleChangeRequest> VehicleChangeRequests { get; set; } = new List<VehicleChangeRequest>();
 }

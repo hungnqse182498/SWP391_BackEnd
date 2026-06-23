@@ -9,9 +9,13 @@ public partial class Payment
 {
     public Guid PaymentId { get; set; }
 
+    public Guid? UserId { get; set; }
+
     public Guid? SessionId { get; set; }
 
     public Guid? ReservationId { get; set; }
+
+    public Guid? SubscriptionId { get; set; }
 
     public decimal Amount { get; set; }
 
@@ -28,4 +32,8 @@ public partial class Payment
     public virtual Reservation Reservation { get; set; }
 
     public virtual ParkingSession Session { get; set; }
+
+    public virtual MonthlySubscription Subscription { get; set; }
+
+    public virtual User User { get; set; }
 }

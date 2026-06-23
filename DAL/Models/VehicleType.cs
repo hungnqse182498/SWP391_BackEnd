@@ -24,4 +24,6 @@ public partial class VehicleType
     public virtual ICollection<PricingPolicy> PricingPolicies { get; set; } = new List<PricingPolicy>();
 
     public virtual ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
+
+    public virtual ICollection<SubscriptionPackage> SubscriptionPackages { get; set; } = new List<SubscriptionPackage>();
 }

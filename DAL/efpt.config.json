@@ -35,10 +35,6 @@
          "ObjectType": 0
       },
       {
-         "Name": "[dbo].[ParkingCards]",
-         "ObjectType": 0
-      },
-      {
          "Name": "[dbo].[ParkingSessions]",
          "ObjectType": 0
       },
@@ -67,7 +63,19 @@
          "ObjectType": 0
       },
       {
+         "Name": "[dbo].[SubscriptionPackages]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[SubscriptionRenewals]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[dbo].[Users]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[VehicleChangeRequests]",
          "ObjectType": 0
       },
       {

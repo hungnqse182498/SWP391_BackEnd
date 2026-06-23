@@ -23,6 +23,8 @@ public partial class ParkingSlot
 
     public virtual Floor Floor { get; set; }
 
+    public virtual ICollection<MonthlySubscription> MonthlySubscriptions { get; set; } = new List<MonthlySubscription>();
+
     public virtual ICollection<ParkingSession> ParkingSessionActualSlots { get; set; } = new List<ParkingSession>();
 
     public virtual ICollection<ParkingSession> ParkingSessionAssignedSlots { get; set; } = new List<ParkingSession>();
