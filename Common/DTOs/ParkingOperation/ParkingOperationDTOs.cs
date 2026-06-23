@@ -7,14 +7,12 @@ namespace Common.DTOs.ParkingOperation
         public string LicensePlate { get; set; } = string.Empty;
         public Guid VehicleTypeId { get; set; }
         public string GateName { get; set; } = string.Empty;
-        public string CardCode { get; set; } = string.Empty;
         public string? EntryImageUrl { get; set; }
     }
 
     public class GuestCheckOutDTO
     {
         public string? LicensePlate { get; set; }
-        public string CardCode { get; set; } = string.Empty;
         public string GateName { get; set; } = string.Empty;
         public string PaymentMethod { get; set; } = string.Empty;
         public string? LicensePlateOut { get; set; }
@@ -25,8 +23,6 @@ namespace Common.DTOs.ParkingOperation
     {
         public Guid? SessionId { get; set; }
         public string? LicensePlate { get; set; }
-        public Guid? CardId { get; set; }
-        public string? CardCode { get; set; }
     }
 
     public class GuestCheckOutLegacyDTO : GuestCheckOutPreviewDTO
@@ -43,14 +39,12 @@ namespace Common.DTOs.ParkingOperation
         public string LicensePlate { get; set; } = string.Empty;
         public Guid VehicleTypeId { get; set; }
         public string GateName { get; set; } = string.Empty;
-        public string CardCode { get; set; } = string.Empty;
         public string? EntryImageUrl { get; set; }
     }
 
     public class ResidentCheckOutDTO
     {
         public string? LicensePlate { get; set; }
-        public string CardCode { get; set; } = string.Empty;
         public string GateName { get; set; } = string.Empty;
         public string? LicensePlateOut { get; set; }
         public string? ExitImageUrl { get; set; }
@@ -61,8 +55,6 @@ namespace Common.DTOs.ParkingOperation
         public Guid ReservationId { get; set; }
         public string LicensePlate { get; set; }
         public Guid GateId { get; set; }
-        public Guid? CardId { get; set; }
-        public string? CardCode { get; set; }
         public string? EntryImageUrl { get; set; }
     }
 

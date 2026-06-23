@@ -26,7 +26,11 @@ public class PayOSService : IPayOSService
     {
         long orderCode = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
-        var descriptionPrefix = payment.PaymentType == PaymentType.CheckoutFee.ToString() ? "PARK" : "RES";
+        var descriptionPrefix = payment.PaymentType == PaymentType.CheckoutFee.ToString()
+            ? "PARK"
+            : payment.PaymentType == PaymentType.Deposit.ToString()
+                ? "RES"
+                : "SUB";
 
         var request = new CreatePaymentLinkRequest
         {

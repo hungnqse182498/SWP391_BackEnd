@@ -8,6 +8,8 @@ namespace BLL.Interfaces
     public interface IReservationService
     {
         Task<ResponseDTO> CreateReservationAsync(Guid userId, CreateReservationDTO dto);
+        Task<ResponseDTO> CreatePaymentLinkForReservationAsync(Guid reservationId, Guid userId);
+
         Task<ResponseDTO> CheckPaymentStatusByOrderCodeAsync(string orderCode);
         Task<ResponseDTO> GetMyReservationsAsync(Guid userId);
 

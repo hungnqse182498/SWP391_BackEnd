@@ -6,11 +6,10 @@ using System.Threading.Tasks;
 
 namespace Common.Enums
 {
-    public enum PaymentType
+    public enum PackageStatus
     {
-        Deposit,
-        CheckoutFee,
-        SubscriptionFee,
-        SubscriptionRenewal
+        Active,
+        Inactive,
+        Suspended
     }
 }

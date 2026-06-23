@@ -1,4 +1,4 @@
-using BLL.Interfaces;
+﻿using BLL.Interfaces;
 using Common.DTOs.Payment;
 using Microsoft.AspNetCore.Mvc;
 
@@ -18,10 +18,9 @@ public class PaymentController : ControllerBase
     [HttpPost("payos-webhook")]
     public async Task<IActionResult> PayOSWebhook([FromBody] PayOSWebhookDTO dto)
     {
-        var result = await _paymentService.PayOSWebhookAsync(dto);
-        return StatusCode(result.StatusCode, result);
+        await _paymentService.PayOSWebhookAsync(dto);
+        return Ok();
     }
-
 
     [HttpGet]
     public async Task<IActionResult> GetAll()

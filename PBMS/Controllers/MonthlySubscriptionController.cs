@@ -1,10 +1,13 @@
 using BLL.Interfaces;
-using Common.DTOs.MonthlySubscription;
+using Common.DTOs.Subscription;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PBMS.Extensions;
 
 namespace PBMS.Controllers
 {
     [ApiController]
+    [Authorize]
     [Route("api/[controller]")]
     public class MonthlySubscriptionController : ControllerBase
     {
@@ -15,38 +18,38 @@ namespace PBMS.Controllers
             _monthlySubscriptionService = monthlySubscriptionService;
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetAll()
+        [HttpPost("register")]
+        public async Task<IActionResult> Register([FromBody] RegisterMonthlySubscriptionDTO dto)
         {
-            var res = await _monthlySubscriptionService.GetAllAsync();
+            var res = await _monthlySubscriptionService.RegisterAsync(User.GetUserId(), dto);
+            return StatusCode(res.StatusCode, res);
+        }
+
+        [HttpPost("payment/{subscriptionId:guid}")]
+        public async Task<IActionResult> CreatePayment(Guid subscriptionId)
+        {
+            var res = await _monthlySubscriptionService.CreatePaymentAsync(subscriptionId, User.GetUserId());
+            return StatusCode(res.StatusCode, res);
+        }
+
+        [HttpGet("my")]
+        public async Task<IActionResult> My()
+        {
+            var res = await _monthlySubscriptionService.GetMyAsync(User.GetUserId());
             return StatusCode(res.StatusCode, res);
         }
 
         [HttpGet("{id:guid}")]
-        public async Task<IActionResult> GetById(Guid id)
+        public async Task<IActionResult> Detail(Guid id)
         {
-            var res = await _monthlySubscriptionService.GetByIdAsync(id);
+            var res = await _monthlySubscriptionService.GetDetailAsync(id);
             return StatusCode(res.StatusCode, res);
         }
 
-        [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CreateMonthlySubscriptionDTO dto)
+        [HttpPut("{id:guid}/cancel")]
+        public async Task<IActionResult> Cancel(Guid id)
         {
-            var res = await _monthlySubscriptionService.CreateAsync(dto);
-            return StatusCode(res.StatusCode, res);
-        }
-
-        [HttpPut]
-        public async Task<IActionResult> Update([FromBody] UpdateMonthlySubscriptionDTO dto)
-        {
-            var res = await _monthlySubscriptionService.UpdateAsync(dto);
-            return StatusCode(res.StatusCode, res);
-        }
-
-        [HttpDelete("{id:guid}")]
-        public async Task<IActionResult> Delete(Guid id)
-        {
-            var res = await _monthlySubscriptionService.DeleteAsync(id);
+            var res = await _monthlySubscriptionService.CancelAsync(id);
             return StatusCode(res.StatusCode, res);
         }
     }

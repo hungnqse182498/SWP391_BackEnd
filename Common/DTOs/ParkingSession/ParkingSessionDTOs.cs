@@ -5,8 +5,6 @@ namespace Common.DTOs.ParkingSession
     public class ParkingSessionDTO
     {
         public Guid SessionId { get; set; }
-        public Guid? CardId { get; set; }
-        public string? CardCode { get; set; }
         public Guid? DriverUserId { get; set; }
         public string? DriverFullName { get; set; }
         public string LicensePlateIn { get; set; }
@@ -30,7 +28,6 @@ namespace Common.DTOs.ParkingSession
 
     public class CreateParkingSessionDTO
     {
-        public Guid? CardId { get; set; }
         public Guid? DriverUserId { get; set; }
         public string LicensePlateIn { get; set; }
         public string? EntryImageUrl { get; set; }
@@ -45,7 +42,6 @@ namespace Common.DTOs.ParkingSession
     public class UpdateParkingSessionDTO
     {
         public Guid SessionId { get; set; }
-        public Guid? CardId { get; set; }
         public Guid? DriverUserId { get; set; }
         public string LicensePlateIn { get; set; }
         public string? LicensePlateOut { get; set; }

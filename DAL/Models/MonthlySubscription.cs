@@ -15,15 +15,29 @@ public partial class MonthlySubscription
 
     public string LicensePlate { get; set; }
 
+    public Guid PackageId { get; set; }
+
     public DateTime StartDate { get; set; }
 
     public DateTime EndDate { get; set; }
 
     public decimal Price { get; set; }
 
+    public Guid? FixedSlotId { get; set; }
+
     public string Status { get; set; }
 
+    public virtual ParkingSlot FixedSlot { get; set; }
+
+    public virtual SubscriptionPackage Package { get; set; }
+
+    public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
+
+    public virtual ICollection<SubscriptionRenewal> SubscriptionRenewals { get; set; } = new List<SubscriptionRenewal>();
+
     public virtual User User { get; set; }
+
+    public virtual ICollection<VehicleChangeRequest> VehicleChangeRequests { get; set; } = new List<VehicleChangeRequest>();
 
     public virtual VehicleType VehicleType { get; set; }
 }

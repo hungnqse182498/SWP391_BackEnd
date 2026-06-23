@@ -23,7 +23,6 @@ namespace DAL.UnitOfWorks
             VehicleTypeRepo = new VehicleTypeRepository(_context);
             FloorRepo = new FloorRepository(_context);
             ParkingSessionRepo = new ParkingSessionRepository(_context);
-            ParkingCardRepo = new ParkingCardRepository(_context);
             ParkingSlotRepo = new ParkingSlotRepository(_context);
             MonthlySubscriptionRepo = new MonthlySubscriptionRepository(_context);
             GateRepo = new GateRepository(_context);
@@ -31,6 +30,9 @@ namespace DAL.UnitOfWorks
             ReservationRepo = new ReservationRepository(_context);
             PaymentRepo = new PaymentRepository(_context);
             IncidentReportRepo = new IncidentReportRepository(_context);
+            SubscriptionPackageRepo = new SubscriptionPackageRepository(_context);
+            VehicleChangeRequestRepo = new VehicleChangeRequestRepository(_context);
+            SubscriptionRenewalRepo = new SubscriptionRenewalRepository(_context);
 
         }
 
@@ -39,7 +41,6 @@ namespace DAL.UnitOfWorks
         public IVehicleTypeRepository VehicleTypeRepo { get; private set; }
         public IFloorRepository FloorRepo { get; private set; }
         public IParkingSessionRepository ParkingSessionRepo { get; private set; }
-        public IParkingCardRepository ParkingCardRepo { get; private set; }
         public IParkingSlotRepository ParkingSlotRepo { get; private set; }
         public IMonthlySubscriptionRepository MonthlySubscriptionRepo { get; private set; }
         public IGateRepository GateRepo { get; private set; }
@@ -47,6 +48,9 @@ namespace DAL.UnitOfWorks
         public IReservationRepository ReservationRepo { get; private set; }
         public IPaymentRepository PaymentRepo { get; private set; }
         public IIncidentReportRepository IncidentReportRepo { get; private set; }
+        public ISubscriptionPackageRepository SubscriptionPackageRepo { get; }
+        public IVehicleChangeRequestRepository VehicleChangeRequestRepo { get; }
+        public ISubscriptionRenewalRepository SubscriptionRenewalRepo { get; }
 
         public void Dispose()
         {

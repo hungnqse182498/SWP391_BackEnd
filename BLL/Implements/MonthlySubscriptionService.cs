@@ -1,182 +1,220 @@
 using BLL.Interfaces;
 using Common.DTOs;
-using Common.DTOs.MonthlySubscription;
+using Common.DTOs.Subscription;
+using Common.DTOs.Payment;
+using Common.Enums;
 using DAL.Models;
 using DAL.UnitOfWorks;
 using Microsoft.EntityFrameworkCore;
+using PayOS.Models.V2.PaymentRequests;
 
 namespace BLL.Implements
 {
     public class MonthlySubscriptionService : IMonthlySubscriptionService
     {
         private readonly IUnitOfWork _unitOfWork;
-        private static readonly HashSet<string> ValidStatuses = new(StringComparer.OrdinalIgnoreCase)
-        {
-            "Active",
-            "Inactive",
-            "Expired",
-            "Cancelled"
-        };
+        private readonly IPayOSService _payOSService;
 
-        public MonthlySubscriptionService(IUnitOfWork unitOfWork)
+        public MonthlySubscriptionService(IUnitOfWork unitOfWork, IPayOSService payOSService)
         {
             _unitOfWork = unitOfWork;
+            _payOSService = payOSService;
         }
 
-        public async Task<ResponseDTO> GetAllAsync()
+        public async Task<ResponseDTO> RegisterAsync(Guid userId, RegisterMonthlySubscriptionDTO dto)
         {
-            var subscriptions = await _unitOfWork.MonthlySubscriptionRepo.GetAll()
-                .Include(s => s.User)
-                .Include(s => s.VehicleType)
-                .OrderBy(s => s.LicensePlate)
-                .ToListAsync();
+            if (userId == Guid.Empty) return new ResponseDTO("Vui lòng đăng nhập để đăng ký gói", 401);
+            if (dto == null) return new ResponseDTO("Dữ liệu đăng ký không hợp lệ", 400);
+            if (dto.PackageId == Guid.Empty) return new ResponseDTO("Vui lòng chọn gói", 400);
+            if (string.IsNullOrWhiteSpace(dto.LicensePlate)) return new ResponseDTO("Vui lòng nhập biển số xe", 400);
 
-            return new ResponseDTO("Lấy danh sách gói tháng thành công", 200, true, subscriptions.Select(MapToDTO).ToList());
-        }
+            var package = await _unitOfWork.SubscriptionPackageRepo.GetAll()
+                .Include(p => p.VehicleType)
+                .FirstOrDefaultAsync(p => p.PackageId == dto.PackageId && (p.Status == null || p.Status == "Active"));
+            if (package == null) return new ResponseDTO("Gói không tồn tại hoặc đã ngừng bán", 404);
 
-        public async Task<ResponseDTO> GetByIdAsync(Guid id)
-        {
-            if (id == Guid.Empty) return new ResponseDTO("Vui lòng nhập SubscriptionId", 400, false);
+            var normalizedPlate = string.IsNullOrWhiteSpace(dto.LicensePlate) ? string.Empty : dto.LicensePlate.Trim().ToUpperInvariant();
 
-            var subscription = await _unitOfWork.MonthlySubscriptionRepo.GetAll()
-                .Include(s => s.User)
-                .Include(s => s.VehicleType)
-                .FirstOrDefaultAsync(s => s.SubscriptionId == id);
+            var plateExists = await HasUsablePlateAsync(normalizedPlate);
+            if (plateExists) return new ResponseDTO("Biển số này đã có gói đang hiệu lực hoặc đang chờ thanh toán", 400);
 
-            if (subscription == null) return new ResponseDTO("Không tìm thấy gói tháng", 404, false);
-            return new ResponseDTO("Lấy thông tin gói tháng thành công", 200, true, MapToDTO(subscription));
-        }
-
-        public async Task<ResponseDTO> CreateAsync(CreateMonthlySubscriptionDTO dto)
-        {
-            if (dto == null) return new ResponseDTO("Dữ liệu tạo gói tháng không hợp lệ", 400, false);
-
-            var validation = await ValidateSubscriptionAsync(dto.UserId, dto.VehicleTypeId, dto.LicensePlate, dto.StartDate, dto.EndDate, dto.Price, dto.Status ?? "Active", null);
-            if (validation.Error != null) return validation.Error;
-
-            var subscription = new MonthlySubscription
-            {
-                SubscriptionId = Guid.NewGuid(),
-                UserId = dto.UserId,
-                VehicleTypeId = dto.VehicleTypeId,
-                LicensePlate = NormalizePlate(dto.LicensePlate),
-                StartDate = dto.StartDate,
-                EndDate = dto.EndDate,
-                Price = dto.Price,
-                Status = validation.Status!
-            };
-
-            await _unitOfWork.MonthlySubscriptionRepo.AddAsync(subscription);
-            await _unitOfWork.SaveChangeAsync();
-            subscription.User = validation.User;
-            subscription.VehicleType = validation.VehicleType;
-
-            return new ResponseDTO("Tạo gói tháng thành công", 201, true, MapToDTO(subscription));
-        }
-
-        public async Task<ResponseDTO> UpdateAsync(UpdateMonthlySubscriptionDTO dto)
-        {
-            if (dto == null || dto.SubscriptionId == Guid.Empty) return new ResponseDTO("Dữ liệu cập nhật gói tháng không hợp lệ", 400, false);
-
-            var subscription = await _unitOfWork.MonthlySubscriptionRepo.GetByIdAsync(dto.SubscriptionId);
-            if (subscription == null) return new ResponseDTO("Không tìm thấy gói tháng", 404, false);
-
-            var validation = await ValidateSubscriptionAsync(dto.UserId, dto.VehicleTypeId, dto.LicensePlate, dto.StartDate, dto.EndDate, dto.Price, dto.Status, dto.SubscriptionId);
-            if (validation.Error != null) return validation.Error;
-
-            subscription.UserId = dto.UserId;
-            subscription.VehicleTypeId = dto.VehicleTypeId;
-            subscription.LicensePlate = NormalizePlate(dto.LicensePlate);
-            subscription.StartDate = dto.StartDate;
-            subscription.EndDate = dto.EndDate;
-            subscription.Price = dto.Price;
-            subscription.Status = validation.Status!;
-
-            await _unitOfWork.MonthlySubscriptionRepo.UpdateAsync(subscription);
-            await _unitOfWork.SaveChangeAsync();
-            subscription.User = validation.User;
-            subscription.VehicleType = validation.VehicleType;
-
-            return new ResponseDTO("Cập nhật gói tháng thành công", 200, true, MapToDTO(subscription));
-        }
-
-        public async Task<ResponseDTO> DeleteAsync(Guid id)
-        {
-            if (id == Guid.Empty) return new ResponseDTO("Vui lòng nhập SubscriptionId", 400, false);
-
-            var subscription = await _unitOfWork.MonthlySubscriptionRepo.GetByIdAsync(id);
-            if (subscription == null) return new ResponseDTO("Không tìm thấy gói tháng", 404, false);
-
+            await _unitOfWork.BeginTransactionAsync();
             try
             {
-                _unitOfWork.MonthlySubscriptionRepo.Delete(subscription);
-                await _unitOfWork.SaveChangeAsync();
-                return new ResponseDTO("Xóa gói tháng thành công", 200, true);
+                var subscription = new MonthlySubscription
+                {
+                    SubscriptionId = Guid.NewGuid(),
+                    UserId = userId,
+                    VehicleTypeId = package.VehicleTypeId,
+                    LicensePlate = normalizedPlate,
+                    PackageId = package.PackageId,
+                    StartDate = DateTime.Now,
+                    EndDate = DateTime.Now.AddMonths(package.DurationMonths),
+                    Price = package.Price,
+                    Status = "PendingPayment"
+                };
+
+                var payment = new Payment
+                {
+                    PaymentId = Guid.NewGuid(),
+                    SubscriptionId = subscription.SubscriptionId,
+                    Amount = package.Price,
+                    PaymentMethod = PaymentMethod.PayOS.ToString(),
+                    PaymentStatus = PaymentStatus.Pending.ToString(),
+                    PaymentType = PaymentType.SubscriptionFee.ToString(),
+                    PaymentTime = DateTime.UtcNow,
+                    TransactionReference = string.Empty
+                };
+
+                await _unitOfWork.MonthlySubscriptionRepo.AddAsync(subscription);
+                await _unitOfWork.PaymentRepo.AddAsync(payment);
+                await _unitOfWork.SaveAsync();
+
+                var paymentUrl = await _payOSService.CreatePaymentLinkAsync(payment);
+                string paymentLinkId = "";
+                if (!string.IsNullOrEmpty(paymentUrl))
+                {
+                    paymentLinkId = paymentUrl.Substring(paymentUrl.LastIndexOf('/') + 1);
+                }
+
+                await _unitOfWork.PaymentRepo.UpdateAsync(payment);
+                await _unitOfWork.SaveAsync();
+                await _unitOfWork.CommitTransactionAsync();
+
+                return new ResponseDTO("Tạo đăng ký gói thành công", 201, true, new RegisterMonthlySubscriptionPaymentDTO
+                {
+                    SubscriptionId = subscription.SubscriptionId,
+                    PaymentId = payment.PaymentId,
+                    Amount = payment.Amount,
+                    PaymentLinkId = paymentLinkId,
+                    PaymentUrl = paymentUrl,
+                    OrderCode = payment.TransactionReference
+                });
             }
             catch (Exception ex)
             {
-                return new ResponseDTO($"Lỗi xóa gói tháng: {ex.Message}", 500, false);
+                await _unitOfWork.RollbackTransactionAsync();
+                return new ResponseDTO($"Lỗi đăng ký gói: {ex.Message}", 500);
             }
         }
 
-        private async Task<(User? User, VehicleType? VehicleType, string? Status, ResponseDTO? Error)> ValidateSubscriptionAsync(
-            Guid userId,
-            Guid vehicleTypeId,
-            string? licensePlate,
-            DateTime startDate,
-            DateTime endDate,
-            decimal price,
-            string? status,
-            Guid? currentSubscriptionId)
+        public async Task<ResponseDTO> CreatePaymentAsync(Guid subscriptionId, Guid userId)
         {
-            if (userId == Guid.Empty) return (null, null, null, new ResponseDTO("Vui lòng chọn cư dân", 400, false));
-            if (vehicleTypeId == Guid.Empty) return (null, null, null, new ResponseDTO("Vui lòng chọn loại phương tiện", 400, false));
-            if (string.IsNullOrWhiteSpace(licensePlate)) return (null, null, null, new ResponseDTO("Vui lòng nhập biển số", 400, false));
-            if (endDate <= startDate) return (null, null, null, new ResponseDTO("Ngày kết thúc phải sau ngày bắt đầu", 400, false));
-            if (price < 0) return (null, null, null, new ResponseDTO("Giá gói tháng không được âm", 400, false));
+            var subscription = await _unitOfWork.MonthlySubscriptionRepo.GetDetailAsync(subscriptionId);
+            if (subscription == null) return new ResponseDTO("Không tìm thấy gói tháng", 404);
+            if (userId != Guid.Empty && subscription.UserId != userId) return new ResponseDTO("Bạn không có quyền thanh toán gói này", 403);
+            if (subscription.Status == "Active") return new ResponseDTO("Gói đã được kích hoạt", 400);
 
-            var normalizedStatus = NormalizeStatus(status);
-            if (normalizedStatus == null) return (null, null, null, new ResponseDTO("Trạng thái gói tháng chỉ được là Active, Inactive, Expired hoặc Cancelled", 400, false));
+            var payment = await _unitOfWork.PaymentRepo.GetAll()
+                .Where(p => p.SubscriptionId == subscriptionId && p.PaymentType == PaymentType.SubscriptionFee.ToString() && p.PaymentStatus == PaymentStatus.Pending.ToString())
+                .OrderByDescending(p => p.PaymentTime)
+                .FirstOrDefaultAsync();
 
-            var user = await _unitOfWork.UserRepo.GetByIdWithRoleAsync(userId);
-            if (user == null) return (null, null, null, new ResponseDTO("Người dùng không tồn tại", 400, false));
+            if (payment == null)
+            {
+                payment = new Payment
+                    {
+                        PaymentId = Guid.NewGuid(),
+                        SubscriptionId = subscription.SubscriptionId,
+                        Amount = subscription.Price,
+                        PaymentMethod = PaymentMethod.PayOS.ToString(),
+                        PaymentStatus = PaymentStatus.Pending.ToString(),
+                        PaymentType = PaymentType.SubscriptionFee.ToString(),
+                        PaymentTime = DateTime.UtcNow,
+                        TransactionReference = string.Empty
+                    };
+                await _unitOfWork.PaymentRepo.AddAsync(payment);
+                await _unitOfWork.SaveAsync();
+            }
 
-            var vehicleType = await _unitOfWork.VehicleTypeRepo.GetByIdAsync(vehicleTypeId);
-            if (vehicleType == null) return (null, null, null, new ResponseDTO("Loại phương tiện không tồn tại", 400, false));
+            var paymentUrl = await _payOSService.CreatePaymentLinkAsync(payment);
+            string paymentLinkId = "";
+            if (!string.IsNullOrEmpty(paymentUrl))
+            {
+                paymentLinkId = paymentUrl.Substring(paymentUrl.LastIndexOf('/') + 1);
+            }
+            await _unitOfWork.SaveAsync();
 
-            var plate = NormalizePlate(licensePlate);
-            var duplicate = await _unitOfWork.MonthlySubscriptionRepo.GetAll()
-                .AnyAsync(s => s.LicensePlate.ToLower() == plate.ToLower() && (!currentSubscriptionId.HasValue || s.SubscriptionId != currentSubscriptionId.Value));
-            if (duplicate) return (null, null, null, new ResponseDTO("Biển số đã có gói tháng", 400, false));
-
-            return (user, vehicleType, normalizedStatus, null);
+            return new ResponseDTO("Tạo link thanh toán thành công", 200, true, new RegisterMonthlySubscriptionPaymentDTO
+            {
+                SubscriptionId = subscription.SubscriptionId,
+                PaymentId = payment.PaymentId,
+                Amount = payment.Amount,
+                PaymentLinkId = paymentLinkId,
+                PaymentUrl = paymentUrl,
+                OrderCode = payment.TransactionReference
+            });
         }
 
-        private static string? NormalizeStatus(string? status)
+        public async Task<ResponseDTO> GetMyAsync(Guid userId)
         {
-            if (string.IsNullOrWhiteSpace(status)) return null;
-            return ValidStatuses.FirstOrDefault(s => string.Equals(s, status.Trim(), StringComparison.OrdinalIgnoreCase));
+            if (userId == Guid.Empty) return new ResponseDTO("Vui lòng đăng nhập", 401);
+            var list = await _unitOfWork.MonthlySubscriptionRepo.GetByUserAsync(userId);
+            return new ResponseDTO("OK", 200, true, list.Select(MapToDTO).ToList());
         }
 
-        private static string NormalizePlate(string plate)
+        public async Task<ResponseDTO> GetByUserAsync(Guid userId)
         {
-            return plate.Trim().ToUpper();
+            var list = await _unitOfWork.MonthlySubscriptionRepo.GetByUserAsync(userId);
+            return new ResponseDTO("OK", 200, true, list.Select(MapToDTO).ToList());
         }
 
-        private static MonthlySubscriptionDTO MapToDTO(MonthlySubscription subscription)
+        public async Task<ResponseDTO> GetDetailAsync(Guid id)
+        {
+            var data = await _unitOfWork.MonthlySubscriptionRepo.GetDetailAsync(id);
+            if (data == null) return new ResponseDTO("Không tồn tại", 404);
+            return new ResponseDTO("OK", 200, true, MapToDTO(data));
+        }
+
+        public async Task<ResponseDTO> CancelAsync(Guid id)
+        {
+            var sub = await _unitOfWork.MonthlySubscriptionRepo.GetDetailAsync(id);
+            if (sub == null) return new ResponseDTO("Không tìm thấy", 404);
+
+            sub.Status = "Cancelled";
+            if (sub.FixedSlotId.HasValue)
+            {
+                var slot = await _unitOfWork.ParkingSlotRepo.GetByIdAsync(sub.FixedSlotId.Value);
+                if (slot != null)
+                {
+                    slot.AssignedUserId = null;
+                    slot.Status = "Available";
+                    await _unitOfWork.ParkingSlotRepo.UpdateAsync(slot);
+                }
+
+                sub.FixedSlotId = null;
+            }
+
+            await _unitOfWork.MonthlySubscriptionRepo.UpdateAsync(sub);
+            await _unitOfWork.SaveAsync();
+
+            return new ResponseDTO("Hủy thành công", 200, true);
+        }
+
+        private async Task<bool> HasUsablePlateAsync(string plate, Guid? ignoredSubscriptionId = null)
+        {
+            return await _unitOfWork.MonthlySubscriptionRepo.GetAll()
+                .AnyAsync(s =>
+                    s.LicensePlate == plate &&
+                    s.Status != "Cancelled" &&
+                    (!ignoredSubscriptionId.HasValue || s.SubscriptionId != ignoredSubscriptionId.Value) &&
+                    (s.Status == "PendingPayment" || s.EndDate >= DateTime.Now));
+        }
+
+        private static MonthlySubscriptionDTO MapToDTO(MonthlySubscription sub)
         {
             return new MonthlySubscriptionDTO
             {
-                SubscriptionId = subscription.SubscriptionId,
-                UserId = subscription.UserId,
-                UserFullName = subscription.User?.FullName,
-                VehicleTypeId = subscription.VehicleTypeId,
-                VehicleTypeName = subscription.VehicleType?.TypeName,
-                LicensePlate = subscription.LicensePlate,
-                StartDate = subscription.StartDate,
-                EndDate = subscription.EndDate,
-                Price = subscription.Price,
-                Status = subscription.Status
+                SubscriptionId = sub.SubscriptionId,
+                FullName = sub.User?.FullName,
+                LicensePlate = sub.LicensePlate,
+                VehicleType = sub.VehicleType?.TypeName,
+                PackageName = sub.Package?.PackageName,
+                StartDate = sub.StartDate,
+                EndDate = sub.EndDate,
+                Price = sub.Price,
+                Status = sub.Status,
+                FixedSlot = sub.FixedSlot?.SlotCode
             };
         }
     }
