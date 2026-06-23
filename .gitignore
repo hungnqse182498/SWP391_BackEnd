@@ -20,3 +20,7 @@
 **/TestResults/
 **/coverage/
 **/*.trx
+
+# Ảnh được upload khi chạy ứng dụng
+PBMS/wwwroot/uploads/*
+!PBMS/wwwroot/uploads/.gitkeep
