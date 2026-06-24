@@ -23,6 +23,17 @@ namespace DAL.Implements
             .Where(x => x.UserId == userId)
             .ToListAsync();
         }
+
+        public async Task<IEnumerable<MonthlySubscription>> GetAllWithDetailsAsync()
+        {
+            return await _context.MonthlySubscriptions
+                .Include(s => s.User)
+                .Include(s => s.VehicleType)
+                .Include(s => s.Package)
+                .Include(s => s.FixedSlot)
+                .ToListAsync();
+        }
+
         public async Task<MonthlySubscription?> GetDetailAsync(Guid id)
         {
             return await _context.MonthlySubscriptions
@@ -30,8 +41,7 @@ namespace DAL.Implements
             .Include(x => x.Package)
             .Include(x => x.VehicleType)
             .Include(x => x.FixedSlot)
-            .FirstOrDefaultAsync(x =>
-            x.SubscriptionId == id);
+            .FirstOrDefaultAsync(x => x.SubscriptionId == id);
 
         }
 

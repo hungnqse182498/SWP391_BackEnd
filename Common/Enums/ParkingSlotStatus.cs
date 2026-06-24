@@ -6,10 +6,11 @@ using System.Threading.Tasks;
 
 namespace Common.Enums
 {
-    public enum VehicleChangeStatusEnum
-    {
-        Pending,
-        Approved,
-        Rejected
+    public enum ParkingSlotStatus 
+    { 
+        Available,
+        Occupied,
+        Reserved,
+        Assigned
     }
 }

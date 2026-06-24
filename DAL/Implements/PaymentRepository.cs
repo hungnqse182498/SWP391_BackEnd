@@ -20,5 +20,15 @@ namespace DAL.Implements
             if (string.IsNullOrWhiteSpace(orderCode)) return null;
             return await _context.Payments.FirstOrDefaultAsync(p => p.TransactionReference.ToLower() == orderCode.ToLower());
         }
+
+        public async Task<Payment?> GetLatestPendingSubscriptionPaymentAsync(Guid subscriptionId)
+        {
+            return await _context.Payments
+                .Where(p => p.SubscriptionId == subscriptionId &&
+                            p.PaymentType == "SubscriptionFee" &&
+                            p.PaymentStatus == "Pending")
+                .OrderByDescending(p => p.PaymentTime)
+                .FirstOrDefaultAsync();
+        }
     }
 }

@@ -10,5 +10,7 @@ namespace DAL.Interfaces
     public interface IPricingPolicyRepository : IGenericRepository<PricingPolicy>
     {
         Task<PricingPolicy?> GetActivePolicyAsync(Guid vehicleTypeId);
+        Task<IEnumerable<PricingPolicy>> GetAllWithVehicleTypeAsync();
+        Task<PricingPolicy?> GetByIdWithVehicleTypeAsync(Guid id);
     }
 }

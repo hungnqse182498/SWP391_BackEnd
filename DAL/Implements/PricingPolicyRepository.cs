@@ -16,5 +16,19 @@ namespace DAL.Implements
         {
             return await _context.PricingPolicies.FirstOrDefaultAsync(p => p.VehicleTypeId == vehicleTypeId && p.Status == "Active");
         }
+        public async Task<IEnumerable<PricingPolicy>> GetAllWithVehicleTypeAsync()
+        {
+            return await _context.PricingPolicies
+                .Include(p => p.VehicleType)
+                .OrderByDescending(p => p.EffectiveDate)
+                .ToListAsync();
+        }
+
+        public async Task<PricingPolicy?> GetByIdWithVehicleTypeAsync(Guid id)
+        {
+            return await _context.PricingPolicies
+                .Include(p => p.VehicleType)
+                .FirstOrDefaultAsync(p => p.PolicyId == id);
+        }
     }
 }

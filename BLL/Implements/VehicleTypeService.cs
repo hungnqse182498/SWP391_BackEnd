@@ -25,14 +25,7 @@ namespace BLL.Implements
             if (vehicleTypes == null || !vehicleTypes.Any())
                 return new ResponseDTO("Không tìm thấy loại phương tiện nào", 404, false);
 
-            var vehicleTypeDTOs = vehicleTypes.Select(t => new VehicleTypeDTO
-            {
-                VehicleTypeId = t.VehicleTypeId,
-                TypeName = t.TypeName,
-                Dimensions = t.Dimensions
-            }).ToList();
-
-            return new ResponseDTO("Lấy danh sách loại phương tiện thành công", 200, true, vehicleTypeDTOs);
+            return new ResponseDTO("Lấy danh sách loại phương tiện thành công", 200, true, vehicleTypes.Select(MapToDTO).ToList());
         }
 
         public async Task<ResponseDTO> GetByIdAsync(Guid id)
@@ -44,31 +37,23 @@ namespace BLL.Implements
             if (vehicleType == null)
                 return new ResponseDTO("Không tìm thấy loại phương tiện", 404, false);
 
-            var vehicleTypeDTO = new VehicleTypeDTO
-            {
-                VehicleTypeId = vehicleType.VehicleTypeId,
-                TypeName = vehicleType.TypeName,
-                Dimensions = vehicleType.Dimensions
-            };
-
-            return new ResponseDTO("Lấy loại phương tiện thành công", 200, true, vehicleTypeDTO);
+            return new ResponseDTO("Lấy loại phương tiện thành công", 200, true, MapToDTO(vehicleType));
         }
 
-        public async Task<ResponseDTO> CreateAsync(CreateVehicleTypeDTO createVehicleTypeDTO)
+        public async Task<ResponseDTO> CreateAsync(CreateVehicleTypeDTO dto)
         {
-            if (createVehicleTypeDTO == null || string.IsNullOrWhiteSpace(createVehicleTypeDTO.TypeName))
+            if (dto == null || string.IsNullOrWhiteSpace(dto.TypeName))
                 return new ResponseDTO("Dữ liệu không hợp lệ", 400, false);
 
-            var exists = await _unitOfWork.VehicleTypeRepo.FindByNameAsync(createVehicleTypeDTO.TypeName.Trim());
+            var exists = await _unitOfWork.VehicleTypeRepo.FindByNameAsync(dto.TypeName.Trim());
             if (exists != null)
                 return new ResponseDTO("Tên loại phương tiện đã tồn tại", 400, false);
 
-            var now = DateTime.UtcNow;
             var entity = new VehicleType
             {
                 VehicleTypeId = Guid.NewGuid(),
-                TypeName = createVehicleTypeDTO.TypeName.Trim(),
-                Dimensions = string.IsNullOrWhiteSpace(createVehicleTypeDTO.Dimensions) ? null : createVehicleTypeDTO.Dimensions.Trim()
+                TypeName = dto.TypeName.Trim(),
+                Dimensions = string.IsNullOrWhiteSpace(dto.Dimensions) ? null : dto.Dimensions.Trim()
             };
 
             try
@@ -76,18 +61,7 @@ namespace BLL.Implements
                 await _unitOfWork.VehicleTypeRepo.AddAsync(entity);
                 await _unitOfWork.SaveChangeAsync();
 
-                var result = new VehicleTypeDTO
-                {
-                    VehicleTypeId = entity.VehicleTypeId,
-                    TypeName = entity.TypeName,
-                    Dimensions = entity.Dimensions
-                };
-
-                return new ResponseDTO("Tạo loại phương tiện thành công", 201, true, result);
-            }
-            catch (DbUpdateException)
-            {
-                return new ResponseDTO("Dữ liệu không hợp lệ hoặc bị trùng", 400, false);
+                return new ResponseDTO("Tạo loại phương tiện thành công", 201, true, MapToDTO(entity));
             }
             catch (Exception ex)
             {
@@ -95,43 +69,31 @@ namespace BLL.Implements
             }
         }
 
-        public async Task<ResponseDTO> UpdateAsync(UpdateVehicleTypeDTO updateVehicleTypeDTO)
+        public async Task<ResponseDTO> UpdateAsync(UpdateVehicleTypeDTO dto)
         {
-            if (updateVehicleTypeDTO == null || updateVehicleTypeDTO.VehicleTypeId == Guid.Empty)
+            if (dto == null || dto.VehicleTypeId == Guid.Empty)
                 return new ResponseDTO("Dữ liệu không hợp lệ", 400, false);
 
-            var existing = await _unitOfWork.VehicleTypeRepo.GetByIdAsync(updateVehicleTypeDTO.VehicleTypeId);
+            var existing = await _unitOfWork.VehicleTypeRepo.GetByIdAsync(dto.VehicleTypeId);
             if (existing == null)
                 return new ResponseDTO("Không tìm thấy loại phương tiện", 404, false);
 
-            if (string.IsNullOrWhiteSpace(updateVehicleTypeDTO.TypeName))
+            if (string.IsNullOrWhiteSpace(dto.TypeName))
                 return new ResponseDTO("Vui lòng nhập TypeName", 400, false);
 
-            var duplicate = await _unitOfWork.VehicleTypeRepo.GetAll()
-                .FirstOrDefaultAsync(v => v.TypeName.ToLower() == updateVehicleTypeDTO.TypeName.Trim().ToLower() && v.VehicleTypeId != updateVehicleTypeDTO.VehicleTypeId);
-            if (duplicate != null)
+            var isDuplicate = await _unitOfWork.VehicleTypeRepo.IsTypeNameDuplicateAsync(dto.TypeName, dto.VehicleTypeId);
+            if (isDuplicate)
                 return new ResponseDTO("TypeName đã tồn tại", 400, false);
 
-            existing.TypeName = updateVehicleTypeDTO.TypeName.Trim();
-            existing.Dimensions = string.IsNullOrWhiteSpace(updateVehicleTypeDTO.Dimensions) ? null : updateVehicleTypeDTO.Dimensions.Trim();
+            existing.TypeName = dto.TypeName.Trim();
+            existing.Dimensions = string.IsNullOrWhiteSpace(dto.Dimensions) ? null : dto.Dimensions.Trim();
 
             try
             {
                 await _unitOfWork.VehicleTypeRepo.UpdateAsync(existing);
                 await _unitOfWork.SaveChangeAsync();
 
-                var result = new VehicleTypeDTO
-                {
-                    VehicleTypeId = existing.VehicleTypeId,
-                    TypeName = existing.TypeName,
-                    Dimensions = existing.Dimensions
-                };
-
-                return new ResponseDTO("Cập nhật loại phương tiện thành công", 200, true, result);
-            }
-            catch (DbUpdateException)
-            {
-                return new ResponseDTO("Dữ liệu không hợp lệ hoặc bị trùng", 400, false);
+                return new ResponseDTO("Cập nhật loại phương tiện thành công", 200, true, MapToDTO(existing));
             }
             catch (Exception ex)
             {
@@ -159,6 +121,16 @@ namespace BLL.Implements
             {
                 return new ResponseDTO($"Lỗi xóa loại phương tiện: {ex.Message}", 500, false);
             }
+        }
+
+        private static VehicleTypeDTO MapToDTO(VehicleType entity)
+        {
+            return new VehicleTypeDTO
+            {
+                VehicleTypeId = entity.VehicleTypeId,
+                TypeName = entity.TypeName,
+                Dimensions = entity.Dimensions
+            };
         }
     }
 }

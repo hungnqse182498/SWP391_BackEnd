@@ -8,5 +8,6 @@ namespace DAL.Interfaces
     public interface IVehicleTypeRepository : IGenericRepository<VehicleType>
     {
         Task<VehicleType> FindByNameAsync(string typeName);
+        Task<bool> IsTypeNameDuplicateAsync(string typeName, Guid currentId);
     }
 }

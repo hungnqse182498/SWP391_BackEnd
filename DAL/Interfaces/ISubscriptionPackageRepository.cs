@@ -11,5 +11,7 @@ namespace DAL.Interfaces
     {
         Task<List<SubscriptionPackage>> GetAllWithVehicleTypeAsync();
         Task<SubscriptionPackage?> GetByIdWithVehicleTypeAsync(Guid id);
+        Task<SubscriptionPackage?> GetActivePackageWithVehicleTypeAsync(Guid packageId);
+
     }
 }

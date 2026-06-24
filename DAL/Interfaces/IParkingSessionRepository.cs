@@ -9,5 +9,7 @@ namespace DAL.Interfaces
 {
     public interface IParkingSessionRepository : IGenericRepository<ParkingSession>
     {
+        Task<List<ParkingSession>> GetAllSessionsWithDetailsAsync();
+        Task<ParkingSession?> GetSessionDetailAsync(Guid id);
     }
 }

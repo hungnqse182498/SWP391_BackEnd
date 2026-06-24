@@ -6,10 +6,9 @@ using System.Threading.Tasks;
 
 namespace Common.Enums
 {
-    public enum CardStatus
+    public enum PricingPolicyStatus
     {
         Active,
-        Lost,
-        InUse
+        Inactive
     }
 }

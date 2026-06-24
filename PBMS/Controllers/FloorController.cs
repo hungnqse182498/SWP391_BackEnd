@@ -9,7 +9,6 @@ using System.Threading.Tasks;
 namespace PBMS.Controllers
 {
     [ApiController]
-    [Authorize]
     [Route("api/[controller]")]
     public class FloorController : ControllerBase
     {

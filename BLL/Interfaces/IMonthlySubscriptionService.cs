@@ -8,10 +8,13 @@ namespace BLL.Interfaces
     public interface IMonthlySubscriptionService
     {
         Task<ResponseDTO> RegisterAsync(Guid userId, RegisterMonthlySubscriptionDTO dto);
-        Task<ResponseDTO> CreatePaymentAsync(Guid subscriptionId, Guid userId);
+        Task<ResponseDTO> GetAllAsync(); 
+        Task<ResponseDTO> GetDetailAsync(Guid id);
         Task<ResponseDTO> GetMyAsync(Guid userId);
         Task<ResponseDTO> GetByUserAsync(Guid userId);
-        Task<ResponseDTO> GetDetailAsync(Guid id);
+        Task<ResponseDTO> UpdateAsync(Guid id, UpdateMonthlySubscriptionDTO dto); 
         Task<ResponseDTO> CancelAsync(Guid id);
+        Task<ResponseDTO> DeleteAsync(Guid id); 
+        Task<ResponseDTO> CreatePaymentAsync(Guid subscriptionId, Guid userId);
     }
 }

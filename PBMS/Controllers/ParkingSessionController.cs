@@ -1,10 +1,12 @@
 using BLL.Interfaces;
 using Common.DTOs.ParkingSession;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace PBMS.Controllers
 {
     [ApiController]
+    [Authorize(Roles = "Manager, Staff")]
     [Route("api/[controller]")]
     public class ParkingSessionController : ControllerBase
     {

@@ -1,5 +1,6 @@
 using BLL.Interfaces;
 using Common.DTOs.ParkingSlot;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace PBMS.Controllers
@@ -30,6 +31,7 @@ namespace PBMS.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Manager")]
         public async Task<IActionResult> Create([FromBody] CreateParkingSlotDTO dto)
         {
             var res = await _parkingSlotService.CreateAsync(dto);
@@ -37,6 +39,7 @@ namespace PBMS.Controllers
         }
 
         [HttpPut]
+        [Authorize(Roles = "Manager")]
         public async Task<IActionResult> Update([FromBody] UpdateParkingSlotDTO dto)
         {
             var res = await _parkingSlotService.UpdateAsync(dto);
@@ -44,6 +47,7 @@ namespace PBMS.Controllers
         }
 
         [HttpDelete("{id:guid}")]
+        [Authorize(Roles = "Manager")]
         public async Task<IActionResult> Delete(Guid id)
         {
             var res = await _parkingSlotService.DeleteAsync(id);

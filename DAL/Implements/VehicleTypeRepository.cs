@@ -20,5 +20,12 @@ namespace DAL.Implements
             if (string.IsNullOrWhiteSpace(typeName)) return null;
             return await _context.VehicleTypes.FirstOrDefaultAsync(v => v.TypeName.ToLower() == typeName.ToLower());
         }
+
+        public async Task<bool> IsTypeNameDuplicateAsync(string typeName, Guid currentId)
+        {
+            var name = typeName.Trim().ToLower();
+            return await _context.VehicleTypes
+                .AnyAsync(v => v.TypeName.ToLower() == name && v.VehicleTypeId != currentId);
+        }
     }
 }

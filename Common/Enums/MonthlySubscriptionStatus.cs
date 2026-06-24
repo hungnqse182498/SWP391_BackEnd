@@ -6,12 +6,11 @@ using System.Threading.Tasks;
 
 namespace Common.Enums
 {
-    public enum SlotStatus 
-    { 
-        Available, 
-        Occupied, 
-        Reserved, 
-        Maintenance, 
-        Locked 
+    public enum MonthlySubscriptionStatus
+    {
+        PendingPayment,
+        Active,
+        Cancelled,
+        Expired
     }
 }

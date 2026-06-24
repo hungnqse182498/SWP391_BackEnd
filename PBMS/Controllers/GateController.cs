@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Mvc;
 namespace PBMS.Controllers
 {
     [ApiController]
-    [Authorize]
     [Route("api/[controller]")]
     public class GateController : ControllerBase
     {

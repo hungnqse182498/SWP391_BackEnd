@@ -34,6 +34,13 @@ namespace Common.DTOs.Subscription
 
     }
 
+    public class UpdateMonthlySubscriptionDTO
+    {
+        public string? LicensePlate { get; set; }
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string? Status { get; set; }
+        public Guid? FixedSlotId { get; set; } 
+    }
 
-    
 }

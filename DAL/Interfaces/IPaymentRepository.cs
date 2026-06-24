@@ -10,5 +10,7 @@ namespace DAL.Interfaces
     public interface IPaymentRepository : IGenericRepository<Payment>
     {
         Task<Payment?> GetByOrderCodeAsync(string orderCode);
+        Task<Payment?> GetLatestPendingSubscriptionPaymentAsync(Guid subscriptionId);
+
     }
 }

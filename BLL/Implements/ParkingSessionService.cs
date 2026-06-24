@@ -1,6 +1,7 @@
 using BLL.Interfaces;
 using Common.DTOs;
 using Common.DTOs.ParkingSession;
+using Common.Enums;
 using DAL.Models;
 using DAL.UnitOfWorks;
 using Microsoft.EntityFrameworkCore;
@@ -10,12 +11,6 @@ namespace BLL.Implements
     public class ParkingSessionService : IParkingSessionService
     {
         private readonly IUnitOfWork _unitOfWork;
-        private static readonly HashSet<string> ValidStatuses = new(StringComparer.OrdinalIgnoreCase)
-        {
-            "Active",
-            "Completed",
-            "Cancelled"
-        };
 
         public ParkingSessionService(IUnitOfWork unitOfWork)
         {
@@ -24,9 +19,7 @@ namespace BLL.Implements
 
         public async Task<ResponseDTO> GetAllAsync()
         {
-            var sessions = await QueryWithIncludes()
-                .OrderByDescending(s => s.EntryTime)
-                .ToListAsync();
+            var sessions = await _unitOfWork.ParkingSessionRepo.GetAllSessionsWithDetailsAsync();
 
             return new ResponseDTO("Lấy danh sách phiên gửi xe thành công", 200, true, sessions.Select(MapToDTO).ToList());
         }
@@ -35,7 +28,7 @@ namespace BLL.Implements
         {
             if (id == Guid.Empty) return new ResponseDTO("Vui lòng nhập SessionId", 400, false);
 
-            var session = await QueryWithIncludes().FirstOrDefaultAsync(s => s.SessionId == id);
+            var session = await _unitOfWork.ParkingSessionRepo.GetSessionDetailAsync(id);
             if (session == null) return new ResponseDTO("Không tìm thấy phiên gửi xe", 404, false);
             return new ResponseDTO("Lấy thông tin phiên gửi xe thành công", 200, true, MapToDTO(session));
         }
@@ -44,7 +37,7 @@ namespace BLL.Implements
         {
             if (dto == null) return new ResponseDTO("Dữ liệu tạo phiên gửi xe không hợp lệ", 400, false);
 
-            var validation = await ValidateSessionAsync(dto.DriverUserId, dto.LicensePlateIn, null, dto.VehicleTypeId, dto.EntryGateId, null, dto.AssignedSlotId, dto.ActualSlotId, dto.Status ?? "Active");
+            var validation = await ValidateSessionAsync(dto.DriverUserId, dto.LicensePlateIn, null, dto.VehicleTypeId, dto.EntryGateId, null, dto.AssignedSlotId, dto.ActualSlotId, dto.Status ?? SessionStatus.Active.ToString());
             if (validation.Error != null) return validation.Error;
 
             var session = new ParkingSession
@@ -58,7 +51,7 @@ namespace BLL.Implements
                 EntryGateId = dto.EntryGateId,
                 AssignedSlotId = dto.AssignedSlotId,
                 ActualSlotId = dto.ActualSlotId,
-                Status = validation.Status!
+                Status = validation.Status.ToString()
             };
 
             await _unitOfWork.ParkingSessionRepo.AddAsync(session);
@@ -89,7 +82,7 @@ namespace BLL.Implements
             session.ExitGateId = dto.ExitGateId;
             session.AssignedSlotId = dto.AssignedSlotId;
             session.ActualSlotId = dto.ActualSlotId;
-            session.Status = validation.Status!;
+            session.Status = validation.Status.ToString();
 
             await _unitOfWork.ParkingSessionRepo.UpdateAsync(session);
             await _unitOfWork.SaveChangeAsync();
@@ -116,18 +109,7 @@ namespace BLL.Implements
             }
         }
 
-        private IQueryable<ParkingSession> QueryWithIncludes()
-        {
-            return _unitOfWork.ParkingSessionRepo.GetAll()
-                .Include(s => s.DriverUser)
-                .Include(s => s.VehicleType)
-                .Include(s => s.EntryGate)
-                .Include(s => s.ExitGate)
-                .Include(s => s.AssignedSlot)
-                .Include(s => s.ActualSlot);
-        }
-
-        private async Task<(string? Status, ResponseDTO? Error)> ValidateSessionAsync(
+        private async Task<(SessionStatus Status, ResponseDTO? Error)> ValidateSessionAsync(
             Guid? driverUserId,
             string? licensePlateIn,
             string? licensePlateOut,
@@ -138,53 +120,51 @@ namespace BLL.Implements
             Guid? actualSlotId,
             string? status)
         {
-            if (string.IsNullOrWhiteSpace(licensePlateIn)) return (null, new ResponseDTO("Vui lòng nhập biển số vào", 400, false));
-            if (vehicleTypeId == Guid.Empty) return (null, new ResponseDTO("Vui lòng chọn loại phương tiện", 400, false));
-            if (entryGateId == Guid.Empty) return (null, new ResponseDTO("Vui lòng chọn cổng vào", 400, false));
+            if (string.IsNullOrWhiteSpace(licensePlateIn)) return (default, new ResponseDTO("Vui lòng nhập biển số vào", 400, false));
+            if (vehicleTypeId == Guid.Empty) return (default, new ResponseDTO("Vui lòng chọn loại phương tiện", 400, false));
+            if (entryGateId == Guid.Empty) return (default, new ResponseDTO("Vui lòng chọn cổng vào", 400, false));
 
-            var normalizedStatus = NormalizeStatus(status);
-            if (normalizedStatus == null) return (null, new ResponseDTO("Trạng thái phiên gửi xe chỉ được là Active, Completed hoặc Cancelled", 400, false));
+            if (string.IsNullOrWhiteSpace(status) || !Enum.TryParse<SessionStatus>(status.Trim(), true, out var parsedStatus))
+            {
+                return (default, new ResponseDTO("Trạng thái phiên gửi xe chỉ được là Active, Completed hoặc Cancelled", 400, false));
+            }
 
             var vehicleType = await _unitOfWork.VehicleTypeRepo.GetByIdAsync(vehicleTypeId);
-            if (vehicleType == null) return (null, new ResponseDTO("Loại phương tiện không tồn tại", 400, false));
+            if (vehicleType == null) return (default, new ResponseDTO("Loại phương tiện không tồn tại", 400, false));
 
             var entryGate = await _unitOfWork.GateRepo.GetByIdAsync(entryGateId);
-            if (entryGate == null) return (null, new ResponseDTO("Cổng vào không tồn tại", 400, false));
+            if (entryGate == null) return (default, new ResponseDTO("Cổng vào không tồn tại", 400, false));
 
             if (exitGateId.HasValue)
             {
                 var exitGate = await _unitOfWork.GateRepo.GetByIdAsync(exitGateId.Value);
-                if (exitGate == null) return (null, new ResponseDTO("Cổng ra không tồn tại", 400, false));
+                if (exitGate == null) return (default, new ResponseDTO("Cổng ra không tồn tại", 400, false));
             }
 
-
-            if (driverUserId.HasValue && !await _unitOfWork.UserRepo.AnyAsync(u => u.UserId == driverUserId.Value))
+            if (driverUserId.HasValue)
             {
-                return (null, new ResponseDTO("Người lái không tồn tại", 400, false));
+                var user = await _unitOfWork.UserRepo.GetByIdAsync(driverUserId.Value);
+                if (user == null) return (default, new ResponseDTO("Người lái không tồn tại", 400, false));
             }
 
-            if (assignedSlotId.HasValue && !await _unitOfWork.ParkingSlotRepo.AnyAsync(s => s.SlotId == assignedSlotId.Value))
+            if (assignedSlotId.HasValue)
             {
-                return (null, new ResponseDTO("Vị trí đỗ được gán không tồn tại", 400, false));
+                var slot = await _unitOfWork.ParkingSlotRepo.GetByIdAsync(assignedSlotId.Value);
+                if (slot == null) return (default, new ResponseDTO("Vị trí đỗ được gán không tồn tại", 400, false));
             }
 
-            if (actualSlotId.HasValue && !await _unitOfWork.ParkingSlotRepo.AnyAsync(s => s.SlotId == actualSlotId.Value))
+            if (actualSlotId.HasValue)
             {
-                return (null, new ResponseDTO("Vị trí đỗ thực tế không tồn tại", 400, false));
+                var slot = await _unitOfWork.ParkingSlotRepo.GetByIdAsync(actualSlotId.Value);
+                if (slot == null) return (default, new ResponseDTO("Vị trí đỗ thực tế không tồn tại", 400, false));
             }
 
             if (!string.IsNullOrWhiteSpace(licensePlateOut) && NormalizePlate(licensePlateOut) != NormalizePlate(licensePlateIn))
             {
-                return (null, new ResponseDTO("Biển số ra không khớp biển số vào", 400, false));
+                return (default, new ResponseDTO("Biển số ra không khớp biển số vào", 400, false));
             }
 
-            return (normalizedStatus, null);
-        }
-
-        private static string? NormalizeStatus(string? status)
-        {
-            if (string.IsNullOrWhiteSpace(status)) return null;
-            return ValidStatuses.FirstOrDefault(s => string.Equals(s, status.Trim(), StringComparison.OrdinalIgnoreCase));
+            return (parsedStatus, null);
         }
 
         private static string NormalizePlate(string plate)

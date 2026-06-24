@@ -1,6 +1,7 @@
 using BLL.Interfaces;
 using Common.DTOs;
 using Common.DTOs.ParkingSlot;
+using Common.Enums;
 using DAL.Models;
 using DAL.UnitOfWorks;
 using Microsoft.EntityFrameworkCore;
@@ -10,12 +11,6 @@ namespace BLL.Implements
     public class ParkingSlotService : IParkingSlotService
     {
         private readonly IUnitOfWork _unitOfWork;
-        private static readonly HashSet<string> ValidStatuses = new(StringComparer.OrdinalIgnoreCase)
-        {
-            "Available",
-            "Occupied",
-            "Reserved"
-        };
 
         public ParkingSlotService(IUnitOfWork unitOfWork)
         {
@@ -24,13 +19,7 @@ namespace BLL.Implements
 
         public async Task<ResponseDTO> GetAllAsync()
         {
-            var slots = await _unitOfWork.ParkingSlotRepo.GetAll()
-                .Include(s => s.Floor)
-                .Include(s => s.VehicleType)
-                .OrderBy(s => s.Floor.FloorName)
-                .ThenBy(s => s.SlotCode)
-                .ToListAsync();
-
+            var slots = await _unitOfWork.ParkingSlotRepo.GetAllWithDetailsAsync();
             return new ResponseDTO("Lấy danh sách vị trí đỗ thành công", 200, true, slots.Select(MapToDTO).ToList());
         }
 
@@ -38,10 +27,7 @@ namespace BLL.Implements
         {
             if (id == Guid.Empty) return new ResponseDTO("Vui lòng nhập SlotId", 400, false);
 
-            var slot = await _unitOfWork.ParkingSlotRepo.GetAll()
-                .Include(s => s.Floor)
-                .Include(s => s.VehicleType)
-                .FirstOrDefaultAsync(s => s.SlotId == id);
+            var slot = await _unitOfWork.ParkingSlotRepo.GetDetailWithFloorAndTypeAsync(id);
 
             if (slot == null) return new ResponseDTO("Không tìm thấy vị trí đỗ", 404, false);
             return new ResponseDTO("Lấy thông tin vị trí đỗ thành công", 200, true, MapToDTO(slot));
@@ -51,7 +37,7 @@ namespace BLL.Implements
         {
             if (dto == null) return new ResponseDTO("Dữ liệu tạo vị trí đỗ không hợp lệ", 400, false);
 
-            var validation = await ValidateSlotAsync(dto.SlotCode, dto.FloorId, dto.VehicleTypeId, dto.Status ?? "Available", null);
+            var validation = await ValidateSlotAsync(dto.SlotCode, dto.FloorId, dto.VehicleTypeId, dto.Status ?? ParkingSlotStatus.Available.ToString(), null);
             if (validation.Error != null) return validation.Error;
 
             var slot = new ParkingSlot
@@ -60,7 +46,7 @@ namespace BLL.Implements
                 FloorId = dto.FloorId,
                 SlotCode = dto.SlotCode.Trim(),
                 VehicleTypeId = dto.VehicleTypeId,
-                Status = validation.Status!
+                Status = validation.Status.ToString()
             };
 
             await _unitOfWork.ParkingSlotRepo.AddAsync(slot);
@@ -84,7 +70,7 @@ namespace BLL.Implements
             slot.FloorId = dto.FloorId;
             slot.SlotCode = dto.SlotCode.Trim();
             slot.VehicleTypeId = dto.VehicleTypeId;
-            slot.Status = validation.Status!;
+            slot.Status = validation.Status.ToString();
 
             await _unitOfWork.ParkingSlotRepo.UpdateAsync(slot);
             await _unitOfWork.SaveChangeAsync();
@@ -113,33 +99,38 @@ namespace BLL.Implements
             }
         }
 
-        private async Task<(Floor? Floor, VehicleType? VehicleType, string? Status, ResponseDTO? Error)> ValidateSlotAsync(string? slotCode, Guid floorId, Guid vehicleTypeId, string? status, Guid? currentSlotId)
+        private async Task<(Floor? Floor, VehicleType? VehicleType, ParkingSlotStatus Status, ResponseDTO? Error)> ValidateSlotAsync(string? slotCode, Guid floorId, Guid vehicleTypeId, string? status, Guid? currentSlotId)
         {
-            if (string.IsNullOrWhiteSpace(slotCode)) return (null, null, null, new ResponseDTO("Vui lòng nhập mã vị trí đỗ", 400, false));
-            if (floorId == Guid.Empty) return (null, null, null, new ResponseDTO("Vui lòng chọn tầng", 400, false));
-            if (vehicleTypeId == Guid.Empty) return (null, null, null, new ResponseDTO("Vui lòng chọn loại phương tiện", 400, false));
-
-            var normalizedStatus = NormalizeStatus(status);
-            if (normalizedStatus == null) return (null, null, null, new ResponseDTO("Trạng thái vị trí đỗ chỉ được là Available, Occupied hoặc Reserved", 400, false));
+            if (string.IsNullOrWhiteSpace(slotCode)) return (null, null, default, new ResponseDTO("Vui lòng nhập mã vị trí đỗ", 400, false));
+            if (floorId == Guid.Empty) return (null, null, default, new ResponseDTO("Vui lòng chọn tầng", 400, false));
+            if (vehicleTypeId == Guid.Empty) return (null, null, default, new ResponseDTO("Vui lòng chọn loại phương tiện", 400, false));
 
             var floor = await _unitOfWork.FloorRepo.GetByIdAsync(floorId);
-            if (floor == null) return (null, null, null, new ResponseDTO("Tầng không tồn tại", 400, false));
+            if (floor == null) return (null, null, default, new ResponseDTO("Tầng không tồn tại", 400, false));
+
+            if (!currentSlotId.HasValue)
+            {
+                var currentSlotsCount = await _unitOfWork.ParkingSlotRepo.GetSlotsCountByFloorAsync(floorId);
+
+                if (currentSlotsCount >= floor.TotalCapacity)
+                {
+                    return (null, null, default, new ResponseDTO($"Tầng này đã đạt giới hạn sức chứa tối đa ({floor.TotalCapacity} vị trí đỗ). Không thể tạo thêm!", 400, false));
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(status) || !Enum.TryParse<ParkingSlotStatus>(status.Trim(), true, out var parsedStatus))
+            {
+                return (null, null, default, new ResponseDTO("Trạng thái vị trí đỗ không hợp lệ (Chỉ nhận: Available, Occupied, Reserved, Assigned)", 400, false));
+            }
 
             var vehicleType = await _unitOfWork.VehicleTypeRepo.GetByIdAsync(vehicleTypeId);
-            if (vehicleType == null) return (null, null, null, new ResponseDTO("Loại phương tiện không tồn tại", 400, false));
+            if (vehicleType == null) return (null, null, default, new ResponseDTO("Loại phương tiện không tồn tại", 400, false));
 
             var code = slotCode.Trim().ToLower();
-            var duplicate = await _unitOfWork.ParkingSlotRepo.GetAll()
-                .AnyAsync(s => s.SlotCode.ToLower() == code && (!currentSlotId.HasValue || s.SlotId != currentSlotId.Value));
-            if (duplicate) return (null, null, null, new ResponseDTO("Mã vị trí đỗ đã tồn tại", 400, false));
+            var duplicate = await _unitOfWork.ParkingSlotRepo.IsSlotCodeDuplicateAsync(slotCode, currentSlotId);
+            if (duplicate) return (null, null, default, new ResponseDTO("Mã vị trí đỗ đã tồn tại", 400, false));
 
-            return (floor, vehicleType, normalizedStatus, null);
-        }
-
-        private static string? NormalizeStatus(string? status)
-        {
-            if (string.IsNullOrWhiteSpace(status)) return null;
-            return ValidStatuses.FirstOrDefault(s => string.Equals(s, status.Trim(), StringComparison.OrdinalIgnoreCase));
+            return (floor, vehicleType, parsedStatus, null);
         }
 
         private static ParkingSlotDTO MapToDTO(ParkingSlot slot)

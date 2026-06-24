@@ -26,5 +26,12 @@ namespace DAL.Implements
                 .Include(p => p.VehicleType)
                 .FirstOrDefaultAsync(p => p.PackageId == id);
         }
+
+        public async Task<SubscriptionPackage?> GetActivePackageWithVehicleTypeAsync(Guid packageId)
+        {
+            return await _context.SubscriptionPackages
+                .Include(p => p.VehicleType)
+                .FirstOrDefaultAsync(p => p.PackageId == packageId && (p.Status == null || p.Status == "Active"));
+        }
     }
 }
