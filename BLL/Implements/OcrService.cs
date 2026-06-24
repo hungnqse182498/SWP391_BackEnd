@@ -17,12 +17,20 @@ namespace BLL.Implements
         private const double TwoLinePlateMaxAspectRatio = 1.9;
         private const int MaxProcessedWidth = 2400;
 
+        private static readonly Regex SeparatedFiveDigitPlateRegex = new(
+            @"(?<![A-Z0-9])(?<province>[0-9]{2})\s*[-.]?\s*(?<series>[A-Z]{1,2}[1-9]?)[^A-Z0-9]+(?<serialHead>[0-9]{3})\s*[.\-]?\s*(?<serialTail>[0-9]{2})(?![A-Z0-9])",
+            RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+        private static readonly Regex SeparatedFourDigitPlateRegex = new(
+            @"(?<![A-Z0-9])(?<province>[0-9]{2})\s*[-.]?\s*(?<series>[A-Z]{1,2}[1-9]?)[^A-Z0-9]+(?<serial>[0-9]{4})(?![A-Z0-9])",
+            RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
         private static readonly Regex CompactPlateRegex = new(
-            @"(?<province>[0-9]{2})(?<series>[A-Z]{1,2}[0-9]?)(?<serial>[0-9]{4,5})",
+            @"(?<province>[0-9]{2})(?<letters>[A-Z]{1,2})(?<digits>[0-9]{4,6})",
             RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
         private static readonly Regex PlatePrefixRegex = new(
-            @"(?<province>[0-9]{2})[^A-Z0-9]*(?<series>[A-Z]{1,2})[^A-Z0-9]*(?<seriesNumber>[0-9]?)",
+            @"(?<province>[0-9]{2})[^A-Z0-9]*(?<series>[A-Z]{1,2})[^A-Z0-9]*(?<seriesNumber>[1-9]?)",
             RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
         private readonly HttpClient _httpClient;
@@ -121,27 +129,25 @@ namespace BLL.Implements
             var topBytes = await EncodeForOcrAsync(topImage, cancellationToken);
             var bottomBytes = await EncodeForOcrAsync(bottomImage, cancellationToken);
 
-            var topTask = SendToOcrAsync(
+            var topText = await SendToOcrAsync(
                 topBytes,
                 BuildPartFileName(fileName, "top"),
                 cancellationToken);
-            var bottomTask = SendToOcrAsync(
+            var bottomText = await SendToOcrAsync(
                 bottomBytes,
                 BuildPartFileName(fileName, "bottom"),
                 cancellationToken);
 
-            await Task.WhenAll(topTask, bottomTask);
-
-            var prefix = ExtractPlatePrefix(await topTask);
-            var serial = ExtractPlateSerial(await bottomTask);
+            var prefix = ExtractPlatePrefix(topText);
+            var serial = ExtractPlateSerial(bottomText);
 
             if (prefix == null || serial == null)
             {
                 _logger.LogWarning(
                     "Could not combine two-line plate. File: {FileName}, TopText: {TopText}, BottomText: {BottomText}",
                     fileName,
-                    await topTask,
-                    await bottomTask);
+                    topText,
+                    bottomText);
                 return null;
             }
 
@@ -160,7 +166,7 @@ namespace BLL.Implements
         {
             using var content = new MultipartFormDataContent();
             content.Add(new StringContent(_apiKey), "apikey");
-            content.Add(new StringContent("auto"), "language");
+            content.Add(new StringContent("eng"), "language");
             content.Add(new StringContent("false"), "isOverlayRequired");
             content.Add(new StringContent("true"), "detectOrientation");
             content.Add(new StringContent("true"), "scale");
@@ -246,8 +252,21 @@ namespace BLL.Implements
                 return null;
             }
 
-            var compact = Regex.Replace(text.ToUpperInvariant(), @"[^A-Z0-9]", string.Empty);
-            foreach (Match match in CompactPlateRegex.Matches(compact))
+            var normalized = text.ToUpperInvariant();
+
+            foreach (Match match in SeparatedFiveDigitPlateRegex.Matches(normalized))
+            {
+                var province = match.Groups["province"].Value;
+                var series = match.Groups["series"].Value;
+                var serial = match.Groups["serialHead"].Value + match.Groups["serialTail"].Value;
+
+                if (IsValidProvince(province))
+                {
+                    return FormatSeparatedPlate(province, series, serial);
+                }
+            }
+
+            foreach (Match match in SeparatedFourDigitPlateRegex.Matches(normalized))
             {
                 var province = match.Groups["province"].Value;
                 var series = match.Groups["series"].Value;
@@ -255,7 +274,25 @@ namespace BLL.Implements
 
                 if (IsValidProvince(province))
                 {
-                    return $"{province}-{series}{FormatSerial(serial)}";
+                    return FormatSeparatedPlate(province, series, serial);
+                }
+            }
+
+            var compact = Regex.Replace(normalized, @"[^A-Z0-9]", string.Empty);
+            foreach (Match match in CompactPlateRegex.Matches(compact))
+            {
+                var province = match.Groups["province"].Value;
+                if (!IsValidProvince(province))
+                {
+                    continue;
+                }
+
+                var letters = match.Groups["letters"].Value;
+                var digits = match.Groups["digits"].Value;
+                var compactPlate = FormatCompactPlate(province, letters, digits);
+                if (compactPlate != null)
+                {
+                    return compactPlate;
                 }
             }
 
@@ -319,6 +356,50 @@ namespace BLL.Implements
             return serial.Length == 5
                 ? $"{serial[..3]}.{serial[3..]}"
                 : serial;
+        }
+
+        private static string FormatSeparatedPlate(string province, string series, string serial)
+        {
+            return IsCarStyleSeries(series) && serial.Length == 5
+                ? $"{province}{series}-{FormatSerial(serial)}"
+                : $"{province}-{series}{FormatSerial(serial)}";
+        }
+
+        private static bool IsCarStyleSeries(string series)
+        {
+            return series.All(char.IsLetter);
+        }
+
+        private static string? FormatCompactPlate(string province, string letters, string digits)
+        {
+            string series;
+            string serial;
+
+            if (digits.Length == 6)
+            {
+                series = $"{letters}{digits[0]}";
+                serial = digits[1..];
+            }
+            else if (digits.Length == 5 && letters.Length == 1 && digits[0] != '0')
+            {
+                series = $"{letters}{digits[0]}";
+                serial = digits[1..];
+            }
+            else if (digits.Length == 5)
+            {
+                return $"{province}{letters}-{FormatSerial(digits)}";
+            }
+            else if (digits.Length is 4 or 5)
+            {
+                series = letters;
+                serial = digits;
+            }
+            else
+            {
+                return null;
+            }
+
+            return $"{province}-{series}{FormatSerial(serial)}";
         }
 
         private static string BuildPartFileName(string originalFileName, string part)
