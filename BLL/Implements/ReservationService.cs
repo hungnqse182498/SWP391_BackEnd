@@ -434,7 +434,8 @@ public class ReservationService : IReservationService
         try
         {
             var reservations = await _unitOfWork.ReservationRepo.GetByAdminFiltersAsync(status, date);
-            return new ResponseDTO("Lấy danh sách thông tin đặt chỗ thành công", 200, true, reservations);
+            var dtos = reservations.Select(MapToDTO).ToList();
+            return new ResponseDTO("Lấy danh sách thông tin đặt chỗ thành công", 200, true, dtos);
         }
         catch (Exception ex)
         {
