@@ -10,6 +10,7 @@ namespace Common.Enums
     {
         Pending,
         Confirmed,
+        Modified,
         CheckedIn,
         Completed,
         Cancelled,

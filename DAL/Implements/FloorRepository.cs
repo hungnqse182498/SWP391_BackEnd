@@ -15,6 +15,13 @@ namespace DAL.Implements
             _context = context;
         }
 
+        public async Task<int> GetTotalCapacityByVehicleTypeAsync(Guid vehicleTypeId, bool isResident)
+        {
+            return await _context.Floors
+                .Where(f => f.DedicatedVehicleTypeId == vehicleTypeId && f.IsResident == isResident)
+                .SumAsync(f => f.TotalCapacity);
+        }
+
         public async Task<Floor> FindByNameAsync(string floorName)
         {
             return await _context.Floors.FirstOrDefaultAsync(f => f.FloorName == floorName);

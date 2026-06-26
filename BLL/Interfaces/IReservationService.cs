@@ -9,6 +9,7 @@ namespace BLL.Interfaces
     {
         Task<ResponseDTO> CreateReservationAsync(Guid userId, CreateReservationDTO dto);
         Task<ResponseDTO> CreatePaymentLinkForReservationAsync(Guid reservationId, Guid userId);
+        Task<ResponseDTO> ChangeReservationTimeAsync(Guid reservationId, DateTime newExpectedTime);
 
         Task<ResponseDTO> CheckPaymentStatusByOrderCodeAsync(string orderCode);
         Task<ResponseDTO> GetMyReservationsAsync(Guid userId);
@@ -18,5 +19,6 @@ namespace BLL.Interfaces
 
         Task<ResponseDTO> GetAllReservationsAsync(string? status, DateTime? date);
         Task<ResponseDTO> UpdateReservationStatusAsync(Guid reservationId, UpdateReservationStatusDTO dto);
+        Task ProcessNoShowTimeoutAsync(Guid reservationId);
     }
 }

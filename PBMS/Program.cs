@@ -14,6 +14,7 @@ using Microsoft.OpenApi.Models;
 using PayOS;
 using PBMS.Extensions;
 using System.Text;
+using Hangfire;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -73,15 +74,18 @@ builder.Services.AddScoped<IPricingPolicyService, PricingPolicyService>();
 builder.Services.AddScoped<IParkingSessionService, ParkingSessionService>();
 builder.Services.AddScoped<IIncidentReportService, IncidentReportService>();
 builder.Services.AddScoped<IParkingOperationService, ParkingOperationService>();
+builder.Services.AddScoped<ISubscriptionRenewalService, SubscriptionRenewalService>();
+builder.Services.AddScoped<IVehicleChangeRequestService, VehicleChangeRequestService>();
 builder.Services.AddHttpClient<IOcrService, OcrService>(client =>
 {
     client.Timeout = TimeSpan.FromSeconds(30);
 });
-builder.Services.AddScoped<ISubscriptionRenewalService, SubscriptionRenewalService>();
-builder.Services.AddScoped<IVehicleChangeRequestService, VehicleChangeRequestService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+
+builder.Services.AddHangfire(config => config.UseInMemoryStorage()); 
+builder.Services.AddHangfireServer(); 
 
 var app = builder.Build();
 
@@ -91,6 +95,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseHangfireDashboard();
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 

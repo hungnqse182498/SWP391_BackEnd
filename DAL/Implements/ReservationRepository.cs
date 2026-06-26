@@ -51,5 +51,13 @@ namespace DAL.Implements
 
             return await query.ToListAsync();
         }
+
+        public async Task<int> CountActiveReservationsAsync(Guid vehicleTypeId, string statusConfirmed, string statusModified, Guid excludeReservationId)
+        {
+            return await _context.Reservations
+                .CountAsync(r => r.VehicleTypeId == vehicleTypeId
+                              && (r.Status == statusConfirmed || r.Status == statusModified) 
+                              && r.ReservationId != excludeReservationId); 
+        }
     }
 }

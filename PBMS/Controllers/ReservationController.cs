@@ -20,7 +20,6 @@ namespace API.Controllers
             _reservationService = reservationService;
         }
 
-
         private Guid GetUserId() => Guid.Parse(User.FindFirst("UserId")!.Value);
         private string GetUserRole() => User.FindFirst(ClaimTypes.Role)?.Value ?? string.Empty;
 
@@ -29,6 +28,13 @@ namespace API.Controllers
         {
             var userId = GetUserId();
             var result = await _reservationService.CreateReservationAsync(userId, dto);
+            return StatusCode(result.StatusCode, result);
+        }
+
+        [HttpPut("{reservationId}/change-time")]
+        public async Task<IActionResult> ChangeReservationTime(Guid reservationId, [FromBody] DateTime newExpectedTime)
+        {
+            var result = await _reservationService.ChangeReservationTimeAsync(reservationId, newExpectedTime);
             return StatusCode(result.StatusCode, result);
         }
 

@@ -5,16 +5,21 @@ using Common.Enums;
 using DAL.Models;
 using DAL.UnitOfWorks;
 using Microsoft.EntityFrameworkCore;
+using Hangfire; 
 
 public class ReservationService : IReservationService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPayOSService _payOSService;
+    private readonly IBackgroundJobClient _backgroundJobClient; 
 
-    public ReservationService(IUnitOfWork unitOfWork, IPayOSService payOSService)
+    private const double RESERVATION_QUOTA_PERCENT = 0.20;
+
+    public ReservationService(IUnitOfWork unitOfWork, IPayOSService payOSService, IBackgroundJobClient backgroundJobClient)
     {
         _unitOfWork = unitOfWork;
         _payOSService = payOSService;
+        _backgroundJobClient = backgroundJobClient;
     }
 
     public async Task<ResponseDTO> CreateReservationAsync(Guid userId, CreateReservationDTO dto)
@@ -26,6 +31,12 @@ public class ReservationService : IReservationService
             {
                 await _unitOfWork.RollbackTransactionAsync();
                 return new ResponseDTO("Thời gian vào phải lớn hơn thời gian hiện tại", 400);
+            }
+
+            if (dto.ExpectedEntryTime > DateTime.UtcNow.AddHours(5))
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                return new ResponseDTO("Chỉ được phép đặt trước tối đa 5 tiếng", 400);
             }
 
             var user = await _unitOfWork.UserRepo.GetByIdAsync(userId);
@@ -40,6 +51,27 @@ public class ReservationService : IReservationService
             {
                 await _unitOfWork.RollbackTransactionAsync();
                 return new ResponseDTO("Không tìm thấy loại phương tiện", 500);
+            }
+
+            int totalCarCapacity = await _unitOfWork.FloorRepo.GetTotalCapacityByVehicleTypeAsync(carVehicleType.VehicleTypeId, isResident: false);
+            if (totalCarCapacity == 0)
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                return new ResponseDTO("Hệ thống hiện tại không có tầng nào hỗ trợ đỗ xe Ô tô vãng lai", 400);
+            }
+
+            int maxReservationSlots = (int)(totalCarCapacity * RESERVATION_QUOTA_PERCENT);
+            int currentActiveReservations = await _unitOfWork.ReservationRepo
+                .CountActiveReservationsAsync(
+                    carVehicleType.VehicleTypeId,
+                    ReservationStatus.Confirmed.ToString(),
+                    ReservationStatus.Modified.ToString(),
+                    Guid.Empty
+                );
+            if (currentActiveReservations >= maxReservationSlots)
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                return new ResponseDTO("Hệ thống đã hết chỗ nhận đặt trước. Vui lòng vào trực tiếp hoặc chọn khung giờ khác.", 400);
             }
 
             var pricing = await _unitOfWork.PricingPolicyRepo.GetActivePolicyAsync(carVehicleType.VehicleTypeId);
@@ -88,6 +120,15 @@ public class ReservationService : IReservationService
             await _unitOfWork.SaveAsync();
             await _unitOfWork.CommitTransactionAsync();
 
+            var delay = reservation.ExpectedEntryTime.AddMinutes(30) - DateTime.UtcNow;
+            if (delay > TimeSpan.Zero)
+            {
+                _backgroundJobClient.Schedule<IReservationService>(
+                    service => service.ProcessNoShowTimeoutAsync(reservation.ReservationId),
+                    delay
+                );
+            }
+
             return new ResponseDTO("Reservation created successfully", 200, true,
                 new CreateReservationPaymentDTO
                 {
@@ -102,6 +143,83 @@ public class ReservationService : IReservationService
         catch (Exception ex)
         {
             await _unitOfWork.RollbackTransactionAsync();
+            return new ResponseDTO(ex.Message, 500);
+        }
+    }
+
+    public async Task<ResponseDTO> ChangeReservationTimeAsync(Guid reservationId, DateTime newExpectedTime)
+    {
+        try
+        {
+            var reservation = await _unitOfWork.ReservationRepo.GetByIdAsync(reservationId);
+            if (reservation == null) return new ResponseDTO("Không tìm thấy thông tin đặt chỗ", 404);
+
+            if (string.Equals(reservation.Status, ReservationStatus.Modified.ToString(), StringComparison.OrdinalIgnoreCase))
+            {
+                return new ResponseDTO("Bạn đã hết lượt đổi giờ cho mã đặt chỗ này (Tối đa 1 lần)", 400);
+            }
+
+            if (!string.Equals(reservation.Status, ReservationStatus.Confirmed.ToString(), StringComparison.OrdinalIgnoreCase))
+            {
+                return new ResponseDTO("Chỉ đơn đặt chỗ đã thanh toán thành công mới được đổi giờ", 400);
+            }
+
+            if (DateTime.UtcNow > reservation.ExpectedEntryTime.AddHours(0.5)) 
+            {
+                reservation.Status = ReservationStatus.NoShow.ToString();
+                await _unitOfWork.ReservationRepo.UpdateAsync(reservation);
+                await _unitOfWork.SaveAsync();
+                return new ResponseDTO("Đơn đặt chỗ đã bị hủy (NoShow) do quá hạn 30 phút không check-in. Không thể đổi giờ.", 400);
+            }
+
+            if (newExpectedTime <= DateTime.UtcNow)
+            {
+                return new ResponseDTO("Giờ hẹn mới phải lớn hơn thời gian hiện tại", 400);
+            }
+
+            if (newExpectedTime > DateTime.UtcNow.AddHours(5))
+            {
+                return new ResponseDTO("Giờ hẹn mới không được vượt quá 5 tiếng tính từ thời điểm hiện tại", 400);
+            }
+
+            if (DateTime.UtcNow >= reservation.ExpectedEntryTime.AddMinutes(-15))
+            {
+                return new ResponseDTO("Phải thực hiện đổi lịch trước giờ hẹn cũ ít nhất 15 phút.", 400);
+            }
+
+            int totalCarCapacity = await _unitOfWork.FloorRepo.GetTotalCapacityByVehicleTypeAsync(reservation.VehicleTypeId, isResident: false);
+            int maxReservationSlots = (int)(totalCarCapacity * RESERVATION_QUOTA_PERCENT);
+
+            int currentActiveReservations = await _unitOfWork.ReservationRepo
+                            .CountActiveReservationsAsync(
+                                reservation.VehicleTypeId,
+                                ReservationStatus.Confirmed.ToString(),
+                                ReservationStatus.Modified.ToString(),
+                                reservationId
+                            );
+            if (currentActiveReservations >= maxReservationSlots)
+            {
+                return new ResponseDTO("Khung giờ mới đã hết hạn ngạch đặt trước. Vui lòng giữ nguyên giờ cũ.", 400);
+            }
+
+            reservation.ExpectedEntryTime = newExpectedTime;
+            reservation.Status = ReservationStatus.Modified.ToString();
+            await _unitOfWork.ReservationRepo.UpdateAsync(reservation);
+            await _unitOfWork.SaveAsync();
+
+            var delay = newExpectedTime.AddMinutes(30) - DateTime.UtcNow;
+            if (delay > TimeSpan.Zero)
+            {
+                _backgroundJobClient.Schedule<IReservationService>(
+                    service => service.ProcessNoShowTimeoutAsync(reservation.ReservationId),
+                    delay
+                );
+            }
+
+            return new ResponseDTO($"Thay đổi giờ hẹn thành công sang: {newExpectedTime:HH:mm dd/MM/yyyy}", 200, true);
+        }
+        catch (Exception ex)
+        {
             return new ResponseDTO(ex.Message, 500);
         }
     }
@@ -138,8 +256,6 @@ public class ReservationService : IReservationService
             }
             decimal depositAmount = pricing.BasePrice;
 
-            string newOrderCode = DateTime.UtcNow.Ticks.ToString().Substring(5, 10);
-
             var payment = await _unitOfWork.PaymentRepo.FirstOrDefaultAsync(p =>
                 p.ReservationId == reservationId &&
                 p.PaymentType == PaymentType.Deposit.ToString() &&
@@ -156,13 +272,12 @@ public class ReservationService : IReservationService
                     PaymentStatus = PaymentStatus.Pending.ToString(),
                     PaymentType = PaymentType.Deposit.ToString(),
                     PaymentTime = DateTime.UtcNow,
-                    TransactionReference = newOrderCode
+                    TransactionReference = string.Empty
                 };
                 await _unitOfWork.PaymentRepo.AddAsync(payment);
             }
             else
             {
-                payment.TransactionReference = newOrderCode;
                 payment.PaymentTime = DateTime.UtcNow;
                 await _unitOfWork.PaymentRepo.UpdateAsync(payment);
             }
@@ -191,7 +306,7 @@ public class ReservationService : IReservationService
                 DepositAmount = payment.Amount,
                 PaymentLinkId = paymentLinkId,
                 PaymentUrl = paymentUrl,
-                OrderCode = newOrderCode
+                OrderCode = payment.TransactionReference
             });
         }
         catch (Exception ex)
@@ -344,6 +459,34 @@ public class ReservationService : IReservationService
         catch (Exception ex)
         {
             return new ResponseDTO(ex.Message, 500);
+        }
+    }
+
+    public async Task ProcessNoShowTimeoutAsync(Guid reservationId)
+    {
+        try
+        {
+            var reservation = await _unitOfWork.ReservationRepo.GetByIdAsync(reservationId);
+
+            if (reservation == null ||
+                reservation.Status == ReservationStatus.CheckedIn.ToString() ||
+                reservation.Status == ReservationStatus.Cancelled.ToString() ||
+                reservation.Status == ReservationStatus.Completed.ToString() ||
+                reservation.Status == ReservationStatus.NoShow.ToString())
+            {
+                return;
+            }
+
+            if (DateTime.UtcNow >= reservation.ExpectedEntryTime.AddMinutes(30))
+            {
+                reservation.Status = ReservationStatus.NoShow.ToString();
+                await _unitOfWork.ReservationRepo.UpdateAsync(reservation);
+                await _unitOfWork.SaveAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Hangfire Error] Lỗi tự động xử lý NoShow cho đơn {reservationId}: {ex.Message}");
         }
     }
 
