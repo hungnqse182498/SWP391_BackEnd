@@ -40,7 +40,7 @@ namespace BLL.Implements
             var slot = await FindGuestAvailableSlotAsync(dto.VehicleTypeId);
             if (slot == null) return new ResponseDTO("Không còn chỗ trống cho khách vãng lai", 409, false);
 
-            var now = DateTime.Now;
+            var now = DateTime.UtcNow;
             var session = new ParkingSession
             {
                 SessionId = Guid.NewGuid(),
@@ -80,7 +80,7 @@ namespace BLL.Implements
             var sessionResult = await FindActiveSessionAsync(dto.SessionId, dto.LicensePlate);
             if (sessionResult.Error != null) return sessionResult.Error;
 
-            var feeResult = await CalculateFeeAsync(sessionResult.Session!, DateTime.Now);
+            var feeResult = await CalculateFeeAsync(sessionResult.Session!, DateTime.UtcNow);
             if (feeResult.Error != null) return feeResult.Error;
 
             return new ResponseDTO("Tính phí gửi xe thành công", 200, true, feeResult.Preview);
@@ -103,7 +103,7 @@ namespace BLL.Implements
             var plateValidation = await ValidatePlateOutAsync(session, dto.LicensePlateOut);
             if (plateValidation != null) return plateValidation;
 
-            var exitTime = DateTime.Now;
+            var exitTime = DateTime.UtcNow;
             var feeResult = await CalculateFeeAsync(session, exitTime);
             if (feeResult.Error != null) return feeResult.Error;
 
@@ -203,7 +203,7 @@ namespace BLL.Implements
             var plateValidation = await ValidatePlateOutAsync(session, dto.LicensePlateOut);
             if (plateValidation != null) return plateValidation;
 
-            var exitTime = DateTime.Now;
+            var exitTime = DateTime.UtcNow;
             var feeResult = await CalculateFeeAsync(session, exitTime);
             if (feeResult.Error != null) return feeResult.Error;
 
@@ -255,7 +255,7 @@ namespace BLL.Implements
 
             var licensePlate = NormalizePlate(dto.LicensePlate);
 
-            var now = DateTime.Now;
+            var now = DateTime.UtcNow;
             var subscription = await _unitOfWork.MonthlySubscriptionRepo.GetAll()
                 .Include(s => s.User)
                 .FirstOrDefaultAsync(s =>
@@ -308,7 +308,7 @@ namespace BLL.Implements
             if (sessionResult.Error != null) return sessionResult.Error;
 
             var session = sessionResult.Session!;
-            var now = DateTime.Now;
+            var now = DateTime.UtcNow;
             var subscription = await _unitOfWork.MonthlySubscriptionRepo.GetAll()
                 .FirstOrDefaultAsync(s =>
                     s.LicensePlate.ToLower() == session.LicensePlateIn.ToLower()
@@ -350,7 +350,7 @@ namespace BLL.Implements
                 return new ResponseDTO("Đặt chỗ phải ở trạng thái Confirmed để check-in", 400, false);
             }
 
-            var now = DateTime.Now;
+            var now = DateTime.UtcNow;
             var minEntryTime = reservation.ExpectedEntryTime.AddMinutes(-30);
             var maxEntryTime = reservation.ExpectedEntryTime.AddMinutes(30); 
 

@@ -1,4 +1,5 @@
 ﻿using DAL.Interfaces;
+using Common.Enums;
 using DAL.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -45,14 +46,23 @@ namespace DAL.Implements
 
         }
 
+        public async Task<MonthlySubscription?> GetActivationDetailAsync(Guid id)
+        {
+            return await _context.MonthlySubscriptions
+                .Include(s => s.Package)
+                .Include(s => s.User)
+                    .ThenInclude(u => u.Role)
+                .FirstOrDefaultAsync(s => s.SubscriptionId == id);
+        }
+
         public async Task<bool> HasUsablePlateAsync(string plate, Guid? ignoredSubscriptionId = null)
         {
             return await _context.MonthlySubscriptions
                 .AnyAsync(s =>
                     s.LicensePlate == plate &&
-                    s.Status != "Cancelled" &&
+                    s.Status != MonthlySubscriptionStatus.Cancelled.ToString() &&
                     (!ignoredSubscriptionId.HasValue || s.SubscriptionId != ignoredSubscriptionId.Value) &&
-                    (s.Status == "PendingPayment" || s.EndDate >= DateTime.UtcNow));
+                    (s.Status == MonthlySubscriptionStatus.PendingPayment.ToString() || s.EndDate >= DateTime.UtcNow));
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using DAL.Interfaces;
+using Common.Enums;
 using DAL.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -15,18 +16,30 @@ namespace DAL.Implements
         {
         }
 
+        public async Task<List<Payment>> GetAllOrderedByPaymentTimeAsync()
+        {
+            return await _context.Payments
+                .OrderByDescending(p => p.PaymentTime)
+                .AsNoTracking()
+                .ToListAsync();
+        }
+
         public async Task<Payment?> GetByOrderCodeAsync(string orderCode)
         {
             if (string.IsNullOrWhiteSpace(orderCode)) return null;
-            return await _context.Payments.FirstOrDefaultAsync(p => p.TransactionReference.ToLower() == orderCode.ToLower());
+
+            var normalizedOrderCode = orderCode.Trim().ToLower();
+            return await _context.Payments
+                .FirstOrDefaultAsync(p => p.TransactionReference != null &&
+                                          p.TransactionReference.ToLower() == normalizedOrderCode);
         }
 
         public async Task<Payment?> GetLatestPendingSubscriptionPaymentAsync(Guid subscriptionId)
         {
             return await _context.Payments
                 .Where(p => p.SubscriptionId == subscriptionId &&
-                            p.PaymentType == "SubscriptionFee" &&
-                            p.PaymentStatus == "Pending")
+                            p.PaymentType == PaymentType.SubscriptionFee.ToString() &&
+                            p.PaymentStatus == PaymentStatus.Pending.ToString())
                 .OrderByDescending(p => p.PaymentTime)
                 .FirstOrDefaultAsync();
         }

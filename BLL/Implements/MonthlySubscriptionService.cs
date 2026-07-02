@@ -46,8 +46,8 @@ namespace BLL.Implements
                     VehicleTypeId = package.VehicleTypeId,
                     LicensePlate = normalizedPlate,
                     PackageId = package.PackageId,
-                    StartDate = DateTime.Now,
-                    EndDate = DateTime.Now.AddMonths(package.DurationMonths),
+                    StartDate = DateTime.UtcNow,
+                    EndDate = DateTime.UtcNow.AddMonths(package.DurationMonths),
                     Price = package.Price,
                     Status = MonthlySubscriptionStatus.PendingPayment.ToString()
                 };

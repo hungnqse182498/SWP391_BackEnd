@@ -18,7 +18,7 @@ namespace Common.DTOs.Subscription
 
     public class RenewSubscriptionDTO
     {
-        public int Months { get; set; }
+        public Guid PackageId { get; set; }
     }
 
     public class CreateDirectRenewalDTO

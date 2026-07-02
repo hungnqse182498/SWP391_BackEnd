@@ -11,6 +11,7 @@ namespace DAL.Interfaces
     {
         Task<List<ParkingSlot>> GetAllWithDetailsAsync();
         Task<ParkingSlot?> GetDetailWithFloorAndTypeAsync(Guid id);
+        Task<ParkingSlot?> GetFirstAvailableByVehicleTypeAsync(Guid vehicleTypeId);
         Task<int> GetSlotsCountByFloorAsync(Guid floorId);
         Task<bool> IsSlotCodeDuplicateAsync(string slotCode, Guid? currentSlotId);
     }

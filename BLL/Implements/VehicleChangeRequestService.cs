@@ -48,8 +48,8 @@ namespace BLL.Implements
                 NewLicensePlate = validation.NormalizedPlate!,
                 Reason = dto.Reason?.Trim(),
                 Status = VehicleChangeStatusEnum.Pending.ToString(),
-                CreatedAt = DateTime.Now
-            };
+                CreatedAt = DateTime.UtcNow
+            };  
             try
             {
                 await _unitOfWork.VehicleChangeRequestRepo.AddAsync(request);
@@ -143,7 +143,7 @@ namespace BLL.Implements
 
             sub.LicensePlate = NormalizePlate(request.NewLicensePlate);
             request.Status = VehicleChangeStatusEnum.Approved.ToString();
-            request.ProcessedAt = DateTime.Now;
+            request.ProcessedAt = DateTime.UtcNow;
 
             try
             {
@@ -171,7 +171,7 @@ namespace BLL.Implements
 
             request.Status = VehicleChangeStatusEnum.Rejected.ToString();
             request.Reason = dto.Reason.Trim();
-            request.ProcessedAt = DateTime.Now;
+            request.ProcessedAt = DateTime.UtcNow;
 
             try
             {

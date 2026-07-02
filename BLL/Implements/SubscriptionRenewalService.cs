@@ -20,8 +20,8 @@ public class SubscriptionRenewalService : ISubscriptionRenewalService
 
     public async Task<ResponseDTO> RenewAsync(Guid subscriptionId, Guid userId, RenewSubscriptionDTO dto)
     {
-        if (dto == null || dto.Months <= 0)
-            return new ResponseDTO("Số tháng gia hạn phải lớn hơn 0", 400, false);
+        if (dto == null || dto.PackageId == Guid.Empty)
+            return new ResponseDTO("Vui lòng chọn gói gia hạn hợp lệ", 400, false);
 
         var subscription = await _unitOfWork.MonthlySubscriptionRepo.GetDetailAsync(subscriptionId);
         if (subscription == null)
@@ -33,11 +33,18 @@ public class SubscriptionRenewalService : ISubscriptionRenewalService
         if (subscription.Status == "Cancelled")
             return new ResponseDTO("Không thể gia hạn gói đã hủy", 400, false);
 
+        var package = await _unitOfWork.SubscriptionPackageRepo.GetByIdAsync(dto.PackageId);
+        if (package == null || package.Status == PackageStatus.Inactive.ToString())
+            return new ResponseDTO("Gói cước gia hạn không tồn tại hoặc đã ngừng áp dụng", 400, false);
+
+        if (subscription.VehicleTypeId != package.VehicleTypeId)
+            return new ResponseDTO("Gói cước mới không phù hợp với loại xe hiện tại", 400, false);
+
         var payment = new Payment
         {
             PaymentId = Guid.NewGuid(),
             SubscriptionId = subscription.SubscriptionId,
-            Amount = subscription.Price * dto.Months,
+            Amount = package.Price,
             PaymentMethod = PaymentMethod.PayOS.ToString(),
             PaymentStatus = PaymentStatus.Pending.ToString(),
             PaymentType = PaymentType.SubscriptionRenewal.ToString(),

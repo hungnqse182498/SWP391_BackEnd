@@ -9,7 +9,6 @@ namespace BLL.Interfaces
 {
     public interface IPaymentService
     {
-        //Task<ResponseDTO> PayOSWebhookAsync(PayOSWebhookDTO dto);
         Task PayOSWebhookAsync(PayOSWebhookDTO dto);
         Task<ResponseDTO> GetAllAsync();
         Task<ResponseDTO> GetByIdAsync(Guid id);

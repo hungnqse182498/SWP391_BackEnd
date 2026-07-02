@@ -1,4 +1,5 @@
 using DAL.Interfaces;
+using Common.Enums;
 using DAL.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -32,6 +33,15 @@ namespace DAL.Implements
                 .Include(s => s.Floor)
                 .Include(s => s.VehicleType)
                 .FirstOrDefaultAsync(s => s.SlotId == id);
+        }
+
+        public async Task<ParkingSlot?> GetFirstAvailableByVehicleTypeAsync(Guid vehicleTypeId)
+        {
+            return await _context.ParkingSlots
+                .Where(s => s.VehicleTypeId == vehicleTypeId &&
+                            s.Status == ParkingSlotStatus.Available.ToString())
+                .OrderBy(s => s.SlotCode)
+                .FirstOrDefaultAsync();
         }
 
         public async Task<int> GetSlotsCountByFloorAsync(Guid floorId)
