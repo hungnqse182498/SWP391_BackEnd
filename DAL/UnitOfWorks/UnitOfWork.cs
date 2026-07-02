@@ -33,6 +33,7 @@ namespace DAL.UnitOfWorks
             SubscriptionPackageRepo = new SubscriptionPackageRepository(_context);
             VehicleChangeRequestRepo = new VehicleChangeRequestRepository(_context);
             SubscriptionRenewalRepo = new SubscriptionRenewalRepository(_context);
+            RoleRepo = new RoleRepository(_context);
 
         }
 
@@ -51,6 +52,7 @@ namespace DAL.UnitOfWorks
         public ISubscriptionPackageRepository SubscriptionPackageRepo { get; }
         public IVehicleChangeRequestRepository VehicleChangeRequestRepo { get; }
         public ISubscriptionRenewalRepository SubscriptionRenewalRepo { get; }
+        public IRoleRepository RoleRepo { get; private set; }
 
         public void Dispose()
         {

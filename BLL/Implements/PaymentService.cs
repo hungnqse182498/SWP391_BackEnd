@@ -89,10 +89,23 @@ public class PaymentService : IPaymentService
     {
         var subscription = await _unitOfWork.MonthlySubscriptionRepo.GetAll()
             .Include(s => s.Package)
+            .Include(s => s.User)
+                .ThenInclude(u => u.Role)
             .FirstOrDefaultAsync(s => s.SubscriptionId == subscriptionId);
+        
         if (subscription == null) return;
 
         subscription.Status = "Active";
+
+        if (subscription.User != null && subscription.User.Role?.RoleName == "User")
+        {
+            var customerRole = await _unitOfWork.UserRepo.GetRoleByNameAsync("Customer");
+
+            if (customerRole != null)
+            {
+                subscription.User.RoleId = customerRole.RoleId;
+            }
+        }
 
         if (subscription.Package.RequireFixedSlot == true && !subscription.FixedSlotId.HasValue)
         {

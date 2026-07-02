@@ -24,7 +24,7 @@ namespace DAL.UnitOfWorks
         ISubscriptionPackageRepository SubscriptionPackageRepo { get; }
         IVehicleChangeRequestRepository VehicleChangeRequestRepo { get; }
         ISubscriptionRenewalRepository SubscriptionRenewalRepo { get; }
-
+        IRoleRepository RoleRepo { get; }
 
         Task<int> SaveAsync();  
         Task<bool> SaveChangeAsync();
