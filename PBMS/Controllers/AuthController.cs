@@ -23,12 +23,32 @@ public class AuthController : ControllerBase
         return StatusCode(respone.StatusCode, respone);
     }
 
-    [HttpPost("register")]
-    public async Task<IActionResult> Register([FromBody] RegisterDTO registerDTO)
+    [HttpPost("send-register-otp")]
+    public async Task<IActionResult> SendRegisterOtp([FromBody] RegisterDTO registerDTO)
     {
-        var respone = await _authService.Register(registerDTO);
+        var response = await _authService.SendRegisterOtp(registerDTO);
+        return StatusCode(response.StatusCode, response);
+    }
 
-        return StatusCode(respone.StatusCode, respone);
+    [HttpPost("verify-register-otp")]
+    public async Task<IActionResult> VerifyRegisterOtp([FromBody] VerifyRegisterOtpDTO verifyDTO)
+    {
+        var response = await _authService.VerifyRegisterOtp(verifyDTO);
+        return StatusCode(response.StatusCode, response);
+    }
+
+    [HttpPost("request-reset-password")]
+    public async Task<IActionResult> RequestResetPasswordOtp([FromBody] RequestOtpDTO requestDTO)
+    {
+        var response = await _authService.RequestResetPasswordOtp(requestDTO);
+        return StatusCode(response.StatusCode, response);
+    }
+
+    [HttpPost("verify-reset-password")]
+    public async Task<IActionResult> VerifyResetPasswordOtp([FromBody] VerifyResetPasswordOtpDTO verifyDTO)
+    {
+        var response = await _authService.VerifyResetPasswordOtp(verifyDTO);
+        return StatusCode(response.StatusCode, response);
     }
 
     [HttpPost("refresh-token")]

@@ -37,8 +37,13 @@ builder.Services.AddCors(options =>
         });
 });
 
+// Cấu hình dbcontext
 builder.Services.AddDbContext<ParkingDBContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Cấu hình MailSettings + MemoryCache
+builder.Services.Configure<MailSettings>(builder.Configuration.GetSection("MailSettings"));
+builder.Services.AddMemoryCache();
 
 // Đăng ký Repositories
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -79,6 +84,7 @@ builder.Services.AddScoped<ISubscriptionRenewalService, SubscriptionRenewalServi
 builder.Services.AddScoped<IVehicleChangeRequestService, VehicleChangeRequestService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddHttpClient<IOcrService, OcrService>(client =>
 {
     client.Timeout = TimeSpan.FromSeconds(30);

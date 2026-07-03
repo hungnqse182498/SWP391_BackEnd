@@ -22,5 +22,24 @@ namespace Common.DTOs
             public string Password { get; set; }
             public string ConfirmPassword { get; set; }
         }
-    } 
-}
+
+        public class RequestOtpDTO
+        {
+            public string Email { get; set; }
+        }
+
+        public class VerifyRegisterOtpDTO
+        {
+            public string Email { get; set; }
+            public string Otp { get; set; }
+        }
+
+        public class VerifyResetPasswordOtpDTO
+        {
+            public string Email { get; set; }
+            public string Otp { get; set; }
+            public string NewPassword { get; set; }
+            public string ConfirmPassword { get; set; }
+        }
+    }
+} 

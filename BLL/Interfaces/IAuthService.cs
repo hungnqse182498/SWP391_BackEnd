@@ -8,7 +8,10 @@ namespace BLL.Interfaces
     {
 
         Task<ResponseDTO> Login(LoginDTO loginDTO);
-        Task<ResponseDTO> Register(RegisterDTO registerDTO);
+        Task<ResponseDTO> SendRegisterOtp(RegisterDTO registerDTO);
+        Task<ResponseDTO> VerifyRegisterOtp(VerifyRegisterOtpDTO dto);
+        Task<ResponseDTO> RequestResetPasswordOtp(RequestOtpDTO dto);
+        Task<ResponseDTO> VerifyResetPasswordOtp(VerifyResetPasswordOtpDTO dto);
         Task<ResponseDTO> RenewToken(RefreshTokenDTO refeshTokenDTO);
         Task<ResponseDTO> Logout(RefreshTokenDTO refeshTokenDTO);
     }
