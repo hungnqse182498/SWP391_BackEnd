@@ -76,6 +76,7 @@ builder.Services.AddScoped<IIncidentReportService, IncidentReportService>();
 builder.Services.AddScoped<IParkingOperationService, ParkingOperationService>();
 builder.Services.AddScoped<ISubscriptionRenewalService, SubscriptionRenewalService>();
 builder.Services.AddScoped<IVehicleChangeRequestService, VehicleChangeRequestService>();
+builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddHttpClient<IOcrService, OcrService>(client =>
 {
     client.Timeout = TimeSpan.FromSeconds(30);
