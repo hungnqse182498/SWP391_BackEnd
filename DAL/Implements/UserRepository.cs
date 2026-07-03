@@ -11,59 +11,67 @@ namespace DAL.Implements
 {
     public class UserRepository : GenericRepository<User>, IUserRepository
     {
-        private readonly ParkingDBContext _context;
-
         public UserRepository(ParkingDBContext context) : base(context)
         {
-            _context = context;
         }
-        public async Task<User> FindByEmailAsync(string email)
+        public async Task<User?> FindByEmailAsync(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email)) return null;
+
+            var normalizedEmail = email.Trim().ToLower();
+            return await _context.Users
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.Email.ToLower() == normalizedEmail);
+        }
+
+        public async Task<List<User>> GetAllWithRoleAsync()
         {
             return await _context.Users
                 .Include(u => u.Role)
-                .FirstOrDefaultAsync(u => u.Email == email);
+                .OrderBy(u => u.UserName)
+                .AsNoTracking()
+                .ToListAsync();
         }
 
-        public async Task<Guid> GetRoleIdByNameAsync(string roleName)
-        {
-            var normalizedRoleName = roleName.ToLower();
-            var role = await _context.Roles.FirstOrDefaultAsync(r => r.RoleName.ToLower() == normalizedRoleName);
-            return role != null ? role.RoleId : Guid.Empty;
-        }
-
-        public async Task<Role?> GetRoleByNameAsync(string roleName)
-        {
-            var normalizedRoleName = roleName.Trim().ToLower();
-            return await _context.Roles.FirstOrDefaultAsync(r => r.RoleName.ToLower() == normalizedRoleName);
-        }
-
-        public async Task<User> GetByIdWithRoleAsync(Guid id)
+        public async Task<User?> GetByIdWithRoleAsync(Guid id)
         {
             return await _context.Users
                 .Include(u => u.Role) 
                 .FirstOrDefaultAsync(u => u.UserId == id);
         }
 
-        public async Task<User> FindByPhoneNumberAsync(string phoneNumber)
+        public async Task<User?> FindByPhoneNumberAsync(string phoneNumber)
         {
+            if (string.IsNullOrWhiteSpace(phoneNumber)) return null;
+
+            var normalizedPhoneNumber = phoneNumber.Trim();
             return await _context.Users
                 .Include(u => u.Role)
-                .FirstOrDefaultAsync(u => u.PhoneNumber == phoneNumber);
+                .FirstOrDefaultAsync(u => u.PhoneNumber == normalizedPhoneNumber);
         }
 
-        public async Task<Role> GetRoleByIdAsync(Guid roleId)
+        public async Task<bool> IsUserNameDuplicateAsync(string userName, Guid? currentUserId = null)
         {
-            return await _context.Roles.FirstOrDefaultAsync(r => r.RoleId == roleId);
+            var normalizedUserName = userName.Trim().ToLower();
+            return await _context.Users.AnyAsync(u =>
+                u.UserName.ToLower() == normalizedUserName &&
+                (!currentUserId.HasValue || u.UserId != currentUserId.Value));
         }
 
-        public async Task<List<Role>> GetManageableRolesAsync()
+        public async Task<bool> IsEmailDuplicateAsync(string email, Guid? currentUserId = null)
         {
-            var manageableRoleNames = new[] { "user", "customer", "staff", "manager" };
+            var normalizedEmail = email.Trim().ToLower();
+            return await _context.Users.AnyAsync(u =>
+                u.Email.ToLower() == normalizedEmail &&
+                (!currentUserId.HasValue || u.UserId != currentUserId.Value));
+        }
 
-            return await _context.Roles
-                .Where(r => manageableRoleNames.Contains(r.RoleName.ToLower()))
-                .OrderBy(r => r.RoleName)
-                .ToListAsync();
+        public async Task<bool> IsPhoneNumberDuplicateAsync(string phoneNumber, Guid? currentUserId = null)
+        {
+            var normalizedPhoneNumber = phoneNumber.Trim();
+            return await _context.Users.AnyAsync(u =>
+                u.PhoneNumber == normalizedPhoneNumber &&
+                (!currentUserId.HasValue || u.UserId != currentUserId.Value));
         }
     }
 }

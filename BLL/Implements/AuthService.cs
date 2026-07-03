@@ -147,8 +147,8 @@ namespace BLL.Implements
                 return new ResponseDTO("Số điện thoại đã được đăng ký", 400, false);
             }
 
-            var defaultRole = await _unitOfWork.UserRepo.GetRoleIdByNameAsync("User");
-            if (defaultRole == Guid.Empty)
+            var defaultRole = await _unitOfWork.RoleRepo.GetRoleByNameAsync("User");
+            if (defaultRole == null)
             {
                 return new ResponseDTO("Lỗi cấu hình hệ thống: Không tìm thấy quyền 'User' mặc định trong DB", 500, false);
             }
@@ -162,7 +162,7 @@ namespace BLL.Implements
                 FullName = registerDTO.FullName, 
                 PhoneNumber = registerDTO.PhoneNumber,     
                 Status = "Active",                                 
-                RoleId = defaultRole,                                        
+                RoleId = defaultRole.RoleId,                                        
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };

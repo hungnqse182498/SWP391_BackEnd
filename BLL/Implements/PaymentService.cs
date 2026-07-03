@@ -99,7 +99,7 @@ public class PaymentService : IPaymentService
 
         if (subscription.User != null && subscription.User.Role?.RoleName == "User")
         {
-            var customerRole = await _unitOfWork.UserRepo.GetRoleByNameAsync("Customer");
+            var customerRole = await _unitOfWork.RoleRepo.GetRoleByNameAsync("Customer");
 
             if (customerRole != null)
             {

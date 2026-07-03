@@ -57,6 +57,7 @@ builder.Services.AddScoped<IIncidentReportRepository, IncidentReportRepository>(
 builder.Services.AddScoped<ISubscriptionPackageRepository, SubscriptionPackageRepository>();
 builder.Services.AddScoped<IVehicleChangeRequestRepository, VehicleChangeRequestRepository>();
 builder.Services.AddScoped<ISubscriptionRenewalRepository, SubscriptionRenewalRepository>();
+builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 
 // Đăng ký Services
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -77,6 +78,7 @@ builder.Services.AddScoped<IParkingOperationService, ParkingOperationService>();
 builder.Services.AddScoped<ISubscriptionRenewalService, SubscriptionRenewalService>();
 builder.Services.AddScoped<IVehicleChangeRequestService, VehicleChangeRequestService>();
 builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddHttpClient<IOcrService, OcrService>(client =>
 {
     client.Timeout = TimeSpan.FromSeconds(30);

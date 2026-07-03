@@ -9,12 +9,12 @@ namespace DAL.Interfaces
 {
     public interface IUserRepository : IGenericRepository<User>
     {
-        Task<User> FindByEmailAsync(string email);
-        Task<Guid> GetRoleIdByNameAsync(string roleName);
-        Task<User> GetByIdWithRoleAsync(Guid id);
-        Task<Role> GetRoleByNameAsync(string roleName);
-        Task<User> FindByPhoneNumberAsync(string phoneNumber);
-        Task<Role> GetRoleByIdAsync(Guid roleId);
-        Task<List<Role>> GetManageableRolesAsync();
+        Task<User?> FindByEmailAsync(string email);
+        Task<List<User>> GetAllWithRoleAsync();
+        Task<User?> GetByIdWithRoleAsync(Guid id);
+        Task<User?> FindByPhoneNumberAsync(string phoneNumber);
+        Task<bool> IsUserNameDuplicateAsync(string userName, Guid? currentUserId = null);
+        Task<bool> IsEmailDuplicateAsync(string email, Guid? currentUserId = null);
+        Task<bool> IsPhoneNumberDuplicateAsync(string phoneNumber, Guid? currentUserId = null);
     }
 }

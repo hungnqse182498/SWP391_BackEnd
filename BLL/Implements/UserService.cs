@@ -1,6 +1,7 @@
 using BLL.Interfaces;
 using Common.DTOs;
 using Common.DTOs.User;
+using Common.Enums;
 using DAL.Models;
 using DAL.UnitOfWorks;
 using Microsoft.EntityFrameworkCore;
@@ -11,23 +12,7 @@ namespace BLL.Implements
     public class UserService : IUserService
     {
         private readonly IUnitOfWork _unitOfWork;
-        private const string AdminRoleName = "admin";
-        private const string ActiveStatus = "Active";
-        private const string InactiveStatus = "Inactive";
-        private const string BannedStatus = "Banned";
-        private static readonly HashSet<string> ManageableRoleNames = new(StringComparer.OrdinalIgnoreCase)
-        {
-            "user",
-            "customer",
-            "staff",
-            "manager"
-        };
-        private static readonly HashSet<string> ValidStatuses = new(StringComparer.OrdinalIgnoreCase)
-        {
-            ActiveStatus,
-            InactiveStatus,
-            BannedStatus
-        };
+        private const string AdminRoleName = "Admin";
 
         public UserService(IUnitOfWork unitOfWork)
         {
@@ -36,16 +21,13 @@ namespace BLL.Implements
 
         public async Task<ResponseDTO> GetAllAsync()
         {
-            var users = await _unitOfWork.UserRepo.GetAll().Include(u => u.Role).ToListAsync();
-
-            if (users == null || !users.Any())
+            var users = await _unitOfWork.UserRepo.GetAllWithRoleAsync();
+            if (users.Count == 0)
             {
                 return new ResponseDTO("Không tìm thấy người dùng nào trong hệ thống", 404, false);
             }
 
-            var userDTOs = users.Select(MapToUserDTO).ToList();
-
-            return new ResponseDTO("Lấy danh sách người dùng thành công", 200, true, userDTOs);
+            return new ResponseDTO("Lấy danh sách người dùng thành công", 200, true, users.Select(MapToUserDTO).ToList());
         }
 
         public async Task<ResponseDTO> GetByIdAsync(Guid id)
@@ -60,26 +42,19 @@ namespace BLL.Implements
             {
                 return new ResponseDTO("Không tìm thấy người dùng", 404, false);
             }
+
             return new ResponseDTO("Tìm thấy người dùng thành công", 200, true, MapToUserDTO(user));
         }
 
         public async Task<ResponseDTO> GetManageableRolesAsync()
         {
-            var roles = await _unitOfWork.UserRepo.GetManageableRolesAsync();
-
-            if (roles == null || !roles.Any())
+            var roles = await _unitOfWork.RoleRepo.GetAssignableRolesAsync(AdminRoleName);
+            if (roles.Count == 0)
             {
-                return new ResponseDTO("Không tìm thấy quyền user hoặc staff trong hệ thống", 404, false);
+                return new ResponseDTO("Không tìm thấy quyền có thể gán trong hệ thống", 404, false);
             }
 
-            var roleDTOs = roles.Select(r => new UserRoleDTO
-            {
-                RoleId = r.RoleId,
-                RoleName = r.RoleName,
-                Description = r.Description ?? string.Empty
-            }).ToList();
-
-            return new ResponseDTO("Lấy danh sách quyền có thể gán thành công", 200, true, roleDTOs);
+            return new ResponseDTO("Lấy danh sách quyền có thể gán thành công", 200, true, roles.Select(MapToRoleDTO).ToList());
         }
 
         public async Task<ResponseDTO> CreateAsync(CreateUserDTO createUserDTO)
@@ -100,7 +75,7 @@ namespace BLL.Implements
                 return new ResponseDTO("Vui lòng nhập mật khẩu", 400, false);
             }
 
-            var roleValidation = await ValidateManageableRoleAsync(createUserDTO.RoleName);
+            var roleValidation = await ValidateAssignableRoleAsync(createUserDTO.RoleId, createUserDTO.RoleName);
             if (roleValidation.Error != null)
             {
                 return roleValidation.Error;
@@ -126,7 +101,7 @@ namespace BLL.Implements
                 FullName = NormalizeFullName(createUserDTO.FullName),
                 PhoneNumber = phoneNumber,
                 RoleId = roleValidation.Role!.RoleId,
-                Status = ActiveStatus,
+                Status = UserStatus.Active.ToString(),
                 CreatedAt = now,
                 UpdatedAt = now
             };
@@ -178,7 +153,7 @@ namespace BLL.Implements
                 return validation;
             }
 
-            var roleValidation = await ValidateManageableRoleAsync(updateUserDTO.RoleName);
+            var roleValidation = await ValidateAssignableRoleAsync(updateUserDTO.RoleId, updateUserDTO.RoleName);
             if (roleValidation.Error != null)
             {
                 return roleValidation.Error;
@@ -236,7 +211,7 @@ namespace BLL.Implements
                 return new ResponseDTO("Vui lòng nhập trạng thái người dùng", 400, false);
             }
 
-            var normalizedStatus = NormalizeStatus(updateUserStatusDTO.Status);
+            var normalizedStatus = NormalizeEnum<UserStatus>(updateUserStatusDTO.Status);
             if (normalizedStatus == null)
             {
                 return new ResponseDTO("Trạng thái chỉ được là Active, Inactive hoặc Banned", 400, false);
@@ -252,8 +227,10 @@ namespace BLL.Implements
             {
                 return new ResponseDTO("Không thể thay đổi trạng thái tài khoản admin", 400, false);
             }
+
             user.Status = normalizedStatus;
             user.UpdatedAt = DateTime.UtcNow;
+
             try
             {
                 await _unitOfWork.UserRepo.UpdateAsync(user);
@@ -284,7 +261,7 @@ namespace BLL.Implements
                 return new ResponseDTO("Không thể xóa tài khoản admin", 400, false);
             }
 
-            user.Status = InactiveStatus;
+            user.Status = UserStatus.Inactive.ToString();
             user.UpdatedAt = DateTime.UtcNow;
 
             try
@@ -300,29 +277,31 @@ namespace BLL.Implements
             }
         }
 
-        private async Task<(Role? Role, ResponseDTO? Error)> ValidateManageableRoleAsync(string roleName)
+        private async Task<(Role? Role, ResponseDTO? Error)> ValidateAssignableRoleAsync(Guid? roleId, string? roleName)
         {
-            if (string.IsNullOrWhiteSpace(roleName))
+            if ((!roleId.HasValue || roleId.Value == Guid.Empty) && string.IsNullOrWhiteSpace(roleName))
             {
                 return (null, new ResponseDTO("Vui lòng chọn quyền cho người dùng", 400, false));
             }
 
-            var trimmedRoleName = roleName.Trim();
-
-            if (string.Equals(trimmedRoleName, AdminRoleName, StringComparison.OrdinalIgnoreCase))
+            Role? role;
+            if (roleId.HasValue && roleId.Value != Guid.Empty)
             {
-                return (null, new ResponseDTO("Không được tạo hoặc gán quyền admin", 400, false));
+                role = await _unitOfWork.RoleRepo.GetByIdAsync(roleId.Value);
+            }
+            else
+            {
+                role = await _unitOfWork.RoleRepo.GetRoleByNameAsync(roleName!);
             }
 
-            if (!ManageableRoleNames.Contains(trimmedRoleName))
-            {
-                return (null, new ResponseDTO("Chỉ được gán quyền user, customer, staff hoặc manager", 400, false));
-            }
-
-            var role = await _unitOfWork.UserRepo.GetRoleByNameAsync(trimmedRoleName);
             if (role == null)
             {
                 return (null, new ResponseDTO("Quyền người dùng không tồn tại", 404, false));
+            }
+
+            if (IsAdminRole(role))
+            {
+                return (null, new ResponseDTO("Không được tạo hoặc gán quyền admin", 400, false));
             }
 
             return (role, null);
@@ -334,38 +313,20 @@ namespace BLL.Implements
            string? phoneNumber,
            Guid? currentUserId)
         {
-            var normalizedUserName = userName.ToLower();
-            var normalizedEmail = email.ToLower();
-
-            var isDuplicateUserName = await _unitOfWork.UserRepo.AnyAsync(u =>
-                u.UserName.ToLower() == normalizedUserName
-                && (!currentUserId.HasValue || u.UserId != currentUserId.Value));
-
-            if (isDuplicateUserName)
+            if (await _unitOfWork.UserRepo.IsUserNameDuplicateAsync(userName, currentUserId))
             {
                 return new ResponseDTO("UserName đã tồn tại", 400, false);
             }
 
-            var isDuplicateEmail = await _unitOfWork.UserRepo.AnyAsync(u =>
-                u.Email != null
-                && u.Email.ToLower() == normalizedEmail
-                && (!currentUserId.HasValue || u.UserId != currentUserId.Value));
-
-            if (isDuplicateEmail)
+            if (await _unitOfWork.UserRepo.IsEmailDuplicateAsync(email, currentUserId))
             {
                 return new ResponseDTO("Email đã được sử dụng", 400, false);
             }
 
-            if (!string.IsNullOrWhiteSpace(phoneNumber))
+            if (!string.IsNullOrWhiteSpace(phoneNumber) &&
+                await _unitOfWork.UserRepo.IsPhoneNumberDuplicateAsync(phoneNumber, currentUserId))
             {
-                var isDuplicatePhoneNumber = await _unitOfWork.UserRepo.AnyAsync(u =>
-                    u.PhoneNumber == phoneNumber
-                    && (!currentUserId.HasValue || u.UserId != currentUserId.Value));
-
-                if (isDuplicatePhoneNumber)
-                {
-                    return new ResponseDTO("Số điện thoại đã được sử dụng", 400, false);
-                }
+                return new ResponseDTO("Số điện thoại đã được sử dụng", 400, false);
             }
 
             return null;
@@ -419,9 +380,10 @@ namespace BLL.Implements
             return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
         }
 
-        private static string? NormalizeStatus(string status)
+        private static string? NormalizeEnum<TEnum>(string? value) where TEnum : struct, Enum
         {
-            return ValidStatuses.FirstOrDefault(s => string.Equals(s, status.Trim(), StringComparison.OrdinalIgnoreCase));
+            if (string.IsNullOrWhiteSpace(value)) return null;
+            return Enum.TryParse<TEnum>(value.Trim(), true, out var parsed) ? parsed.ToString() : null;
         }
 
         private static UserDTO MapToUserDTO(User user)
@@ -434,9 +396,20 @@ namespace BLL.Implements
                 FullName = user.FullName,
                 PhoneNumber = user.PhoneNumber,
                 Status = user.Status,
+                RoleId = user.RoleId,
                 RoleName = user.Role?.RoleName ?? "Chưa phân quyền",
                 CreatedAt = user.CreatedAt ?? DateTime.UtcNow,
                 UpdatedAt = user.UpdatedAt ?? DateTime.UtcNow
+            };
+        }
+
+        private static UserRoleDTO MapToRoleDTO(Role role)
+        {
+            return new UserRoleDTO
+            {
+                RoleId = role.RoleId,
+                RoleName = role.RoleName,
+                Description = role.Description ?? string.Empty
             };
         }
     }
