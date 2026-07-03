@@ -46,6 +46,96 @@ namespace BLL.Implements
             return new ResponseDTO("Tìm thấy người dùng thành công", 200, true, MapToUserDTO(user));
         }
 
+        public async Task<ResponseDTO> GetProfileAsync(Guid userId)
+        {
+            if (userId == Guid.Empty)
+            {
+                return new ResponseDTO("Vui lòng đăng nhập", 401, false);
+            }
+
+            var user = await _unitOfWork.UserRepo.GetByIdWithRoleAsync(userId);
+            if (user == null)
+            {
+                return new ResponseDTO("Không tìm thấy người dùng", 404, false);
+            }
+
+            return new ResponseDTO("Lấy thông tin cá nhân thành công", 200, true, MapToUserDTO(user));
+        }
+
+        public async Task<ResponseDTO> UpdateProfileAsync(Guid userId, UpdateProfileDTO dto)
+        {
+            if (userId == Guid.Empty)
+            {
+                return new ResponseDTO("Vui lòng đăng nhập", 401, false);
+            }
+
+            if (dto == null)
+            {
+                return new ResponseDTO("Dữ liệu cập nhật thông tin cá nhân không hợp lệ", 400, false);
+            }
+
+            var user = await _unitOfWork.UserRepo.GetByIdWithRoleAsync(userId);
+            if (user == null)
+            {
+                return new ResponseDTO("Không tìm thấy người dùng", 404, false);
+            }
+
+            if (!string.IsNullOrWhiteSpace(dto.Email))
+            {
+                var email = dto.Email.Trim();
+                if (!IsValidEmail(email))
+                {
+                    return new ResponseDTO("Email sai định dạng", 400, false);
+                }
+
+                if (await _unitOfWork.UserRepo.IsEmailDuplicateAsync(email, userId))
+                {
+                    return new ResponseDTO("Email đã được sử dụng", 400, false);
+                }
+
+                user.Email = email;
+            }
+
+            if (!string.IsNullOrWhiteSpace(dto.FullName))
+            {
+                user.FullName = dto.FullName.Trim();
+            }
+
+            var phoneNumber = NormalizeOptionalText(dto.PhoneNumber);
+            if (!string.IsNullOrWhiteSpace(phoneNumber))
+            {
+                if (await _unitOfWork.UserRepo.IsPhoneNumberDuplicateAsync(phoneNumber, userId))
+                {
+                    return new ResponseDTO("Số điện thoại đã được sử dụng", 400, false);
+                }
+
+                user.PhoneNumber = phoneNumber;
+            }
+
+            if (!string.IsNullOrWhiteSpace(dto.Password))
+            {
+                user.Password = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+            }
+
+            user.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _unitOfWork.UserRepo.UpdateAsync(user);
+                await _unitOfWork.SaveChangeAsync();
+
+                return new ResponseDTO("Cập nhật thông tin cá nhân thành công", 200, true, MapToUserDTO(user));
+            }
+            catch (DbUpdateException)
+            {
+                return new ResponseDTO("Dữ liệu thông tin cá nhân bị trùng hoặc không hợp lệ", 400, false);
+            }
+            catch (Exception ex)
+            {
+                return new ResponseDTO($"Lỗi cập nhật thông tin cá nhân: {ex.Message}", 500, false);
+            }
+        }
+
         public async Task<ResponseDTO> GetManageableRolesAsync()
         {
             var roles = await _unitOfWork.RoleRepo.GetAssignableRolesAsync(AdminRoleName);
