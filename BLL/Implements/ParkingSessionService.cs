@@ -23,6 +23,14 @@ namespace BLL.Implements
             return new ResponseDTO("Lấy danh sách phiên gửi xe thành công", 200, true, sessions.Select(MapToDTO).ToList());
         }
 
+        public async Task<ResponseDTO> GetMyAsync(Guid userId)
+        {
+            if (userId == Guid.Empty) return new ResponseDTO("Vui lòng đăng nhập để xem phiên gửi xe của bạn", 401, false);
+
+            var sessions = await _unitOfWork.ParkingSessionRepo.GetSessionsByDriverUserIdWithDetailsAsync(userId);
+            return new ResponseDTO("Lấy danh sách phiên gửi xe của tôi thành công", 200, true, sessions.Select(MapToDTO).ToList());
+        }
+
         public async Task<ResponseDTO> GetByIdAsync(Guid id)
         {
             if (id == Guid.Empty) return new ResponseDTO("Vui lòng nhập SessionId", 400, false);

@@ -27,6 +27,21 @@ namespace DAL.Implements
                 .ToListAsync();
         }
 
+        public async Task<List<ParkingSession>> GetSessionsByDriverUserIdWithDetailsAsync(Guid userId)
+        {
+            return await _context.ParkingSessions
+                .Include(s => s.DriverUser)
+                .Include(s => s.VehicleType)
+                .Include(s => s.EntryGate)
+                .Include(s => s.ExitGate)
+                .Include(s => s.AssignedSlot)
+                .Include(s => s.ActualSlot)
+                .Where(s => s.DriverUserId == userId)
+                .OrderByDescending(s => s.EntryTime)
+                .AsNoTracking()
+                .ToListAsync();
+        }
+
         public async Task<ParkingSession?> GetSessionDetailAsync(Guid id)
         {
             return await _context.ParkingSessions
