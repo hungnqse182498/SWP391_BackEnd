@@ -55,6 +55,21 @@ namespace DAL.Implements
                 .FirstOrDefaultAsync(s => s.SubscriptionId == id);
         }
 
+        public async Task<MonthlySubscription?> GetActiveByPlateAndVehicleTypeAsync(string licensePlate, Guid vehicleTypeId, DateTime now)
+        {
+            if (string.IsNullOrWhiteSpace(licensePlate)) return null;
+
+            var normalizedPlate = licensePlate.Trim().ToUpper();
+            return await _context.MonthlySubscriptions
+                .Include(s => s.User)
+                .FirstOrDefaultAsync(s =>
+                    s.LicensePlate.ToUpper() == normalizedPlate &&
+                    s.VehicleTypeId == vehicleTypeId &&
+                    s.Status == MonthlySubscriptionStatus.Active.ToString() &&
+                    s.StartDate <= now &&
+                    s.EndDate >= now);
+        }
+
         public async Task<bool> HasUsablePlateAsync(string plate, Guid? ignoredSubscriptionId = null)
         {
             return await _context.MonthlySubscriptions

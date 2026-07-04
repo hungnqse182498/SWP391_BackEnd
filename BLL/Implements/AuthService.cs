@@ -1,28 +1,36 @@
 ﻿using BLL.Interfaces;
+using Common.Constrants;
 using Common.DTOs;
+using Common.Enums;
 using DAL.Models;
 using DAL.UnitOfWorks;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using static Common.DTOs.AuthDTO;
-using Common.Constrants;
-using Microsoft.EntityFrameworkCore;
 
 namespace BLL.Implements
 {
     public class AuthService : IAuthService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IEmailService _emailService;
+        private readonly IMemoryCache _cache;
 
-        public AuthService(IUnitOfWork unitOfWork)
+        public AuthService(IUnitOfWork unitOfWork, IEmailService emailService, IMemoryCache cache)
         {
             _unitOfWork = unitOfWork;
+            _emailService = emailService;
+            _cache = cache;
         }
 
         public async Task<ResponseDTO> Login(LoginDTO loginDTO)
@@ -47,9 +55,9 @@ namespace BLL.Implements
                 return new ResponseDTO("Lỗi xác thực mật khẩu (lỗi hệ thống): " + ex.Message, 500, false);
             }
 
-            if (user.Status != "Active") 
+            if (!IsActiveUser(user))
             {
-                if (user.Status == "Banned")
+                if (IsBannedUser(user))
                 {
                     return new ResponseDTO("Tài khoản của bạn đã bị khóa", 403, false);
                 }
@@ -101,7 +109,7 @@ namespace BLL.Implements
             });
         }
 
-        public async Task<ResponseDTO> Register(RegisterDTO registerDTO)
+        public async Task<ResponseDTO> SendRegisterOtp(RegisterDTO registerDTO)
         {
             if (string.IsNullOrWhiteSpace(registerDTO.UserName))
             {
@@ -134,35 +142,81 @@ namespace BLL.Implements
                 return new ResponseDTO("Mật khẩu không khớp", 400, false);
             }
 
-            var passwordHash = BCrypt.Net.BCrypt.HashPassword(registerDTO.Password);
-
             if (registerDTO.FullName == null)
             {
                 return new ResponseDTO("Vui lòng nhập tên đầy đủ", 400, false);
             }
 
-            var existingPhoneNumber = await _unitOfWork.UserRepo.FindByPhoneNumberAsync(registerDTO.PhoneNumber.Trim());
-            if (existingPhoneNumber != null)
+            if (!string.IsNullOrWhiteSpace(registerDTO.PhoneNumber))
             {
-                return new ResponseDTO("Số điện thoại đã được đăng ký", 400, false);
+                var phoneRegex = new Regex(@"^(0|\+84)(3|5|7|8|9)[0-9]{8}$");
+                if (!phoneRegex.IsMatch(registerDTO.PhoneNumber.Trim()) || registerDTO.PhoneNumber.Trim().Length < 9 || registerDTO.PhoneNumber.Trim().Length > 12)
+                    return new ResponseDTO("Số điện thoại không hợp lệ", 400, false);
+
+                var existingPhoneNumber = await _unitOfWork.UserRepo.FindByPhoneNumberAsync(registerDTO.PhoneNumber.Trim());
+                if (existingPhoneNumber != null)
+                    return new ResponseDTO("Số điện thoại đã được đăng ký", 400, false);
             }
 
-            var defaultRole = await _unitOfWork.UserRepo.GetRoleIdByNameAsync("User");
-            if (defaultRole == Guid.Empty)
+            string normalizedEmail = registerDTO.Email.Trim().ToLower();
+            string otp = RandomNumberGenerator.GetInt32(100000, 999999).ToString();
+            string otpHash = HashSHA256(otp);
+
+            var cacheOptions = new MemoryCacheEntryOptions().SetAbsoluteExpiration(TimeSpan.FromMinutes(10));
+            _cache.Set($"Register_{normalizedEmail}", new { Dto = registerDTO, OtpHash = otpHash }, cacheOptions);
+
+            try
             {
-                return new ResponseDTO("Lỗi cấu hình hệ thống: Không tìm thấy quyền 'User' mặc định trong DB", 500, false);
+                await _emailService.SendEmailAsync(
+                    normalizedEmail,
+                    "Mã OTP đăng ký tài khoản",
+                    $"Mã OTP đăng ký của bạn là: {otp} (Mã này sẽ hết hạn trong 10 phút)"
+                );
+
+                return new ResponseDTO("Nếu email tồn tại, OTP đã được gửi", 200, true);
             }
+            catch (Exception ex)
+            {
+                return new ResponseDTO($"Đã xảy ra lỗi khi gửi OTP đăng ký: {ex.Message}", 500, false);
+            }
+        }
+
+        public async Task<ResponseDTO> VerifyRegisterOtp(VerifyRegisterOtpDTO dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto.Email) || string.IsNullOrWhiteSpace(dto.Otp))
+                return new ResponseDTO("Vui lòng nhập đầy đủ thông tin", 400, false);
+
+            string normalizedEmail = dto.Email.Trim().ToLower();
+
+            if (!_cache.TryGetValue($"Register_{normalizedEmail}", out dynamic cachedData))
+                return new ResponseDTO("Mã OTP không hợp lệ hoặc đã hết hạn", 400, false);
+
+            string inputOtpHash = HashSHA256(dto.Otp);
+            if (inputOtpHash != cachedData.OtpHash)
+                return new ResponseDTO("Mã OTP không đúng", 400, false);
+            
+            RegisterDTO registerDTO = cachedData.Dto;
+
+            var existingUser = await _unitOfWork.UserRepo.FindByEmailAsync(registerDTO.Email);
+            if (existingUser != null)
+                return new ResponseDTO("Email đã được đăng ký bởi người khác.", 400, false);
+
+            var defaultRole = await _unitOfWork.RoleRepo.GetRoleByNameAsync("User");
+            if (defaultRole == null)
+                return new ResponseDTO("Lỗi cấu hình hệ thống: Không tìm thấy quyền 'User' mặc định", 500, false);
+
+            var passwordHash = BCrypt.Net.BCrypt.HashPassword(registerDTO.Password);
 
             var newUser = new User
             {
                 UserId = Guid.NewGuid(),
                 UserName = registerDTO.UserName,
                 Email = registerDTO.Email,
-                Password = passwordHash,                      
-                FullName = registerDTO.FullName, 
-                PhoneNumber = registerDTO.PhoneNumber,     
-                Status = "Active",                                 
-                RoleId = defaultRole,                                        
+                Password = passwordHash,
+                FullName = registerDTO.FullName,
+                PhoneNumber = registerDTO.PhoneNumber,
+                Status = UserStatus.Active.ToString(),
+                RoleId = defaultRole.RoleId,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -171,7 +225,7 @@ namespace BLL.Implements
             {
                 await _unitOfWork.UserRepo.AddAsync(newUser);
                 await _unitOfWork.SaveChangeAsync();
-
+                _cache.Remove($"Register_{normalizedEmail}");
                 return new ResponseDTO("Đăng ký thành công", 200, true, new { userId = newUser.UserId });
             }
             catch (Exception ex)
@@ -179,6 +233,80 @@ namespace BLL.Implements
                 return new ResponseDTO($"Lỗi lưu người dùng vào cơ sở dữ liệu (lỗi hệ thống): {ex.Message}", 500, false);
             }
         }
+
+        public async Task<ResponseDTO> RequestResetPasswordOtp(RequestOtpDTO dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto.Email))
+                return new ResponseDTO("Vui lòng nhập Email", 400, false);
+
+            string normalizedEmail = dto.Email.Trim().ToLower();
+
+            var user = await _unitOfWork.UserRepo.FindByEmailAsync(normalizedEmail);
+            if (user == null)
+                return new ResponseDTO("Nếu email tồn tại, OTP đã được gửi", 200, true);
+
+            string otp = RandomNumberGenerator.GetInt32(100000, 999999).ToString();
+            string otpHash = HashSHA256(otp);
+
+            var cacheOptions = new MemoryCacheEntryOptions().SetAbsoluteExpiration(TimeSpan.FromMinutes(10));
+            _cache.Set($"Reset_{normalizedEmail}", otpHash, cacheOptions);
+
+            try
+            {
+                await _emailService.SendEmailAsync(
+                    normalizedEmail,
+                    "Mã OTP reset mật khẩu",
+                    $"Mã OTP đặt lại mật khẩu của bạn là: {otp} (Mã này sẽ hết hạn trong 10 phút)"
+                );
+
+                return new ResponseDTO("Nếu email tồn tại, OTP đã được gửi", 200, true);
+            }
+            catch (Exception ex)
+            {
+                return new ResponseDTO($"Đã xảy ra lỗi khi gửi OTP reset mật khẩu: {ex.Message}", 500, false);
+            }
+        }
+
+        public async Task<ResponseDTO> VerifyResetPasswordOtp(VerifyResetPasswordOtpDTO dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto.Email) || string.IsNullOrWhiteSpace(dto.Otp) || string.IsNullOrWhiteSpace(dto.NewPassword))
+                return new ResponseDTO("Vui lòng nhập đầy đủ thông tin", 400, false);
+
+            if (dto.NewPassword != dto.ConfirmPassword)
+                return new ResponseDTO("Mật khẩu xác nhận không khớp", 400, false);
+
+            string normalizedEmail = dto.Email.Trim().ToLower();
+
+            if (!_cache.TryGetValue($"Reset_{normalizedEmail}", out string cachedOtpHash))
+                return new ResponseDTO("Mã OTP không hợp lệ hoặc đã hết hạn", 400, false);
+
+            string inputOtpHash = HashSHA256(dto.Otp);
+            if (inputOtpHash != cachedOtpHash)
+                return new ResponseDTO("Mã OTP không đúng", 400, false);
+
+            var user = await _unitOfWork.UserRepo.FindByEmailAsync(normalizedEmail);
+            if (user == null)
+                return new ResponseDTO("Người dùng không tồn tại trên hệ thống", 404, false);
+
+            var newPasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+            user.Password = newPasswordHash;
+            user.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _unitOfWork.UserRepo.UpdateAsync(user);
+                await _unitOfWork.SaveChangeAsync();
+
+                _cache.Remove($"Reset_{normalizedEmail}");
+
+                return new ResponseDTO("Đặt lại mật khẩu thành công", 200, true);
+            }
+            catch (Exception ex)
+            {
+                return new ResponseDTO($"Lỗi hệ thống khi cập nhật mật khẩu mới: {ex.Message}", 500, false);
+            }
+        }
+
 
         private bool IsValidEmail(string email)
         {
@@ -224,7 +352,7 @@ namespace BLL.Implements
                 return new ResponseDTO("Người dùng không tồn tại trên hệ thống", 404, false);
             }
 
-            if (user.Status != "Active")
+            if (!IsActiveUser(user))
             {
                 return new ResponseDTO("Tài khoản đã bị khóa hoặc vô hiệu hóa. Không thể làm mới token", 403, false);
             }
@@ -244,6 +372,24 @@ namespace BLL.Implements
             {
                 accessToken = newAccessToken
             });
+        }
+
+        private static string HashSHA256(string input)
+        {
+            byte[] bytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
+            StringBuilder builder = new();
+            foreach (var b in bytes) builder.Append(b.ToString("x2"));
+            return builder.ToString();
+        }
+
+        private static bool IsActiveUser(User user)
+        {
+            return string.Equals(user.Status, UserStatus.Active.ToString(), StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsBannedUser(User user)
+        {
+            return string.Equals(user.Status, UserStatus.Banned.ToString(), StringComparison.OrdinalIgnoreCase);
         }
 
         public async Task<ResponseDTO> Logout(RefreshTokenDTO tokenDTO)

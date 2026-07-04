@@ -1,26 +1,62 @@
 # ==========================================
-# BACKEND (.NET) - CHỈ CHẶN FILE RÁC, UP HẾT CONFIG
+# 1. VISUAL STUDIO & IDE rác (Chặn thư mục .vs bạn đang bị dính)
 # ==========================================
+.vs/
+**/[Cc]onfig/applicationhost.config
+**/CopilotIndices/
+**/FileContentIndex/
+**/ProjectEvaluation/
+**/v17/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+*.suo.tmp
 
-# FILE RÁC SINH RA KHI BUILD (Bắt buộc phải chặn vì máy khác không dùng được)
+# ==========================================
+# 2. BUILD OUTPUT (Các file sinh ra khi bấm chạy/build code)
+# ==========================================
 **/bin/
 **/obj/
-
-# File cấu hình rác của IDE tự đẻ ra
-**/*.user
-**/*.rduser
-**/*.suo
-**/*.userosscache
-**/*.sln.docstates
-
-# File rác của bộ quản lý thư viện & Test
-**/packages/
-**/project.lock.json
+[Bb]in/
+[Oo]bj/
 **/artifacts/
+
+# ==========================================
+# 3. JETBRAINS RIDER & VS CODE (Nếu có ai trong nhóm dùng)
+# ==========================================
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln.docstates
+
+# ==========================================
+# 4. PACKAGES & TEST RESULTS (Quản lý thư viện và file chạy thử)
+# ==========================================
+**/packages/
+!**/packages/repositories.config
+**/project.lock.json
+**/project.fragment.lock.json
 **/TestResults/
 **/coverage/
 **/*.trx
+**/*.md.html
 
-# Ảnh được upload khi chạy ứng dụng
+# ==========================================
+# 5. OS FILE RÁC (Hệ điều hành tự đẻ ra khi duyệt thư mục)
+# ==========================================
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+# ==========================================
+# 6. APP UPLOADS & LOCAL CONFIG (Ảnh test local, không up lên server)
+# ==========================================
 PBMS/wwwroot/uploads/*
 !PBMS/wwwroot/uploads/.gitkeep
+*.local.settings.json
+appsettings.Development.json

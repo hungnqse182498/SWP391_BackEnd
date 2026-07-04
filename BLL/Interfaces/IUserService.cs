@@ -13,6 +13,8 @@ namespace BLL.Interfaces
     {
         Task<ResponseDTO> GetAllAsync();
         Task<ResponseDTO> GetByIdAsync(Guid id);
+        Task<ResponseDTO> GetProfileAsync(Guid userId);
+        Task<ResponseDTO> UpdateProfileAsync(Guid userId, UpdateProfileDTO dto);
         Task<ResponseDTO> GetManageableRolesAsync();
         Task<ResponseDTO> CreateAsync(CreateUserDTO createUserDTO);
         Task<ResponseDTO> UpdateAsync(UpdateUserDTO updateUserDTO);

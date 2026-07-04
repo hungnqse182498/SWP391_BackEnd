@@ -4,12 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Common.Enums
+namespace BLL.Interfaces
 {
-    public enum SessionStatus
+    public interface IEmailService
     {
-        Active,
-        Completed,
-        Exception
+        Task SendEmailAsync(string to, string subject, string body);
     }
 }

@@ -7,7 +7,7 @@ namespace Common.DTOs.ParkingSession
         public Guid SessionId { get; set; }
         public Guid? DriverUserId { get; set; }
         public string? DriverFullName { get; set; }
-        public string LicensePlateIn { get; set; }
+        public string LicensePlateIn { get; set; } = string.Empty;
         public string? LicensePlateOut { get; set; }
         public string? EntryImageUrl { get; set; }
         public string? ExitImageUrl { get; set; }
@@ -23,13 +23,20 @@ namespace Common.DTOs.ParkingSession
         public string? AssignedSlotCode { get; set; }
         public Guid? ActualSlotId { get; set; }
         public string? ActualSlotCode { get; set; }
-        public string Status { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public ParkingSessionTicketDTO? Ticket { get; set; }
+    }
+
+    public class ParkingSessionTicketDTO
+    {
+        public string QrPayload { get; set; } = string.Empty;
+        public string QrCodeDataUrl { get; set; } = string.Empty;
     }
 
     public class CreateParkingSessionDTO
     {
         public Guid? DriverUserId { get; set; }
-        public string LicensePlateIn { get; set; }
+        public string LicensePlateIn { get; set; } = string.Empty;
         public string? EntryImageUrl { get; set; }
         public Guid VehicleTypeId { get; set; }
         public DateTime? EntryTime { get; set; }
@@ -43,7 +50,7 @@ namespace Common.DTOs.ParkingSession
     {
         public Guid SessionId { get; set; }
         public Guid? DriverUserId { get; set; }
-        public string LicensePlateIn { get; set; }
+        public string LicensePlateIn { get; set; } = string.Empty;
         public string? LicensePlateOut { get; set; }
         public string? EntryImageUrl { get; set; }
         public string? ExitImageUrl { get; set; }
@@ -54,6 +61,6 @@ namespace Common.DTOs.ParkingSession
         public Guid? ExitGateId { get; set; }
         public Guid? AssignedSlotId { get; set; }
         public Guid? ActualSlotId { get; set; }
-        public string Status { get; set; }
+        public string Status { get; set; } = string.Empty;
     }
 }

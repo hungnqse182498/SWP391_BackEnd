@@ -12,6 +12,7 @@ namespace DAL.Interfaces
         Task<List<Payment>> GetAllOrderedByPaymentTimeAsync();
         Task<Payment?> GetByOrderCodeAsync(string orderCode);
         Task<Payment?> GetLatestPendingSubscriptionPaymentAsync(Guid subscriptionId);
+        Task<Payment?> GetPendingCheckoutPaymentAsync(Guid sessionId);
 
     }
 }

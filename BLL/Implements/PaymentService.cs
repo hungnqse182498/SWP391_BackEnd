@@ -94,10 +94,12 @@ public class PaymentService : IPaymentService
         if (subscription == null) return;
 
         subscription.Status = MonthlySubscriptionStatus.Active.ToString();
+        subscription.StartDate = DateTime.Now;
+        subscription.EndDate = DateTime.Now.AddMonths(subscription.Package.DurationMonths);
 
         if (subscription.User != null && subscription.User.Role?.RoleName == "User")
         {
-            var customerRole = await _unitOfWork.UserRepo.GetRoleByNameAsync("Customer");
+            var customerRole = await _unitOfWork.RoleRepo.GetRoleByNameAsync("Customer");
 
             if (customerRole != null)
             {

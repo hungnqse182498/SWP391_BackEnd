@@ -37,8 +37,13 @@ builder.Services.AddCors(options =>
         });
 });
 
+// Cấu hình dbcontext
 builder.Services.AddDbContext<ParkingDBContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Cấu hình MailSettings + MemoryCache
+builder.Services.Configure<MailSettings>(builder.Configuration.GetSection("MailSettings"));
+builder.Services.AddMemoryCache();
 
 // Đăng ký Repositories
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -57,6 +62,7 @@ builder.Services.AddScoped<IIncidentReportRepository, IncidentReportRepository>(
 builder.Services.AddScoped<ISubscriptionPackageRepository, SubscriptionPackageRepository>();
 builder.Services.AddScoped<IVehicleChangeRequestRepository, VehicleChangeRequestRepository>();
 builder.Services.AddScoped<ISubscriptionRenewalRepository, SubscriptionRenewalRepository>();
+builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 
 // Đăng ký Services
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -76,6 +82,9 @@ builder.Services.AddScoped<IIncidentReportService, IncidentReportService>();
 builder.Services.AddScoped<IParkingOperationService, ParkingOperationService>();
 builder.Services.AddScoped<ISubscriptionRenewalService, SubscriptionRenewalService>();
 builder.Services.AddScoped<IVehicleChangeRequestService, VehicleChangeRequestService>();
+builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IRoleService, RoleService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddHttpClient<IOcrService, OcrService>(client =>
 {
     client.Timeout = TimeSpan.FromSeconds(30);

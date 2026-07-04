@@ -9,7 +9,7 @@ using System.IO;
 namespace PBMS.Controllers
 {
     [ApiController]
-    [Authorize(Roles = "Staff,staff,Manager,manager,Admin,admin")]
+    [Authorize(Roles = "Staff, Manager")]
     [Route("api/[controller]")]
     public class ParkingOperationController : ControllerBase
     {
