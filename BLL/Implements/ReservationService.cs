@@ -6,6 +6,7 @@ using DAL.Models;
 using DAL.UnitOfWorks;
 using Microsoft.EntityFrameworkCore;
 using Hangfire; 
+using QRCoder;
 
 public class ReservationService : IReservationService
 {
@@ -137,7 +138,8 @@ public class ReservationService : IReservationService
                     DepositAmount = depositAmount,
                     PaymentLinkId = paymentLinkId,
                     PaymentUrl = paymentUrl,
-                    OrderCode = payment.TransactionReference
+                    OrderCode = payment.TransactionReference,
+                    Ticket = CreateReservationTicket(reservation.ReservationId)
                 });
         }
         catch (Exception ex)
@@ -306,7 +308,8 @@ public class ReservationService : IReservationService
                 DepositAmount = payment.Amount,
                 PaymentLinkId = paymentLinkId,
                 PaymentUrl = paymentUrl,
-                OrderCode = payment.TransactionReference
+                OrderCode = payment.TransactionReference,
+                Ticket = CreateReservationTicket(reservation.ReservationId)
             });
         }
         catch (Exception ex)
@@ -326,13 +329,19 @@ public class ReservationService : IReservationService
                 return new ResponseDTO("Không tìm thấy thanh toán", 404);
             }
 
+            if (!payment.ReservationId.HasValue)
+            {
+                return new ResponseDTO("Thanh toán này không thuộc đặt chỗ", 400, false);
+            }
+
             var reservation = await _unitOfWork.ReservationRepo.GetByIdAsync(payment.ReservationId.Value);
 
             return new ResponseDTO("Kiểm tra trạng thái thành công", 200, true, new
             {
                 PaymentStatus = payment.PaymentStatus,
                 ReservationStatus = reservation?.Status,
-                ReservationId = payment.ReservationId
+                ReservationId = payment.ReservationId,
+                Ticket = payment.ReservationId.HasValue ? CreateReservationTicket(payment.ReservationId.Value) : null
             });
         }
         catch (Exception ex)
@@ -503,6 +512,23 @@ public class ReservationService : IReservationService
             ExpectedEntryTime = reservation.ExpectedEntryTime,
             Status = reservation.Status,
             CreatedAt = reservation.CreatedAt,
+            Ticket = CreateReservationTicket(reservation.ReservationId)
+        };
+    }
+
+    private static ReservationTicketDTO CreateReservationTicket(Guid reservationId)
+    {
+        var qrPayload = reservationId.ToString();
+        using var qrGenerator = new QRCodeGenerator();
+        using var qrCodeData = qrGenerator.CreateQrCode(qrPayload, QRCodeGenerator.ECCLevel.Q);
+        var pngQrCode = new PngByteQRCode(qrCodeData);
+        var qrCodeBytes = pngQrCode.GetGraphic(20);
+        var qrCodeBase64 = Convert.ToBase64String(qrCodeBytes);
+
+        return new ReservationTicketDTO
+        {
+            QrPayload = qrPayload,
+            QrCodeDataUrl = $"data:image/png;base64,{qrCodeBase64}"
         };
     }
 }

@@ -16,6 +16,7 @@ namespace Common.DTOs.Reservation
         public DateTime ExpectedEntryTime { get; set; }
         public string Status { get; set; }
         public DateTime? CreatedAt { get; set; }
+        public ReservationTicketDTO? Ticket { get; set; }
     }
 
     public class CreateReservationDTO
@@ -31,7 +32,14 @@ namespace Common.DTOs.Reservation
         public string PaymentLinkId { get; set; }
         public string PaymentUrl { get; set; }
         public string OrderCode { get; set; }
+        public ReservationTicketDTO? Ticket { get; set; }
 
+    }
+
+    public class ReservationTicketDTO
+    {
+        public string QrPayload { get; set; } = string.Empty;
+        public string QrCodeDataUrl { get; set; } = string.Empty;
     }
 
     public class UpdateReservationStatusDTO
