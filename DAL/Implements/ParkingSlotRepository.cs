@@ -44,6 +44,18 @@ namespace DAL.Implements
                 .FirstOrDefaultAsync();
         }
 
+        public async Task<List<ParkingSlot>> GetAvailableByVehicleTypeAndResidentFlagAsync(Guid vehicleTypeId, bool isResident)
+        {
+            return await _context.ParkingSlots
+                .Include(s => s.Floor)
+                .Where(s => s.VehicleTypeId == vehicleTypeId &&
+                            s.Status == ParkingSlotStatus.Available.ToString() &&
+                            s.Floor != null &&
+                            s.Floor.IsResident == isResident)
+                .OrderBy(s => s.SlotCode)
+                .ToListAsync();
+        }
+
         public async Task<int> GetSlotsCountByFloorAsync(Guid floorId)
         {
             return await _context.ParkingSlots

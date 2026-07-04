@@ -11,5 +11,7 @@ namespace DAL.Interfaces
     {
         Task<List<ParkingSession>> GetAllSessionsWithDetailsAsync();
         Task<ParkingSession?> GetSessionDetailAsync(Guid id);
+        Task<ParkingSession?> GetActiveSessionWithDetailsAsync(Guid? sessionId, string? licensePlate);
+        Task<bool> HasActiveSessionByLicensePlateAsync(string licensePlate, Guid? excludeSessionId = null);
     }
 }

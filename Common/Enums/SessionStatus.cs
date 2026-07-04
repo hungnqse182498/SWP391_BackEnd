@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Common.Enums
 {
-    public enum  SessionStatus
+    public enum SessionStatus
     {
         Active,
         Completed,

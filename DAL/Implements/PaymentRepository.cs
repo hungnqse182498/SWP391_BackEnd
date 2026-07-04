@@ -43,5 +43,15 @@ namespace DAL.Implements
                 .OrderByDescending(p => p.PaymentTime)
                 .FirstOrDefaultAsync();
         }
+
+        public async Task<Payment?> GetPendingCheckoutPaymentAsync(Guid sessionId)
+        {
+            return await _context.Payments
+                .Where(p => p.SessionId == sessionId &&
+                            p.PaymentType == PaymentType.CheckoutFee.ToString() &&
+                            p.PaymentStatus == PaymentStatus.Pending.ToString())
+                .OrderByDescending(p => p.PaymentTime)
+                .FirstOrDefaultAsync();
+        }
     }
 }

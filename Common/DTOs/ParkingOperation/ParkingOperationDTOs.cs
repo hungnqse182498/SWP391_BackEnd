@@ -6,14 +6,14 @@ namespace Common.DTOs.ParkingOperation
     {
         public string LicensePlate { get; set; } = string.Empty;
         public Guid VehicleTypeId { get; set; }
-        public string GateName { get; set; } = string.Empty;
+        public Guid GateId { get; set; }
         public string? EntryImageUrl { get; set; }
     }
 
     public class GuestCheckOutDTO
     {
-        public string? LicensePlate { get; set; }
-        public string GateName { get; set; } = string.Empty;
+        public Guid SessionId { get; set; }
+        public Guid GateId { get; set; }
         public string PaymentMethod { get; set; } = string.Empty;
         public string? LicensePlateOut { get; set; }
         public string? ExitImageUrl { get; set; }
@@ -38,14 +38,14 @@ namespace Common.DTOs.ParkingOperation
     {
         public string LicensePlate { get; set; } = string.Empty;
         public Guid VehicleTypeId { get; set; }
-        public string GateName { get; set; } = string.Empty;
+        public Guid GateId { get; set; }
         public string? EntryImageUrl { get; set; }
     }
 
     public class ResidentCheckOutDTO
     {
-        public string? LicensePlate { get; set; }
-        public string GateName { get; set; } = string.Empty;
+        public Guid SessionId { get; set; }
+        public Guid GateId { get; set; }
         public string? LicensePlateOut { get; set; }
         public string? ExitImageUrl { get; set; }
     }
@@ -53,7 +53,7 @@ namespace Common.DTOs.ParkingOperation
     public class ReservationCheckInDTO
     {
         public Guid ReservationId { get; set; }
-        public string LicensePlate { get; set; }
+        public string LicensePlate { get; set; } = string.Empty;
         public Guid GateId { get; set; }
         public string? EntryImageUrl { get; set; }
     }
@@ -61,7 +61,7 @@ namespace Common.DTOs.ParkingOperation
     public class ParkingAvailabilityDTO
     {
         public Guid FloorId { get; set; }
-        public string FloorName { get; set; }
+        public string FloorName { get; set; } = string.Empty;
         public Guid? VehicleTypeId { get; set; }
         public string? VehicleTypeName { get; set; }
         public int TotalSlots { get; set; }
@@ -73,7 +73,7 @@ namespace Common.DTOs.ParkingOperation
     public class ParkingFeePreviewDTO
     {
         public Guid SessionId { get; set; }
-        public string LicensePlate { get; set; }
+        public string LicensePlate { get; set; } = string.Empty;
         public DateTime EntryTime { get; set; }
         public DateTime ExitTime { get; set; }
         public double TotalHours { get; set; }
