@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace PBMS.Controllers
 {
     [ApiController]
-    [Authorize(Roles = "Manager")]
+    [Authorize(Roles = "Manager, Staff")]
     [Route("api/[controller]")]
     public class VehicleTypeController : ControllerBase
     {

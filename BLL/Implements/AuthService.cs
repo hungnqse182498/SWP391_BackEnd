@@ -116,6 +116,17 @@ namespace BLL.Implements
                 return new ResponseDTO("Vui lòng nhập UserName", 400, false);
             }
 
+            registerDTO.UserName = registerDTO.UserName.Trim();
+            if (registerDTO.UserName.Length > 50)
+            {
+                return new ResponseDTO("UserName không được vượt quá 50 ký tự", 400, false);
+            }
+
+            if (await _unitOfWork.UserRepo.IsUserNameDuplicateAsync(registerDTO.UserName))
+            {
+                return new ResponseDTO("UserName đã tồn tại", 409, false);
+            }
+
             if (string.IsNullOrWhiteSpace(registerDTO.Email))
             {
                 return new ResponseDTO("Vui lòng nhập Email", 400, false);
@@ -124,6 +135,12 @@ namespace BLL.Implements
             if (!IsValidEmail(registerDTO.Email))
             {
                 return new ResponseDTO("Email sai định dạng", 400, false);
+            }
+
+            registerDTO.Email = registerDTO.Email.Trim().ToLower();
+            if (registerDTO.Email.Length > 100)
+            {
+                return new ResponseDTO("Email không được vượt quá 100 ký tự", 400, false);
             }
 
             var existingUser = await _unitOfWork.UserRepo.FindByEmailAsync(registerDTO.Email);
@@ -142,23 +159,36 @@ namespace BLL.Implements
                 return new ResponseDTO("Mật khẩu không khớp", 400, false);
             }
 
-            if (registerDTO.FullName == null)
+            if (string.IsNullOrWhiteSpace(registerDTO.FullName))
             {
                 return new ResponseDTO("Vui lòng nhập tên đầy đủ", 400, false);
             }
 
-            if (!string.IsNullOrWhiteSpace(registerDTO.PhoneNumber))
+            registerDTO.FullName = registerDTO.FullName.Trim();
+            if (registerDTO.FullName.Length > 100)
             {
-                var phoneRegex = new Regex(@"^(0|\+84)(3|5|7|8|9)[0-9]{8}$");
-                if (!phoneRegex.IsMatch(registerDTO.PhoneNumber.Trim()) || registerDTO.PhoneNumber.Trim().Length < 9 || registerDTO.PhoneNumber.Trim().Length > 12)
-                    return new ResponseDTO("Số điện thoại không hợp lệ", 400, false);
-
-                var existingPhoneNumber = await _unitOfWork.UserRepo.FindByPhoneNumberAsync(registerDTO.PhoneNumber.Trim());
-                if (existingPhoneNumber != null)
-                    return new ResponseDTO("Số điện thoại đã được đăng ký", 400, false);
+                return new ResponseDTO("Tên đầy đủ không được vượt quá 100 ký tự", 400, false);
             }
 
-            string normalizedEmail = registerDTO.Email.Trim().ToLower();
+            if (string.IsNullOrWhiteSpace(registerDTO.PhoneNumber))
+            {
+                return new ResponseDTO("Vui lòng nhập số điện thoại", 400, false);
+            }
+
+            registerDTO.PhoneNumber = registerDTO.PhoneNumber.Trim();
+            var phoneRegex = new Regex(@"^(0|\+84)(3|5|7|8|9)[0-9]{8}$");
+            if (!phoneRegex.IsMatch(registerDTO.PhoneNumber))
+            {
+                return new ResponseDTO("Số điện thoại không hợp lệ", 400, false);
+            }
+
+            var existingPhoneNumber = await _unitOfWork.UserRepo.FindByPhoneNumberAsync(registerDTO.PhoneNumber);
+            if (existingPhoneNumber != null)
+            {
+                return new ResponseDTO("Số điện thoại đã được đăng ký", 409, false);
+            }
+
+            string normalizedEmail = registerDTO.Email;
             string otp = RandomNumberGenerator.GetInt32(100000, 999999).ToString();
             string otpHash = HashSHA256(otp);
 
@@ -201,6 +231,12 @@ namespace BLL.Implements
             if (existingUser != null)
                 return new ResponseDTO("Email đã được đăng ký bởi người khác.", 400, false);
 
+            if (await _unitOfWork.UserRepo.IsUserNameDuplicateAsync(registerDTO.UserName))
+                return new ResponseDTO("UserName đã được đăng ký bởi người khác.", 409, false);
+
+            if (await _unitOfWork.UserRepo.IsPhoneNumberDuplicateAsync(registerDTO.PhoneNumber))
+                return new ResponseDTO("Số điện thoại đã được đăng ký bởi người khác.", 409, false);
+
             var defaultRole = await _unitOfWork.RoleRepo.GetRoleByNameAsync("User");
             if (defaultRole == null)
                 return new ResponseDTO("Lỗi cấu hình hệ thống: Không tìm thấy quyền 'User' mặc định", 500, false);
@@ -228,9 +264,13 @@ namespace BLL.Implements
                 _cache.Remove($"Register_{normalizedEmail}");
                 return new ResponseDTO("Đăng ký thành công", 200, true, new { userId = newUser.UserId });
             }
-            catch (Exception ex)
+            catch (DbUpdateException)
             {
-                return new ResponseDTO($"Lỗi lưu người dùng vào cơ sở dữ liệu (lỗi hệ thống): {ex.Message}", 500, false);
+                return new ResponseDTO("Email, UserName hoặc số điện thoại vừa được tài khoản khác sử dụng. Vui lòng kiểm tra lại.", 409, false);
+            }
+            catch (Exception)
+            {
+                return new ResponseDTO("Không thể tạo tài khoản do lỗi hệ thống. Vui lòng thử lại sau.", 500, false);
             }
         }
 

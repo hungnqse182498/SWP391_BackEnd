@@ -19,8 +19,18 @@ namespace BLL.Implements
         public async Task<ResponseDTO> GetAllAsync()
         {
             var sessions = await _unitOfWork.ParkingSessionRepo.GetAllSessionsWithDetailsAsync();
+            var sessionDtos = sessions.Select(session =>
+            {
+                var dto = MapToDTO(session);
+                if (string.Equals(session.Status, SessionStatus.Active.ToString(), StringComparison.OrdinalIgnoreCase))
+                {
+                    dto.Ticket = ParkingOperationService.CreateSessionTicket(session.SessionId);
+                }
 
-            return new ResponseDTO("Lấy danh sách phiên gửi xe thành công", 200, true, sessions.Select(MapToDTO).ToList());
+                return dto;
+            }).ToList();
+
+            return new ResponseDTO("Lấy danh sách phiên gửi xe thành công", 200, true, sessionDtos);
         }
 
         public async Task<ResponseDTO> GetMyAsync(Guid userId)
@@ -28,7 +38,18 @@ namespace BLL.Implements
             if (userId == Guid.Empty) return new ResponseDTO("Vui lòng đăng nhập để xem phiên gửi xe của bạn", 401, false);
 
             var sessions = await _unitOfWork.ParkingSessionRepo.GetSessionsByDriverUserIdWithDetailsAsync(userId);
-            return new ResponseDTO("Lấy danh sách phiên gửi xe của tôi thành công", 200, true, sessions.Select(MapToDTO).ToList());
+            var sessionDtos = sessions.Select(session =>
+            {
+                var dto = MapToDTO(session);
+                if (string.Equals(session.Status, SessionStatus.Active.ToString(), StringComparison.OrdinalIgnoreCase))
+                {
+                    dto.Ticket = ParkingOperationService.CreateSessionTicket(session.SessionId);
+                }
+
+                return dto;
+            }).ToList();
+
+            return new ResponseDTO("Lấy danh sách phiên gửi xe của tôi thành công", 200, true, sessionDtos);
         }
 
         public async Task<ResponseDTO> GetByIdAsync(Guid id)
@@ -37,7 +58,9 @@ namespace BLL.Implements
 
             var session = await _unitOfWork.ParkingSessionRepo.GetSessionDetailAsync(id);
             if (session == null) return new ResponseDTO("Không tìm thấy phiên gửi xe", 404, false);
-            return new ResponseDTO("Lấy thông tin phiên gửi xe thành công", 200, true, MapToDTO(session));
+            var dto = MapToDTO(session);
+            dto.Ticket = ParkingOperationService.CreateSessionTicket(session.SessionId);
+            return new ResponseDTO("Lấy thông tin phiên gửi xe thành công", 200, true, dto);
         }
 
         public async Task<ResponseDTO> CreateAsync(CreateParkingSessionDTO dto)
@@ -258,6 +281,7 @@ namespace BLL.Implements
             return new ParkingSessionDTO
             {
                 SessionId = session.SessionId,
+                ReservationId = session.ReservationId,
                 DriverUserId = session.DriverUserId,
                 DriverFullName = session.DriverUser?.FullName,
                 LicensePlateIn = session.LicensePlateIn,

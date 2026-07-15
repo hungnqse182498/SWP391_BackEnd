@@ -373,7 +373,30 @@ public class PaymentService : IPaymentService
             }
         }
 
+        await CompleteReservationIfNeededAsync(session);
         await _unitOfWork.ParkingSessionRepo.UpdateAsync(session);
+    }
+
+    private async Task CompleteReservationIfNeededAsync(ParkingSession session)
+    {
+        if (!session.ReservationId.HasValue) return;
+
+        var reservation = await _unitOfWork.ReservationRepo.GetByIdAsync(session.ReservationId.Value);
+        if (reservation == null) return;
+        if (IsSameStatus(reservation.Status, ReservationStatus.Completed.ToString()) ||
+            IsSameStatus(reservation.Status, ReservationStatus.Cancelled.ToString()) ||
+            IsSameStatus(reservation.Status, ReservationStatus.NoShow.ToString()))
+        {
+            return;
+        }
+
+        reservation.Status = ReservationStatus.Completed.ToString();
+        await _unitOfWork.ReservationRepo.UpdateAsync(reservation);
+    }
+
+    private static bool IsSameStatus(string? currentStatus, string expectedStatus)
+    {
+        return string.Equals(currentStatus, expectedStatus, StringComparison.OrdinalIgnoreCase);
     }
 
     private static PaymentDTO MapToDTO(Payment payment)

@@ -59,5 +59,12 @@ namespace DAL.Implements
                               && (r.Status == statusConfirmed || r.Status == statusModified) 
                               && r.ReservationId != excludeReservationId); 
         }
+
+        public async Task<List<Reservation>> GetOverdueAsync(DateTime overdueBeforeUtc, params string[] statuses)
+        {
+            return await _context.Reservations
+                .Where(r => r.ExpectedEntryTime <= overdueBeforeUtc && statuses.Contains(r.Status))
+                .ToListAsync();
+        }
     }
 }
