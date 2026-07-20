@@ -1,5 +1,6 @@
 using BLL.Interfaces;
 using Common.DTOs.PricingPolicy;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace PBMS.Controllers
@@ -30,6 +31,7 @@ namespace PBMS.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Manager")]
         public async Task<IActionResult> Create([FromBody] CreatePricingPolicyDTO dto)
         {
             var res = await _pricingPolicyService.CreateAsync(dto);
@@ -37,6 +39,7 @@ namespace PBMS.Controllers
         }
 
         [HttpPut]
+        [Authorize(Roles = "Manager")]
         public async Task<IActionResult> Update([FromBody] UpdatePricingPolicyDTO dto)
         {
             var res = await _pricingPolicyService.UpdateAsync(dto);
@@ -44,6 +47,7 @@ namespace PBMS.Controllers
         }
 
         [HttpDelete("{id:guid}")]
+        [Authorize(Roles = "Manager")]
         public async Task<IActionResult> Delete(Guid id)
         {
             var res = await _pricingPolicyService.DeleteAsync(id);

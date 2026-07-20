@@ -64,7 +64,7 @@ namespace PBMS.Controllers
         }
 
         [HttpPut("{id:guid}/assign/{staffId:guid}")]
-        [Authorize(Roles = "Staff")]
+        [Authorize(Roles = "Staff,Manager")]
         public async Task<IActionResult> AssignStaff(Guid id, Guid staffId)
         {
             var response = await _incidentReportService.AssignToStaffAsync(id, staffId);
@@ -72,7 +72,7 @@ namespace PBMS.Controllers
         }
 
         [HttpPut("{id:guid}/resolve/{staffId:guid}")]
-        [Authorize(Roles = "Staff")]
+        [Authorize(Roles = "Staff,Manager")]
         public async Task<IActionResult> ResolveIncident(Guid id, Guid staffId, [FromBody] ResolveIncidentDTO dto)
         {
             var response = await _incidentReportService.ResolveAsync(id, staffId, dto);

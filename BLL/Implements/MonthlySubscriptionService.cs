@@ -36,6 +36,43 @@ namespace BLL.Implements
             var plateExists = await _unitOfWork.MonthlySubscriptionRepo.HasUsablePlateAsync(normalizedPlate);
             if (plateExists) return new ResponseDTO("Biển số này đã có gói đang hiệu lực hoặc đang chờ thanh toán", 400);
 
+            var isMotorbike = IsMotorbike(package.VehicleType?.TypeName);
+            ParkingSlot? selectedFixedSlot = null;
+
+            if (!isMotorbike)
+            {
+                if (package.RequireFixedSlot == true)
+                {
+                    if (!dto.FixedSlotId.HasValue || dto.FixedSlotId.Value == Guid.Empty)
+                        return new ResponseDTO("Vui lòng chọn vị trí đỗ cố định cho gói này", 400);
+
+                    selectedFixedSlot = await _unitOfWork.ParkingSlotRepo.GetDetailWithFloorAndTypeAsync(dto.FixedSlotId.Value);
+                    if (selectedFixedSlot == null ||
+                        selectedFixedSlot.VehicleTypeId != package.VehicleTypeId ||
+                        selectedFixedSlot.Floor?.IsResident != true ||
+                        selectedFixedSlot.Status != ParkingSlotStatus.Available.ToString())
+                    {
+                        return new ResponseDTO("Vị trí đã chọn không khả dụng, không thuộc tầng cư dân hoặc không đúng loại xe", 400);
+                    }
+                }
+                else
+                {
+                    if (dto.FixedSlotId.HasValue)
+                        return new ResponseDTO("Gói này không cho phép người dùng tự chọn vị trí", 400);
+
+                    var availableSlots = await _unitOfWork.ParkingSlotRepo
+                        .GetAvailableByVehicleTypeAndResidentFlagAsync(package.VehicleTypeId, true);
+                    if (availableSlots.Count == 0)
+                        return new ResponseDTO("Không còn vị trí ô tô trống tại tầng cư dân", 409);
+
+                    selectedFixedSlot = availableSlots[Random.Shared.Next(availableSlots.Count)];
+                }
+            }
+            else if (dto.FixedSlotId.HasValue)
+            {
+                return new ResponseDTO("Gói xe máy không sử dụng vị trí đỗ cố định", 400);
+            }
+
             await _unitOfWork.BeginTransactionAsync();
             try
             {
@@ -49,6 +86,7 @@ namespace BLL.Implements
                     StartDate = DateTime.UtcNow,
                     EndDate = DateTime.UtcNow.AddMonths(package.DurationMonths),
                     Price = package.Price,
+                    FixedSlotId = selectedFixedSlot?.SlotId,
                     Status = MonthlySubscriptionStatus.PendingPayment.ToString()
                 };
 
@@ -66,6 +104,14 @@ namespace BLL.Implements
 
                 await _unitOfWork.MonthlySubscriptionRepo.AddAsync(subscription);
                 await _unitOfWork.PaymentRepo.AddAsync(payment);
+
+                if (selectedFixedSlot != null)
+                {
+                    selectedFixedSlot.Status = ParkingSlotStatus.Reserved.ToString();
+                    selectedFixedSlot.AssignedUserId = userId;
+                    await _unitOfWork.ParkingSlotRepo.UpdateAsync(selectedFixedSlot);
+                }
+
                 await _unitOfWork.SaveAsync();
 
                 var paymentUrl = await _payOSService.CreatePaymentLinkAsync(payment);
@@ -306,6 +352,7 @@ namespace BLL.Implements
             return new MonthlySubscriptionDTO
             {
                 SubscriptionId = sub.SubscriptionId,
+                UserId = sub.UserId,
                 FullName = sub.User?.FullName,
                 LicensePlate = sub.LicensePlate,
                 VehicleType = sub.VehicleType?.TypeName,
@@ -316,6 +363,17 @@ namespace BLL.Implements
                 Status = sub.Status,
                 FixedSlot = sub.FixedSlot?.SlotCode
             };
+        }
+
+        private static bool IsMotorbike(string? vehicleTypeName)
+        {
+            if (string.IsNullOrWhiteSpace(vehicleTypeName)) return false;
+
+            var normalized = vehicleTypeName.Trim().ToLowerInvariant();
+            return normalized.Contains("motor") ||
+                   normalized.Contains("bike") ||
+                   normalized.Contains("xe máy") ||
+                   normalized.Contains("xe may");
         }
     }
 }

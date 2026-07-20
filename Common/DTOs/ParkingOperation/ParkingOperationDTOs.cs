@@ -2,60 +2,36 @@ using System;
 
 namespace Common.DTOs.ParkingOperation
 {
-    public class GuestCheckInDTO
+    public class ParkingCheckInDTO
     {
-        public string LicensePlate { get; set; } = string.Empty;
-        public Guid VehicleTypeId { get; set; }
+        public string? CustomerType { get; set; } // Guest, Resident, Reservation
+        public string? QrPayload { get; set; }
+        public Guid? ReservationId { get; set; }
+        public string? LicensePlate { get; set; }
+        public Guid? VehicleTypeId { get; set; }
         public Guid GateId { get; set; }
         public string? EntryImageUrl { get; set; }
     }
 
-    public class GuestCheckOutDTO
+    public class ParkingCheckOutDTO
     {
-        public Guid SessionId { get; set; }
-        public Guid GateId { get; set; }
-        public string PaymentMethod { get; set; } = string.Empty;
-        public string? LicensePlateOut { get; set; }
-        public string? ExitImageUrl { get; set; }
-    }
-
-    public class GuestCheckOutPreviewDTO
-    {
+        public string? CustomerType { get; set; } // Guest, Resident, Reservation
+        public string? QrPayload { get; set; }
         public Guid? SessionId { get; set; }
         public string? LicensePlate { get; set; }
-    }
-
-    public class GuestCheckOutLegacyDTO : GuestCheckOutPreviewDTO
-    {
-        public Guid GateId { get; set; }
-        public string PaymentMethod { get; set; } = string.Empty;
-        public string? TransactionReference { get; set; }
         public string? LicensePlateOut { get; set; }
+        public Guid GateId { get; set; }
+        public string? PaymentMethod { get; set; }
         public string? ExitImageUrl { get; set; }
     }
 
-    public class ResidentCheckInDTO
+    public class ParkingQrDecodeResultDTO
     {
-        public string LicensePlate { get; set; } = string.Empty;
-        public Guid VehicleTypeId { get; set; }
-        public Guid GateId { get; set; }
-        public string? EntryImageUrl { get; set; }
-    }
-
-    public class ResidentCheckOutDTO
-    {
-        public Guid SessionId { get; set; }
-        public Guid GateId { get; set; }
-        public string? LicensePlateOut { get; set; }
-        public string? ExitImageUrl { get; set; }
-    }
-
-    public class ReservationCheckInDTO
-    {
-        public Guid ReservationId { get; set; }
-        public string LicensePlate { get; set; } = string.Empty;
-        public Guid GateId { get; set; }
-        public string? EntryImageUrl { get; set; }
+        public string QrPayload { get; set; } = string.Empty;
+        public string CodeType { get; set; } = string.Empty;
+        public Guid? ReservationId { get; set; }
+        public Guid? SessionId { get; set; }
+        public string? ImageUrl { get; set; }
     }
 
     public class ParkingAvailabilityDTO

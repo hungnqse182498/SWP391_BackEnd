@@ -497,7 +497,31 @@ public class ReservationService : IReservationService
         catch (Exception ex)
         {
             Console.WriteLine($"[Hangfire Error] Lỗi tự động xử lý NoShow cho đơn {reservationId}: {ex.Message}");
+            throw;
         }
+    }
+
+    public async Task ProcessOverdueReservationsAsync()
+    {
+        var overdueReservations = await _unitOfWork.ReservationRepo.GetOverdueAsync(
+            DateTime.UtcNow.AddMinutes(-30),
+            ReservationStatus.Pending.ToString(),
+            ReservationStatus.Confirmed.ToString(),
+            ReservationStatus.Modified.ToString());
+
+        if (overdueReservations.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var reservation in overdueReservations)
+        {
+            reservation.Status = ReservationStatus.NoShow.ToString();
+            await _unitOfWork.ReservationRepo.UpdateAsync(reservation);
+        }
+
+        await _unitOfWork.SaveAsync();
+        Console.WriteLine($"[Hangfire] Đã chuyển {overdueReservations.Count} đơn quá hạn sang NoShow.");
     }
 
     private static ReservationDTO MapToDTO(Reservation reservation)

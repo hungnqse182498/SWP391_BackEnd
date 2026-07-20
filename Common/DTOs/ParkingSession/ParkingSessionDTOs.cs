@@ -5,6 +5,7 @@ namespace Common.DTOs.ParkingSession
     public class ParkingSessionDTO
     {
         public Guid SessionId { get; set; }
+        public Guid? ReservationId { get; set; }
         public Guid? DriverUserId { get; set; }
         public string? DriverFullName { get; set; }
         public string LicensePlateIn { get; set; } = string.Empty;

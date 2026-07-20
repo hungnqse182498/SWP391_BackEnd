@@ -20,5 +20,6 @@ namespace BLL.Interfaces
         Task<ResponseDTO> GetAllReservationsAsync(string? status, DateTime? date);
         Task<ResponseDTO> UpdateReservationStatusAsync(Guid reservationId, UpdateReservationStatusDTO dto);
         Task ProcessNoShowTimeoutAsync(Guid reservationId);
+        Task ProcessOverdueReservationsAsync();
     }
 }

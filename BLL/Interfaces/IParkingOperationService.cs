@@ -7,12 +7,9 @@ namespace BLL.Interfaces
 {
     public interface IParkingOperationService
     {
-        Task<ResponseDTO> GuestCheckInAsync(GuestCheckInDTO dto);
-        Task<ResponseDTO> GuestCheckOutPreviewAsync(GuestCheckOutPreviewDTO dto);
-        Task<ResponseDTO> GuestCheckOutAsync(GuestCheckOutDTO dto);
-        Task<ResponseDTO> ResidentCheckInAsync(ResidentCheckInDTO dto);
-        Task<ResponseDTO> ResidentCheckOutAsync(ResidentCheckOutDTO dto);
-        Task<ResponseDTO> ReservationCheckInAsync(ReservationCheckInDTO dto);
+        Task<ResponseDTO> CheckInAsync(ParkingCheckInDTO dto);
+        Task<ResponseDTO> CheckOutAsync(ParkingCheckOutDTO dto);
+        Task<ResponseDTO> DecodeQrImageAsync(Stream imageStream, string fileName, string? imageUrl = null, CancellationToken cancellationToken = default);
         Task<ResponseDTO> GetAvailabilityAsync(Guid? vehicleTypeId, string? floorKeyword);
     }
 }

@@ -38,8 +38,11 @@ builder.Services.AddCors(options =>
 });
 
 // Cấu hình dbcontext
+var databaseConnectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' was not found.");
+
 builder.Services.AddDbContext<ParkingDBContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(databaseConnectionString));
 
 // Cấu hình MailSettings + MemoryCache
 builder.Services.Configure<MailSettings>(builder.Configuration.GetSection("MailSettings"));
@@ -93,7 +96,11 @@ builder.Services.AddHttpClient<IOcrService, OcrService>(client =>
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
-builder.Services.AddHangfire(config => config.UseInMemoryStorage()); 
+builder.Services.AddHangfire(config => config
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UseSqlServerStorage(databaseConnectionString));
 builder.Services.AddHangfireServer(); 
 
 var app = builder.Build();
@@ -114,5 +121,10 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+RecurringJob.AddOrUpdate<IReservationService>(
+    "process-overdue-reservations",
+    service => service.ProcessOverdueReservationsAsync(),
+    Cron.Minutely);
 
 app.Run();
