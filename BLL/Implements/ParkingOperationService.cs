@@ -280,8 +280,38 @@ namespace BLL.Implements
             var activeValidation = await ValidateNoActiveSessionAsync(licensePlate);
             if (activeValidation != null) return activeValidation;
 
-            var slot = await FindResidentAvailableSlotAsync(vehicleTypeId);
-            if (slot == null) return new ResponseDTO("Không còn chỗ trống cho cư dân", 409, false);
+            var isMotorbike = IsMotorbike(subscription.VehicleType?.TypeName);
+            ParkingSlot? slot = null;
+
+            if (!isMotorbike)
+            {
+                var newlyAssignedSlot = false;
+                if (!subscription.FixedSlotId.HasValue)
+                {
+                    slot = await FindResidentAvailableSlotAsync(vehicleTypeId);
+                    if (slot == null) return new ResponseDTO("Không còn vị trí ô tô trống tại tầng cư dân", 409, false);
+
+                    newlyAssignedSlot = true;
+                    slot.AssignedUserId = subscription.UserId;
+                    subscription.FixedSlotId = slot.SlotId;
+                    await _unitOfWork.MonthlySubscriptionRepo.UpdateAsync(subscription);
+                }
+                else
+                {
+                    slot = await _unitOfWork.ParkingSlotRepo.GetDetailWithFloorAndTypeAsync(subscription.FixedSlotId.Value);
+                }
+
+                if (slot == null ||
+                    slot.VehicleTypeId != vehicleTypeId ||
+                    slot.Floor?.IsResident != true ||
+                    slot.AssignedUserId != subscription.UserId ||
+                    (!newlyAssignedSlot &&
+                     slot.Status != ParkingSlotStatus.Reserved.ToString() &&
+                     slot.Status != ParkingSlotStatus.Assigned.ToString()))
+                {
+                    return new ResponseDTO("Vị trí ô tô của gói không khả dụng", 409, false);
+                }
+            }
 
             var session = new ParkingSession
             {
@@ -292,15 +322,18 @@ namespace BLL.Implements
                 VehicleTypeId = vehicleTypeId,
                 EntryTime = now,
                 EntryGateId = gateResult.Gate!.GateId,
-                AssignedSlotId = slot.SlotId,
-                ActualSlotId = slot.SlotId,
+                AssignedSlotId = slot?.SlotId,
+                ActualSlotId = slot?.SlotId,
                 Status = SessionStatus.Active.ToString()
             };
 
-            slot.Status = ParkingSlotStatus.Occupied.ToString();
+            if (slot != null)
+            {
+                slot.Status = ParkingSlotStatus.Occupied.ToString();
+                await _unitOfWork.ParkingSlotRepo.UpdateAsync(slot);
+            }
 
             await _unitOfWork.ParkingSessionRepo.AddAsync(session);
-            await _unitOfWork.ParkingSlotRepo.UpdateAsync(slot);
             await _unitOfWork.SaveChangeAsync();
 
             var result = await GetSessionDTOWithTicketAsync(session.SessionId);
@@ -328,7 +361,15 @@ namespace BLL.Implements
             var plateValidation = await ValidatePlateOutAsync(session, checkoutPlate);
             if (plateValidation != null) return plateValidation;
 
-            await CloseSessionAsync(session, exitGateResult.Gate!.GateId, checkoutPlate, dto.ExitImageUrl, now);
+            var isMotorbike = IsMotorbike(subscription.VehicleType?.TypeName);
+
+            await CloseSessionAsync(
+                session,
+                exitGateResult.Gate!.GateId,
+                checkoutPlate,
+                dto.ExitImageUrl,
+                now,
+                !isMotorbike ? subscription.FixedSlotId : null);
             await _unitOfWork.SaveChangeAsync();
 
             var result = await GetSessionDTOAsync(session.SessionId);
@@ -726,7 +767,8 @@ namespace BLL.Implements
         private async Task<ParkingSlot?> FindResidentAvailableSlotAsync(Guid vehicleTypeId)
         {
             var availableSlots = await _unitOfWork.ParkingSlotRepo.GetAvailableByVehicleTypeAndResidentFlagAsync(vehicleTypeId, true);
-            return availableSlots.FirstOrDefault();
+            if (availableSlots.Count == 0) return null;
+            return availableSlots[Random.Shared.Next(availableSlots.Count)];
         }
 
         private async Task<ParkingSlot?> FindReservationAvailableSlotAsync(Guid vehicleTypeId)
@@ -804,7 +846,13 @@ namespace BLL.Implements
             }, null);
         }
 
-        private async Task CloseSessionAsync(ParkingSession session, Guid exitGateId, string? licensePlateOut, string? exitImageUrl, DateTime exitTime)
+        private async Task CloseSessionAsync(
+            ParkingSession session,
+            Guid exitGateId,
+            string? licensePlateOut,
+            string? exitImageUrl,
+            DateTime exitTime,
+            Guid? reservedFixedSlotId = null)
         {
             session.ExitGateId = exitGateId;
             session.ExitTime = exitTime;
@@ -817,7 +865,9 @@ namespace BLL.Implements
                 var actualSlot = await _unitOfWork.ParkingSlotRepo.GetByIdAsync(session.ActualSlotId.Value);
                 if (actualSlot != null)
                 {
-                    actualSlot.Status = ParkingSlotStatus.Available.ToString();
+                    actualSlot.Status = reservedFixedSlotId == actualSlot.SlotId
+                        ? ParkingSlotStatus.Reserved.ToString()
+                        : ParkingSlotStatus.Available.ToString();
                     await _unitOfWork.ParkingSlotRepo.UpdateAsync(actualSlot);
                 }
             }
@@ -827,13 +877,26 @@ namespace BLL.Implements
                 var assignedSlot = await _unitOfWork.ParkingSlotRepo.GetByIdAsync(session.AssignedSlotId.Value);
                 if (assignedSlot != null)
                 {
-                    assignedSlot.Status = ParkingSlotStatus.Available.ToString();
+                    assignedSlot.Status = reservedFixedSlotId == assignedSlot.SlotId
+                        ? ParkingSlotStatus.Reserved.ToString()
+                        : ParkingSlotStatus.Available.ToString();
                     await _unitOfWork.ParkingSlotRepo.UpdateAsync(assignedSlot);
                 }
             }
 
             await CompleteReservationIfNeededAsync(session);
             await _unitOfWork.ParkingSessionRepo.UpdateAsync(session);
+        }
+
+        private static bool IsMotorbike(string? vehicleTypeName)
+        {
+            if (string.IsNullOrWhiteSpace(vehicleTypeName)) return false;
+
+            var normalized = vehicleTypeName.Trim().ToLowerInvariant();
+            return normalized.Contains("motor") ||
+                   normalized.Contains("bike") ||
+                   normalized.Contains("xe máy") ||
+                   normalized.Contains("xe may");
         }
 
         private async Task CompleteReservationIfNeededAsync(ParkingSession session)

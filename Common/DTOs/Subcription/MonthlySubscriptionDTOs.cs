@@ -5,6 +5,7 @@ namespace Common.DTOs.Subscription
     public class MonthlySubscriptionDTO
     {
         public Guid SubscriptionId { get; set; }
+        public Guid UserId { get; set; }
         public string? FullName { get; set; }
         public string LicensePlate { get; set; } = string.Empty;
         public string? VehicleType { get; set; }
@@ -21,6 +22,7 @@ namespace Common.DTOs.Subscription
     {
         public Guid PackageId { get; set; }
         public string LicensePlate { get; set; } = string.Empty;
+        public Guid? FixedSlotId { get; set; }
     }
 
     public class RegisterMonthlySubscriptionPaymentDTO

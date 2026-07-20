@@ -41,13 +41,19 @@ namespace BLL.Implements
 
         public async Task<ResponseDTO> CreatePackageAsync(CreateSubscriptionPackageDTO dto)
         {
+            if (dto == null) return new ResponseDTO("Dữ liệu gói không hợp lệ", 400);
+
             var validation = await ValidatePackageDataAsync(dto.PackageName, dto.VehicleTypeId, dto.DurationMonths, dto.Price);
             if (validation != null) return validation;
 
             if (!Enum.TryParse<PackageStatus>(dto.Status, true, out var parsedStatus))
             {
-                parsedStatus = PackageStatus.Active;
+                return new ResponseDTO("Trạng thái gói chỉ được là Active, Inactive hoặc Suspended", 400);
             }
+
+            var vehicleType = await _unitOfWork.VehicleTypeRepo.GetByIdAsync(dto.VehicleTypeId);
+            if (vehicleType != null && IsMotorbike(vehicleType.TypeName) && dto.RequireFixedSlot)
+                return new ResponseDTO("Gói xe máy không được yêu cầu vị trí đỗ cố định", 400);
 
             var package = new DAL.Models.SubscriptionPackage
             {
@@ -70,7 +76,7 @@ namespace BLL.Implements
 
         public async Task<ResponseDTO> UpdatePackageAsync(Guid id, UpdateSubscriptionPackageDTO dto)
         {
-            if (id == Guid.Empty) return new ResponseDTO("Mã cấu hình gói không hợp lệ", 400);
+            if (id == Guid.Empty || dto == null) return new ResponseDTO("Dữ liệu cập nhật gói không hợp lệ", 400);
 
             var package = await _unitOfWork.SubscriptionPackageRepo.GetByIdWithVehicleTypeAsync(id);
             if (package == null) return new ResponseDTO("Không tìm thấy gói cước cần cập nhật", 404);
@@ -80,7 +86,25 @@ namespace BLL.Implements
 
             if (!Enum.TryParse<PackageStatus>(dto.Status, true, out var parsedStatus))
             {
-                parsedStatus = PackageStatus.Active;
+                return new ResponseDTO("Trạng thái gói chỉ được là Active, Inactive hoặc Suspended", 400);
+            }
+
+            var vehicleType = await _unitOfWork.VehicleTypeRepo.GetByIdAsync(dto.VehicleTypeId);
+            if (vehicleType != null && IsMotorbike(vehicleType.TypeName) && dto.RequireFixedSlot)
+                return new ResponseDTO("Gói xe máy không được yêu cầu vị trí đỗ cố định", 400);
+
+            var hasSubscriptions = await _unitOfWork.MonthlySubscriptionRepo
+                .AnyAsync(s => s.PackageId == id);
+            var changesPurchasedStructure =
+                package.VehicleTypeId != dto.VehicleTypeId ||
+                package.DurationMonths != dto.DurationMonths ||
+                (package.RequireFixedSlot ?? false) != dto.RequireFixedSlot;
+
+            if (hasSubscriptions && changesPurchasedStructure)
+            {
+                return new ResponseDTO(
+                    "Không thể đổi loại xe, thời hạn hoặc chế độ chỗ cố định vì gói đã có người đăng ký. Hãy ngừng bán và tạo gói mới",
+                    409);
             }
 
             package.PackageName = dto.PackageName.Trim();
@@ -138,6 +162,17 @@ namespace BLL.Implements
                 Description = package.Description,
                 Status = package.Status
             };
+        }
+
+        private static bool IsMotorbike(string? vehicleTypeName)
+        {
+            if (string.IsNullOrWhiteSpace(vehicleTypeName)) return false;
+
+            var normalized = vehicleTypeName.Trim().ToLowerInvariant();
+            return normalized.Contains("motor") ||
+                   normalized.Contains("bike") ||
+                   normalized.Contains("xe máy") ||
+                   normalized.Contains("xe may");
         }
     }
 }

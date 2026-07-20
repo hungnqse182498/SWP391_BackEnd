@@ -93,9 +93,41 @@ public class PaymentService : IPaymentService
         
         if (subscription == null) return;
 
+        var isMotorbike = IsMotorbike(subscription.VehicleType?.TypeName);
+        if (!isMotorbike)
+        {
+            ParkingSlot? selectedSlot;
+            if (!subscription.FixedSlotId.HasValue)
+            {
+                var availableSlots = await _unitOfWork.ParkingSlotRepo
+                    .GetAvailableByVehicleTypeAndResidentFlagAsync(subscription.VehicleTypeId, true);
+                if (availableSlots.Count == 0) return;
+
+                selectedSlot = availableSlots[Random.Shared.Next(availableSlots.Count)];
+                selectedSlot.Status = ParkingSlotStatus.Reserved.ToString();
+                selectedSlot.AssignedUserId = subscription.UserId;
+                subscription.FixedSlotId = selectedSlot.SlotId;
+                await _unitOfWork.ParkingSlotRepo.UpdateAsync(selectedSlot);
+            }
+            else
+            {
+                selectedSlot = await _unitOfWork.ParkingSlotRepo
+                    .GetDetailWithFloorAndTypeAsync(subscription.FixedSlotId.Value);
+            }
+
+            if (selectedSlot == null ||
+                selectedSlot.VehicleTypeId != subscription.VehicleTypeId ||
+                selectedSlot.Floor?.IsResident != true ||
+                selectedSlot.AssignedUserId != subscription.UserId ||
+                selectedSlot.Status != ParkingSlotStatus.Reserved.ToString())
+            {
+                return;
+            }
+        }
+
         subscription.Status = MonthlySubscriptionStatus.Active.ToString();
-        subscription.StartDate = DateTime.Now;
-        subscription.EndDate = DateTime.Now.AddMonths(subscription.Package.DurationMonths);
+        subscription.StartDate = DateTime.UtcNow;
+        subscription.EndDate = DateTime.UtcNow.AddMonths(subscription.Package.DurationMonths);
 
         if (subscription.User != null && subscription.User.Role?.RoleName == "User")
         {
@@ -104,19 +136,6 @@ public class PaymentService : IPaymentService
             if (customerRole != null)
             {
                 subscription.User.RoleId = customerRole.RoleId;
-            }
-        }
-
-        if (subscription.Package.RequireFixedSlot == true && !subscription.FixedSlotId.HasValue)
-        {
-            var slot = await _unitOfWork.ParkingSlotRepo.GetFirstAvailableByVehicleTypeAsync(subscription.VehicleTypeId);
-
-            if (slot != null)
-            {
-                slot.Status = ParkingSlotStatus.Reserved.ToString();
-                slot.AssignedUserId = subscription.UserId;
-                subscription.FixedSlotId = slot.SlotId;
-                await _unitOfWork.ParkingSlotRepo.UpdateAsync(slot);
             }
         }
 
@@ -397,6 +416,17 @@ public class PaymentService : IPaymentService
     private static bool IsSameStatus(string? currentStatus, string expectedStatus)
     {
         return string.Equals(currentStatus, expectedStatus, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsMotorbike(string? vehicleTypeName)
+    {
+        if (string.IsNullOrWhiteSpace(vehicleTypeName)) return false;
+
+        var normalized = vehicleTypeName.Trim().ToLowerInvariant();
+        return normalized.Contains("motor") ||
+               normalized.Contains("bike") ||
+               normalized.Contains("xe máy") ||
+               normalized.Contains("xe may");
     }
 
     private static PaymentDTO MapToDTO(Payment payment)

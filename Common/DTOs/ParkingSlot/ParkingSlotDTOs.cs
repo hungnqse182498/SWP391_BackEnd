@@ -11,6 +11,7 @@ namespace Common.DTOs.ParkingSlot
         public Guid VehicleTypeId { get; set; }
         public string? VehicleTypeName { get; set; }
         public string Status { get; set; }
+        public bool IsResident { get; set; }
     }
 
     public class CreateParkingSlotDTO

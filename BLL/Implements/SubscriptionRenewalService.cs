@@ -34,7 +34,7 @@ public class SubscriptionRenewalService : ISubscriptionRenewalService
             return new ResponseDTO("Không thể gia hạn gói đã hủy", 400, false);
 
         var package = await _unitOfWork.SubscriptionPackageRepo.GetByIdAsync(dto.PackageId);
-        if (package == null || package.Status == PackageStatus.Inactive.ToString())
+        if (package == null || package.Status != PackageStatus.Active.ToString())
             return new ResponseDTO("Gói cước gia hạn không tồn tại hoặc đã ngừng áp dụng", 400, false);
 
         if (subscription.VehicleTypeId != package.VehicleTypeId)

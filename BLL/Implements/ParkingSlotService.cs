@@ -143,7 +143,8 @@ namespace BLL.Implements
                 SlotCode = slot.SlotCode,
                 VehicleTypeId = slot.VehicleTypeId,
                 VehicleTypeName = slot.VehicleType?.TypeName,
-                Status = slot.Status
+                Status = slot.Status,
+                IsResident = slot.Floor?.IsResident ?? false
             };
         }
     }

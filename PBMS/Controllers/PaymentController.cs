@@ -1,5 +1,6 @@
 ﻿using BLL.Interfaces;
 using Common.DTOs.Payment;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers;
@@ -16,6 +17,7 @@ public class PaymentController : ControllerBase
     }
 
     [HttpPost("payos-webhook")]
+    [AllowAnonymous]
     public async Task<IActionResult> PayOSWebhook([FromBody] PayOSWebhookDTO dto)
     {
         await _paymentService.PayOSWebhookAsync(dto);
@@ -23,6 +25,7 @@ public class PaymentController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Roles = "Manager")]
     public async Task<IActionResult> GetAll()
     {
         var res = await _paymentService.GetAllAsync();
@@ -30,6 +33,7 @@ public class PaymentController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
+    [Authorize(Roles = "Manager")]
     public async Task<IActionResult> GetById(Guid id)
     {
         var res = await _paymentService.GetByIdAsync(id);
@@ -37,6 +41,7 @@ public class PaymentController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Manager")]
     public async Task<IActionResult> Create([FromBody] CreatePaymentDTO dto)
     {
         var res = await _paymentService.CreateAsync(dto);
@@ -44,6 +49,7 @@ public class PaymentController : ControllerBase
     }
 
     [HttpPut]
+    [Authorize(Roles = "Manager")]
     public async Task<IActionResult> Update([FromBody] UpdatePaymentDTO dto)
     {
         var res = await _paymentService.UpdateAsync(dto);
@@ -51,6 +57,7 @@ public class PaymentController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [Authorize(Roles = "Manager")]
     public async Task<IActionResult> Delete(Guid id)
     {
         var res = await _paymentService.DeleteAsync(id);

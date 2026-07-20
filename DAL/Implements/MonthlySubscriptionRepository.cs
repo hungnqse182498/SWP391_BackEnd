@@ -50,6 +50,7 @@ namespace DAL.Implements
         {
             return await _context.MonthlySubscriptions
                 .Include(s => s.Package)
+                .Include(s => s.VehicleType)
                 .Include(s => s.User)
                     .ThenInclude(u => u.Role)
                 .FirstOrDefaultAsync(s => s.SubscriptionId == id);
@@ -62,6 +63,9 @@ namespace DAL.Implements
             var normalizedPlate = licensePlate.Trim().ToUpper();
             return await _context.MonthlySubscriptions
                 .Include(s => s.User)
+                .Include(s => s.Package)
+                .Include(s => s.VehicleType)
+                .Include(s => s.FixedSlot)
                 .FirstOrDefaultAsync(s =>
                     s.LicensePlate.ToUpper() == normalizedPlate &&
                     s.VehicleTypeId == vehicleTypeId &&
