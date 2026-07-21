@@ -17,6 +17,8 @@ public partial class VehicleChangeRequest
 
     public string Reason { get; set; }
 
+    public string RejectionReason { get; set; }
+
     public string Status { get; set; }
 
     public DateTime? CreatedAt { get; set; }

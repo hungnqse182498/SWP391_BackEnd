@@ -12,11 +12,11 @@ namespace BLL.Interfaces
     {
         Task<ResponseDTO> CreateVehicleChangeAsync(Guid userId, CreateVehicleChangeDTO dto);
         Task<ResponseDTO> GetVehicleChangeRequestsAsync();
-        Task<ResponseDTO> GetVehicleChangeRequestByIdAsync(Guid id);
+        Task<ResponseDTO> GetVehicleChangeRequestByIdAsync(Guid id, Guid requesterId, bool canManage);
         Task<ResponseDTO> GetRequestsByUserIdAsync(Guid userId);
         Task<ResponseDTO> UpdateVehicleChangeRequestAsync(Guid id, Guid userId, UpdateVehicleChangeDTO dto);
-        Task<ResponseDTO> ApproveVehicleChangeAsync(Guid id);
-        Task<ResponseDTO> RejectVehicleChangeAsync(Guid id, RejectVehicleChangeDTO dto);
+        Task<ResponseDTO> ApproveVehicleChangeAsync(Guid id, Guid handlerId);
+        Task<ResponseDTO> RejectVehicleChangeAsync(Guid id, Guid handlerId, RejectVehicleChangeDTO dto);
         Task<ResponseDTO> DeleteVehicleChangeRequestAsync(Guid id, Guid userId);
     }
 }

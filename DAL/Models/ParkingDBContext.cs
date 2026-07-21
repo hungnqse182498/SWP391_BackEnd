@@ -521,6 +521,7 @@ public partial class ParkingDBContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.ProcessedAt).HasColumnType("datetime");
             entity.Property(e => e.Reason).HasMaxLength(500);
+            entity.Property(e => e.RejectionReason).HasMaxLength(500);
             entity.Property(e => e.Status)
                 .HasMaxLength(15)
                 .IsUnicode(false)

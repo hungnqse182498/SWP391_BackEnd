@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace BLL.Implements
@@ -27,15 +28,18 @@ namespace BLL.Implements
         {
             if (dto == null) return new ResponseDTO("Dữ liệu không hợp lệ", 400);
 
+            if (dto.Reason?.Trim().Length > 500)
+                return new ResponseDTO("Lý do không được vượt quá 500 ký tự", 400, false);
+
+            var validation = await ValidateRequestAsync(userId, dto.SubscriptionId, dto.NewLicensePlate, null);
+            if (validation.Error != null) return validation.Error;
+
             bool hasPending = await _unitOfWork.VehicleChangeRequestRepo.AnyAsync(x =>
                 x.SubscriptionId == dto.SubscriptionId &&
                 x.Status == VehicleChangeStatusEnum.Pending.ToString());
 
             if (hasPending)
-                return new ResponseDTO("Gói vé tháng này hiện đang có một yêu cầu đổi xe chờ xử lý", 400);
-
-            var validation = await ValidateRequestAsync(userId, dto.SubscriptionId, dto.NewLicensePlate, null);
-            if (validation.Error != null) return validation.Error;
+                return new ResponseDTO("Gói vé tháng này hiện đang có một yêu cầu đổi biển số chờ xử lý", 409, false);
 
             if (validation.Subscription!.LicensePlate == validation.NormalizedPlate)
                 return new ResponseDTO("Biển số mới không được trùng với biển số hiện tại", 400);
@@ -67,23 +71,21 @@ namespace BLL.Implements
         {
             var list = await _unitOfWork.VehicleChangeRequestRepo.GetRequestsWithDetailsAsync();
 
-            if (list == null || !list.Any())
-            {
-                return new ResponseDTO("Không tìm thấy yêu cầu nào", 404, false);
-            }
             var dtos = list.Select(x => MapToDTO(x, x.Subscription)).ToList();
             return new ResponseDTO("Lấy danh sách yêu cầu đổi xe thành công", 200, true, dtos);
         }
 
-        public async Task<ResponseDTO> GetVehicleChangeRequestByIdAsync(Guid id)
+        public async Task<ResponseDTO> GetVehicleChangeRequestByIdAsync(Guid id, Guid requesterId, bool canManage)
         {
             if (id == Guid.Empty) return new ResponseDTO("Vui lòng nhập RequestId", 400, false);
 
-            var request = await _unitOfWork.VehicleChangeRequestRepo.GetByIdAsync(id);
+            var request = await _unitOfWork.VehicleChangeRequestRepo.GetByIdWithDetailsAsync(id);
             if (request == null) return new ResponseDTO("Không tồn tại yêu cầu này", 404, false);
 
-            var sub = await _unitOfWork.MonthlySubscriptionRepo.GetByIdAsync(request.SubscriptionId);
-            return new ResponseDTO("Lấy thông tin chi tiết yêu cầu thành công", 200, true, MapToDTO(request, sub));
+            if (!canManage && request.Subscription?.UserId != requesterId)
+                return new ResponseDTO("Bạn không có quyền xem yêu cầu này", 403, false);
+
+            return new ResponseDTO("Lấy thông tin chi tiết yêu cầu thành công", 200, true, MapToDTO(request, request.Subscription));
         }
 
         public async Task<ResponseDTO> GetRequestsByUserIdAsync(Guid userId)
@@ -91,9 +93,6 @@ namespace BLL.Implements
             if (userId == Guid.Empty) return new ResponseDTO("UserId không hợp lệ", 400, false);
 
             var list = await _unitOfWork.VehicleChangeRequestRepo.GetRequestsByUserIdAsync(userId);
-
-            if (!list.Any())
-                return new ResponseDTO("Không tìm thấy yêu cầu nào của người dùng này", 404, false);
 
             var dtos = list.Select(x => MapToDTO(x, x.Subscription)).ToList();
             return new ResponseDTO("Lấy danh sách yêu cầu của user thành công", 200, true, dtos);
@@ -109,8 +108,14 @@ namespace BLL.Implements
             if (request.Status != VehicleChangeStatusEnum.Pending.ToString())
                 return new ResponseDTO("Chỉ có thể chỉnh sửa yêu cầu đang ở trạng thái chờ duyệt", 400, false);
 
+            if (dto.Reason?.Trim().Length > 500)
+                return new ResponseDTO("Lý do không được vượt quá 500 ký tự", 400, false);
+
             var validation = await ValidateRequestAsync(userId, request.SubscriptionId, dto.NewLicensePlate, id);
             if (validation.Error != null) return validation.Error;
+
+            if (validation.Subscription!.LicensePlate == validation.NormalizedPlate)
+                return new ResponseDTO("Biển số mới không được trùng với biển số hiện tại", 400, false);
 
             request.NewLicensePlate = validation.NormalizedPlate!;
             request.Reason = dto.Reason?.Trim();
@@ -128,9 +133,10 @@ namespace BLL.Implements
             }
         }
 
-        public async Task<ResponseDTO> ApproveVehicleChangeAsync(Guid id)
+        public async Task<ResponseDTO> ApproveVehicleChangeAsync(Guid id, Guid handlerId)
         {
             if (id == Guid.Empty) return new ResponseDTO("Vui lòng nhập RequestId", 400, false);
+            if (handlerId == Guid.Empty) return new ResponseDTO("Không xác định được người xử lý", 401, false);
             var request = await _unitOfWork.VehicleChangeRequestRepo.GetByIdAsync(id);
             if (request == null) return new ResponseDTO("Không tồn tại", 404);
             if (request.Status != VehicleChangeStatusEnum.Pending.ToString()) return new ResponseDTO("Yêu cầu đã được xử lý", 400);
@@ -138,12 +144,17 @@ namespace BLL.Implements
             var sub = await _unitOfWork.MonthlySubscriptionRepo.GetByIdAsync(request.SubscriptionId);
             if (sub == null) return new ResponseDTO("Không tìm thấy gói", 404);
 
+            if (!string.Equals(NormalizePlate(sub.LicensePlate), NormalizePlate(request.OldLicensePlate), StringComparison.Ordinal))
+                return new ResponseDTO("Biển số của gói đã thay đổi sau khi yêu cầu được tạo. Vui lòng từ chối yêu cầu cũ và tạo yêu cầu mới", 409, false);
+
             if (await HasUsablePlateAsync(request.NewLicensePlate, sub.SubscriptionId))
                 return new ResponseDTO("Biển số xe mới này hiện đang được sử dụng ở một gói khác", 400);
 
             sub.LicensePlate = NormalizePlate(request.NewLicensePlate);
             request.Status = VehicleChangeStatusEnum.Approved.ToString();
             request.ProcessedAt = DateTime.UtcNow;
+            request.HandledByStaffId = handlerId;
+            request.RejectionReason = null;
 
             try
             {
@@ -159,19 +170,23 @@ namespace BLL.Implements
             }
         }
 
-        public async Task<ResponseDTO> RejectVehicleChangeAsync(Guid id, RejectVehicleChangeDTO dto)
+        public async Task<ResponseDTO> RejectVehicleChangeAsync(Guid id, Guid handlerId, RejectVehicleChangeDTO dto)
         {
             if (id == Guid.Empty) return new ResponseDTO("Vui lòng nhập RequestId", 400, false);
+            if (handlerId == Guid.Empty) return new ResponseDTO("Không xác định được người xử lý", 401, false);
             var request = await _unitOfWork.VehicleChangeRequestRepo.GetByIdAsync(id);
             if (request == null) return new ResponseDTO("Không tồn tại", 404);
             if (request.Status != VehicleChangeStatusEnum.Pending.ToString()) 
                 return new ResponseDTO("Yêu cầu đã được xử lý", 400);
             if (dto == null || string.IsNullOrWhiteSpace(dto.Reason))
                 return new ResponseDTO("Vui lòng nhập lý do từ chối đơn", 400, false);
+            if (dto.Reason.Trim().Length > 500)
+                return new ResponseDTO("Lý do từ chối không được vượt quá 500 ký tự", 400, false);
 
             request.Status = VehicleChangeStatusEnum.Rejected.ToString();
-            request.Reason = dto.Reason.Trim();
+            request.RejectionReason = dto.Reason.Trim();
             request.ProcessedAt = DateTime.UtcNow;
+            request.HandledByStaffId = handlerId;
 
             try
             {
@@ -228,9 +243,15 @@ namespace BLL.Implements
             if (userId != Guid.Empty && sub.UserId != userId)
                 return (null, null, new ResponseDTO("Bạn không có quyền gửi yêu cầu cho gói này", 403, false));
 
+            var now = DateTime.UtcNow;
+            if (sub.Status != MonthlySubscriptionStatus.Active.ToString() || sub.StartDate > now || sub.EndDate < now)
+                return (null, null, new ResponseDTO("Chỉ có thể đổi biển số cho gói đang hoạt động và còn hiệu lực", 400, false));
+
             var normalizedPlate = NormalizePlate(rawPlate);
             if (string.IsNullOrWhiteSpace(normalizedPlate))
                 return (null, null, new ResponseDTO("Vui lòng nhập biển số xe mới hợp lệ", 400, false));
+            if (normalizedPlate.Length > 15 || !Regex.IsMatch(normalizedPlate, "^[A-Z0-9.-]{4,15}$"))
+                return (null, null, new ResponseDTO("Biển số chỉ gồm 4-15 chữ cái, chữ số, dấu chấm hoặc dấu gạch ngang", 400, false));
 
             if (await HasUsablePlateAsync(normalizedPlate, sub.SubscriptionId))
                 return (null, null, new ResponseDTO("Biển số xe mới này hiện đang được sử dụng ở một gói khác", 400, false));
@@ -257,11 +278,14 @@ namespace BLL.Implements
                 OldLicensePlate = request.OldLicensePlate,
                 NewLicensePlate = request.NewLicensePlate,
                 Reason = request.Reason,
+                RejectionReason = request.RejectionReason,
                 Status = request.Status,
                 CreatedAt = request.CreatedAt,
                 ProcessedAt = request.ProcessedAt,
                 UserFullName = sub?.User?.FullName,
-                PackageName = sub?.Package?.PackageName
+                PackageName = sub?.Package?.PackageName,
+                HandledByStaffId = request.HandledByStaffId,
+                HandledByFullName = request.HandledByStaff?.FullName
             };
         }
     }

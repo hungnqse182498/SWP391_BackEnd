@@ -12,6 +12,7 @@ namespace DAL.Interfaces
         Task<List<VehicleChangeRequest>> GetBySubscriptionAsync(Guid id);
         Task<IEnumerable<VehicleChangeRequest>> GetRequestsWithDetailsAsync();
         Task<IEnumerable<VehicleChangeRequest>> GetRequestsByUserIdAsync(Guid userId);
+        Task<VehicleChangeRequest?> GetByIdWithDetailsAsync(Guid id);
     }
 }
 

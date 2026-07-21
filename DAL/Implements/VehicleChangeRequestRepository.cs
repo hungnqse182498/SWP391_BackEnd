@@ -27,6 +27,7 @@ namespace DAL.Implements
                     .ThenInclude(s => s.User)
                 .Include(x => x.Subscription)
                     .ThenInclude(s => s.Package)
+                .Include(x => x.HandledByStaff)
                 .OrderByDescending(x => x.CreatedAt)
                 .ToListAsync();
         }
@@ -38,9 +39,21 @@ namespace DAL.Implements
                     .ThenInclude(s => s.User)
                 .Include(x => x.Subscription)
                     .ThenInclude(s => s.Package)
+                .Include(x => x.HandledByStaff)
                 .Where(x => x.Subscription != null && x.Subscription.UserId == userId)
                 .OrderByDescending(x => x.CreatedAt)
                 .ToListAsync();
+        }
+
+        public async Task<VehicleChangeRequest?> GetByIdWithDetailsAsync(Guid id)
+        {
+            return await _context.VehicleChangeRequests
+                .Include(x => x.Subscription)
+                    .ThenInclude(s => s.User)
+                .Include(x => x.Subscription)
+                    .ThenInclude(s => s.Package)
+                .Include(x => x.HandledByStaff)
+                .FirstOrDefaultAsync(x => x.RequestId == id);
         }
     }
 }

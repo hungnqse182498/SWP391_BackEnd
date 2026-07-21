@@ -19,7 +19,7 @@ namespace PBMS.Controllers
             _vehicleChangeRequestService = vehicleChangeRequestService;
         }
 
-        [Authorize]
+        [Authorize(Roles = "Customer,User")]
         [HttpPost("change-vehicle")]
         public async Task<IActionResult> ChangeVehicle([FromBody] CreateVehicleChangeDTO dto)
         {
@@ -30,10 +30,14 @@ namespace PBMS.Controllers
         [HttpGet("change-vehicle/{id:guid}")]
         public async Task<IActionResult> GetVehicleChangeRequestById(Guid id)
         {
-            var res = await _vehicleChangeRequestService.GetVehicleChangeRequestByIdAsync(id);
+            var res = await _vehicleChangeRequestService.GetVehicleChangeRequestByIdAsync(
+                id,
+                User.GetUserId(),
+                User.IsInRole("Manager"));
             return StatusCode(res.StatusCode, res);
         }
 
+        [Authorize(Roles = "Customer,User")]
         [HttpGet("my-requests")]
         public async Task<IActionResult> GetMyVehicleChangeRequests()
         {
@@ -41,7 +45,7 @@ namespace PBMS.Controllers
             return StatusCode(res.StatusCode, res);
         }
 
-        [Authorize(Roles = "Staff,Manager")]
+        [Authorize(Roles = "Manager")]
         [HttpGet("change-vehicle")]
         public async Task<IActionResult> GetVehicleChangeRequests()
         {
@@ -49,22 +53,23 @@ namespace PBMS.Controllers
             return StatusCode(res.StatusCode, res);
         }
 
-        [Authorize(Roles = "Staff,Manager")]
+        [Authorize(Roles = "Manager")]
         [HttpPut("change-vehicle/{id:guid}/approve")]
         public async Task<IActionResult> ApproveChangeVehicle(Guid id)
         {
-            var res = await _vehicleChangeRequestService.ApproveVehicleChangeAsync(id);
+            var res = await _vehicleChangeRequestService.ApproveVehicleChangeAsync(id, User.GetUserId());
             return StatusCode(res.StatusCode, res);
         }
 
-        [Authorize(Roles = "Staff,Manager")]
+        [Authorize(Roles = "Manager")]
         [HttpPut("change-vehicle/{id:guid}/reject")]
         public async Task<IActionResult> RejectChangeVehicle(Guid id, [FromBody] RejectVehicleChangeDTO dto)
         {
-            var res = await _vehicleChangeRequestService.RejectVehicleChangeAsync(id, dto);
+            var res = await _vehicleChangeRequestService.RejectVehicleChangeAsync(id, User.GetUserId(), dto);
             return StatusCode(res.StatusCode, res);
         }
 
+        [Authorize(Roles = "Customer,User")]
         [HttpPut("change-vehicle/{id:guid}")]
         public async Task<IActionResult> UpdateVehicleChangeRequest(Guid id, [FromBody] UpdateVehicleChangeDTO dto)
         {
@@ -72,6 +77,7 @@ namespace PBMS.Controllers
             return StatusCode(res.StatusCode, res);
         }
 
+        [Authorize(Roles = "Customer,User")]
         [HttpDelete("change-vehicle/{id:guid}")]
         public async Task<IActionResult> DeleteVehicleChangeRequest(Guid id)
         {

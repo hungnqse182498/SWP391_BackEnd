@@ -13,11 +13,14 @@ namespace Common.DTOs.Subscription
         public string? OldLicensePlate { get; set; }
         public string? NewLicensePlate { get; set; }
         public string? Reason { get; set; }
+        public string? RejectionReason { get; set; }
         public string? Status { get; set; }
         public DateTime? CreatedAt { get; set; }
         public DateTime? ProcessedAt { get; set; }
         public string? UserFullName { get; set; }
         public string? PackageName { get; set; }
+        public Guid? HandledByStaffId { get; set; }
+        public string? HandledByFullName { get; set; }
     }
 
     public class CreateVehicleChangeDTO

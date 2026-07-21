@@ -261,9 +261,7 @@ namespace BLL.Implements
                 var normalizedPlate = dto.LicensePlate.Trim().ToUpperInvariant();
                 if (normalizedPlate != sub.LicensePlate)
                 {
-                    var plateExists = await _unitOfWork.MonthlySubscriptionRepo.HasUsablePlateAsync(normalizedPlate, id);
-                    if (plateExists) return new ResponseDTO("Biển số xe này đang có một gói khác hiệu lực", 400, false);
-                    sub.LicensePlate = normalizedPlate;
+                    return new ResponseDTO("Biển số chỉ được thay đổi qua quy trình yêu cầu đổi biển số", 400, false);
                 }
             }
 
