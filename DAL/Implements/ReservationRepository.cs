@@ -19,6 +19,8 @@ namespace DAL.Implements
         {
             return await _context.Reservations
                 .Include(r => r.Payments)
+                .Include(r => r.User)
+                .Include(r => r.VehicleType)
                 .Where(x => x.UserId == userId)
                 .ToListAsync();
         }
@@ -26,6 +28,7 @@ namespace DAL.Implements
         public async Task<Reservation?> GetDetailWithRelationsAsync(Guid reservationId)
         {
             return await _context.Reservations
+                .Include(r => r.User)
                 .Include(r => r.VehicleType)
                 .Include(r => r.Payments)
                 .FirstOrDefaultAsync(r => r.ReservationId == reservationId);
@@ -35,7 +38,8 @@ namespace DAL.Implements
         {
             IQueryable<Reservation> query = _context.Reservations
                 .Include(r => r.Payments)
-                .Include(r => r.User);
+                .Include(r => r.User)
+                .Include(r => r.VehicleType);
 
             if (!string.IsNullOrEmpty(status))
             {

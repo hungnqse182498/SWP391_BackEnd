@@ -71,12 +71,12 @@ namespace BLL.Implements
             var validation = await ValidateSessionAsync(
                 dto.DriverUserId,
                 dto.LicensePlateIn,
-                null,
+                dto.LicensePlateOut,
                 dto.VehicleTypeId,
                 entryTime,
-                null,
+                dto.ExitTime,
                 dto.EntryGateId,
-                null,
+                dto.ExitGateId,
                 dto.AssignedSlotId,
                 dto.ActualSlotId,
                 dto.Status ?? SessionStatus.Active.ToString(),
@@ -88,10 +88,16 @@ namespace BLL.Implements
                 SessionId = Guid.NewGuid(),
                 DriverUserId = dto.DriverUserId,
                 LicensePlateIn = NormalizePlate(dto.LicensePlateIn),
+                LicensePlateOut = string.IsNullOrWhiteSpace(dto.LicensePlateOut)
+                    ? (validation.Status == SessionStatus.Completed ? NormalizePlate(dto.LicensePlateIn) : null)
+                    : NormalizePlate(dto.LicensePlateOut),
                 EntryImageUrl = string.IsNullOrWhiteSpace(dto.EntryImageUrl) ? null : dto.EntryImageUrl.Trim(),
+                ExitImageUrl = string.IsNullOrWhiteSpace(dto.ExitImageUrl) ? null : dto.ExitImageUrl.Trim(),
                 VehicleTypeId = dto.VehicleTypeId,
                 EntryTime = entryTime,
+                ExitTime = dto.ExitTime,
                 EntryGateId = dto.EntryGateId,
+                ExitGateId = dto.ExitGateId,
                 AssignedSlotId = dto.AssignedSlotId,
                 ActualSlotId = dto.ActualSlotId,
                 Status = validation.Status.ToString()
@@ -278,6 +284,12 @@ namespace BLL.Implements
 
         internal static ParkingSessionDTO MapToDTO(ParkingSession session)
         {
+            var checkoutPayment = session.Payments
+                .Where(payment => string.Equals(payment.PaymentType, PaymentType.CheckoutFee.ToString(), StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(payment => string.Equals(payment.PaymentStatus, PaymentStatus.Success.ToString(), StringComparison.OrdinalIgnoreCase) ? 1 : 0)
+                .ThenByDescending(payment => payment.PaymentTime)
+                .FirstOrDefault();
+
             return new ParkingSessionDTO
             {
                 SessionId = session.SessionId,
@@ -300,7 +312,11 @@ namespace BLL.Implements
                 AssignedSlotCode = session.AssignedSlot?.SlotCode,
                 ActualSlotId = session.ActualSlotId,
                 ActualSlotCode = session.ActualSlot?.SlotCode,
-                Status = session.Status
+                Status = session.Status,
+                PaymentAmount = checkoutPayment?.Amount,
+                PaymentStatus = checkoutPayment?.PaymentStatus,
+                PaymentMethod = checkoutPayment?.PaymentMethod,
+                PaymentTime = checkoutPayment?.PaymentTime
             };
         }
     }

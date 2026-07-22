@@ -22,6 +22,7 @@ namespace DAL.Implements
                 .Include(s => s.ExitGate)
                 .Include(s => s.AssignedSlot)
                 .Include(s => s.ActualSlot)
+                .Include(s => s.Payments)
                 .OrderByDescending(s => s.EntryTime)
                 .AsNoTracking()
                 .ToListAsync();
@@ -36,6 +37,7 @@ namespace DAL.Implements
                 .Include(s => s.ExitGate)
                 .Include(s => s.AssignedSlot)
                 .Include(s => s.ActualSlot)
+                .Include(s => s.Payments)
                 .Where(s => s.DriverUserId == userId)
                 .OrderByDescending(s => s.EntryTime)
                 .AsNoTracking()
@@ -51,6 +53,7 @@ namespace DAL.Implements
                 .Include(s => s.ExitGate)
                 .Include(s => s.AssignedSlot)
                 .Include(s => s.ActualSlot)
+                .Include(s => s.Payments)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(s => s.SessionId == id);
         }
@@ -64,6 +67,7 @@ namespace DAL.Implements
                 .Include(s => s.ExitGate)
                 .Include(s => s.AssignedSlot)
                 .Include(s => s.ActualSlot)
+                .Include(s => s.Payments)
                 .Where(s => s.Status == SessionStatus.Active.ToString());
 
             if (sessionId.HasValue)

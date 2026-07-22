@@ -25,6 +25,11 @@ namespace Common.DTOs.Subscription
         public Guid? FixedSlotId { get; set; }
     }
 
+    public class ManagerCreateMonthlySubscriptionDTO : RegisterMonthlySubscriptionDTO
+    {
+        public Guid UserId { get; set; }
+    }
+
     public class RegisterMonthlySubscriptionPaymentDTO
     {
         public Guid SubscriptionId { get; set; }

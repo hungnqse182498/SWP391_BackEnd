@@ -219,6 +219,7 @@ public class PaymentService : IPaymentService
         };
 
         await _unitOfWork.PaymentRepo.AddAsync(payment);
+        await DispatchPaymentAsync(payment);
         await _unitOfWork.SaveChangeAsync();
 
         return new ResponseDTO("Tạo thanh toán thành công", 201, true, MapToDTO(payment));
@@ -230,6 +231,11 @@ public class PaymentService : IPaymentService
 
         var payment = await _unitOfWork.PaymentRepo.GetByIdAsync(dto.PaymentId);
         if (payment == null) return new ResponseDTO("Không tìm thấy thanh toán", 404, false);
+
+        var wasSuccessful = string.Equals(
+            payment.PaymentStatus,
+            PaymentStatus.Success.ToString(),
+            StringComparison.OrdinalIgnoreCase);
 
         var validation = await ValidatePaymentAsync(
             dto.UserId,
@@ -254,6 +260,13 @@ public class PaymentService : IPaymentService
         payment.TransactionReference = string.IsNullOrWhiteSpace(dto.TransactionReference) ? null : dto.TransactionReference.Trim();
 
         await _unitOfWork.PaymentRepo.UpdateAsync(payment);
+        if (!wasSuccessful && string.Equals(
+                payment.PaymentStatus,
+                PaymentStatus.Success.ToString(),
+                StringComparison.OrdinalIgnoreCase))
+        {
+            await DispatchPaymentAsync(payment);
+        }
         await _unitOfWork.SaveChangeAsync();
 
         return new ResponseDTO("Cập nhật thanh toán thành công", 200, true, MapToDTO(payment));

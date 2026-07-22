@@ -8,6 +8,7 @@ namespace BLL.Interfaces
     public interface IMonthlySubscriptionService
     {
         Task<ResponseDTO> RegisterAsync(Guid userId, RegisterMonthlySubscriptionDTO dto);
+        Task<ResponseDTO> CreateForUserAsync(ManagerCreateMonthlySubscriptionDTO dto);
         Task<ResponseDTO> GetAllAsync(); 
         Task<ResponseDTO> GetDetailAsync(Guid id);
         Task<ResponseDTO> GetMyAsync(Guid userId);

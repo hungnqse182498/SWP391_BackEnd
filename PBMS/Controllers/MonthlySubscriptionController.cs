@@ -27,6 +27,14 @@ namespace PBMS.Controllers
             return StatusCode(res.StatusCode, res);
         }
 
+        [HttpPost]
+        [Authorize(Roles = "Manager")]
+        public async Task<IActionResult> Create([FromBody] ManagerCreateMonthlySubscriptionDTO dto)
+        {
+            var res = await _monthlySubscriptionService.CreateForUserAsync(dto);
+            return StatusCode(res.StatusCode, res);
+        }
+
         [HttpGet]
         [Authorize(Roles = "Manager")]
         public async Task<IActionResult> GetAll()

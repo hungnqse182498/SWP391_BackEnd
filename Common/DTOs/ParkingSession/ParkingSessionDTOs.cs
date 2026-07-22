@@ -25,6 +25,10 @@ namespace Common.DTOs.ParkingSession
         public Guid? ActualSlotId { get; set; }
         public string? ActualSlotCode { get; set; }
         public string Status { get; set; } = string.Empty;
+        public decimal? PaymentAmount { get; set; }
+        public string? PaymentStatus { get; set; }
+        public string? PaymentMethod { get; set; }
+        public DateTime? PaymentTime { get; set; }
         public ParkingSessionTicketDTO? Ticket { get; set; }
     }
 
@@ -38,10 +42,14 @@ namespace Common.DTOs.ParkingSession
     {
         public Guid? DriverUserId { get; set; }
         public string LicensePlateIn { get; set; } = string.Empty;
+        public string? LicensePlateOut { get; set; }
         public string? EntryImageUrl { get; set; }
+        public string? ExitImageUrl { get; set; }
         public Guid VehicleTypeId { get; set; }
         public DateTime? EntryTime { get; set; }
+        public DateTime? ExitTime { get; set; }
         public Guid EntryGateId { get; set; }
+        public Guid? ExitGateId { get; set; }
         public Guid? AssignedSlotId { get; set; }
         public Guid? ActualSlotId { get; set; }
         public string? Status { get; set; }

@@ -21,7 +21,15 @@ namespace BLL.Implements
             _payOSService = payOSService;
         }
 
-        public async Task<ResponseDTO> RegisterAsync(Guid userId, RegisterMonthlySubscriptionDTO dto)
+        public Task<ResponseDTO> RegisterAsync(Guid userId, RegisterMonthlySubscriptionDTO dto)
+        {
+            return RegisterInternalAsync(userId, dto, createPayment: true);
+        }
+
+        private async Task<ResponseDTO> RegisterInternalAsync(
+            Guid userId,
+            RegisterMonthlySubscriptionDTO dto,
+            bool createPayment)
         {
             if (userId == Guid.Empty) return new ResponseDTO("Vui lòng đăng nhập để đăng ký gói", 401);
             if (dto == null) return new ResponseDTO("Dữ liệu đăng ký không hợp lệ", 400);
@@ -90,20 +98,27 @@ namespace BLL.Implements
                     Status = MonthlySubscriptionStatus.PendingPayment.ToString()
                 };
 
-                var payment = new Payment
+                Payment? payment = null;
+                if (createPayment)
                 {
-                    PaymentId = Guid.NewGuid(),
-                    SubscriptionId = subscription.SubscriptionId,
-                    Amount = package.Price,
-                    PaymentMethod = PaymentMethod.PayOS.ToString(),
-                    PaymentStatus = PaymentStatus.Pending.ToString(),
-                    PaymentType = PaymentType.SubscriptionFee.ToString(),
-                    PaymentTime = DateTime.UtcNow,
-                    TransactionReference = string.Empty
-                };
+                    payment = new Payment
+                    {
+                        PaymentId = Guid.NewGuid(),
+                        SubscriptionId = subscription.SubscriptionId,
+                        Amount = package.Price,
+                        PaymentMethod = PaymentMethod.PayOS.ToString(),
+                        PaymentStatus = PaymentStatus.Pending.ToString(),
+                        PaymentType = PaymentType.SubscriptionFee.ToString(),
+                        PaymentTime = DateTime.UtcNow,
+                        TransactionReference = string.Empty
+                    };
+                }
 
                 await _unitOfWork.MonthlySubscriptionRepo.AddAsync(subscription);
-                await _unitOfWork.PaymentRepo.AddAsync(payment);
+                if (payment != null)
+                {
+                    await _unitOfWork.PaymentRepo.AddAsync(payment);
+                }
 
                 if (selectedFixedSlot != null)
                 {
@@ -113,6 +128,24 @@ namespace BLL.Implements
                 }
 
                 await _unitOfWork.SaveAsync();
+
+                if (payment == null)
+                {
+                    await _unitOfWork.CommitTransactionAsync();
+                    return new ResponseDTO("Tạo đăng ký gói thành công", 201, true, new MonthlySubscriptionDTO
+                    {
+                        SubscriptionId = subscription.SubscriptionId,
+                        UserId = subscription.UserId,
+                        LicensePlate = subscription.LicensePlate,
+                        VehicleType = package.VehicleType?.TypeName,
+                        PackageName = package.PackageName,
+                        StartDate = subscription.StartDate,
+                        EndDate = subscription.EndDate,
+                        Price = subscription.Price,
+                        Status = subscription.Status,
+                        FixedSlot = selectedFixedSlot?.SlotCode
+                    });
+                }
 
                 var paymentUrl = await _payOSService.CreatePaymentLinkAsync(payment);
                 string paymentLinkId = "";
@@ -361,6 +394,32 @@ namespace BLL.Implements
                 Status = sub.Status,
                 FixedSlot = sub.FixedSlot?.SlotCode
             };
+        }
+
+        public async Task<ResponseDTO> CreateForUserAsync(ManagerCreateMonthlySubscriptionDTO dto)
+        {
+            if (dto == null || dto.UserId == Guid.Empty)
+                return new ResponseDTO("Vui lòng chọn khách hàng", 400, false);
+
+            var user = await _unitOfWork.UserRepo.GetByIdWithRoleAsync(dto.UserId);
+            if (user == null)
+                return new ResponseDTO("Không tìm thấy khách hàng", 404, false);
+            if (!string.Equals(user.Status, UserStatus.Active.ToString(), StringComparison.OrdinalIgnoreCase))
+                return new ResponseDTO("Chỉ có thể tạo đăng ký cho tài khoản đang hoạt động", 400, false);
+
+            var roleName = user.Role?.RoleName;
+            if (!string.Equals(roleName, "User", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(roleName, "Customer", StringComparison.OrdinalIgnoreCase))
+            {
+                return new ResponseDTO("Tài khoản được chọn không phải là khách hàng", 400, false);
+            }
+
+            return await RegisterInternalAsync(dto.UserId, new RegisterMonthlySubscriptionDTO
+            {
+                PackageId = dto.PackageId,
+                LicensePlate = dto.LicensePlate,
+                FixedSlotId = dto.FixedSlotId
+            }, createPayment: false);
         }
 
         private static bool IsMotorbike(string? vehicleTypeName)
