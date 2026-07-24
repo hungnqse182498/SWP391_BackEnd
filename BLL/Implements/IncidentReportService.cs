@@ -147,7 +147,6 @@ namespace BLL.Implements
 
             try
             {
-                await _unitOfWork.IncidentReportRepo.UpdateAsync(incident);
                 await _unitOfWork.SaveChangeAsync();
 
                 incident.ReportedByUser = validation.ReportedByUser;
@@ -155,9 +154,13 @@ namespace BLL.Implements
 
                 return new ResponseDTO("Cập nhật thông tin sự cố thành công", 200, true, MapToDTO(incident));
             }
-            catch (Exception ex)
+            catch (DbUpdateException)
             {
-                return new ResponseDTO($"Lỗi cập nhật sự cố: {ex.Message}", 500, false);
+                return new ResponseDTO("Không thể cập nhật trạng thái sự cố do dữ liệu chưa phù hợp. Vui lòng kiểm tra lại hoặc liên hệ quản trị viên", 500, false);
+            }
+            catch (Exception)
+            {
+                return new ResponseDTO("Hệ thống gặp lỗi khi cập nhật sự cố. Vui lòng thử lại", 500, false);
             }
         }
 
@@ -177,10 +180,14 @@ namespace BLL.Implements
             if (staffUser == null)
                 return new ResponseDTO("Nhân viên xử lý không tồn tại", 404, false);
 
+            var assigneeRole = staffUser.Role?.RoleName?.Trim();
+            if (!string.Equals(assigneeRole, "Staff", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(assigneeRole, "Manager", StringComparison.OrdinalIgnoreCase))
+                return new ResponseDTO("Chỉ có thể phân công sự cố cho Staff hoặc Manager", 400, false);
+
             incident.HandledByStaffId = staffId;
             incident.Status = nameof(IncidentStatus.InProgress);
 
-            await _unitOfWork.IncidentReportRepo.UpdateAsync(incident);
             await _unitOfWork.SaveChangeAsync();
 
             incident.HandledByStaff = staffUser;
@@ -206,7 +213,6 @@ namespace BLL.Implements
             incident.ResolutionNotes = dto.ResolutionNotes.Trim();
             incident.ResolvedAt = DateTime.UtcNow;
 
-            await _unitOfWork.IncidentReportRepo.UpdateAsync(incident);
             await _unitOfWork.SaveChangeAsync();
 
             return new ResponseDTO("Đã đóng và hoàn tất xử lý sự cố", 200, true, MapToDTO(incident));
@@ -254,16 +260,22 @@ namespace BLL.Implements
                 return (null, null, default, new ResponseDTO("Trạng thái sự cố không hợp lệ (Chỉ nhận: Open, InProgress, Resolved, Cancelled)", 400, false));
             }
 
-            if (sessionId.HasValue && sessionId.Value != Guid.Empty)
-            {
-                var sessionExists = await _unitOfWork.ParkingSessionRepo.AnyAsync(s => s.SessionId == sessionId.Value);
-                if (!sessionExists)
-                    return (null, null, default, new ResponseDTO("Mã phiên gửi xe liên quan không tồn tại trên hệ thống", 400, false));
-            }
-
             var reportedByUser = await _unitOfWork.UserRepo.GetByIdWithRoleAsync(reportedByUserId);
             if (reportedByUser == null)
                 return (null, null, default, new ResponseDTO("Tài khoản người báo cáo không tồn tại", 400, false));
+
+            if (sessionId.HasValue && sessionId.Value != Guid.Empty)
+            {
+                var session = await _unitOfWork.ParkingSessionRepo.GetByIdAsync(sessionId.Value);
+                if (session == null)
+                    return (null, null, default, new ResponseDTO("Mã phiên gửi xe liên quan không tồn tại trên hệ thống", 400, false));
+
+                var reporterRole = reportedByUser.Role?.RoleName?.Trim();
+                var isParkingUser = string.Equals(reporterRole, "User", StringComparison.OrdinalIgnoreCase) ||
+                                    string.Equals(reporterRole, "Customer", StringComparison.OrdinalIgnoreCase);
+                if (isParkingUser && session.DriverUserId != reportedByUserId)
+                    return (null, null, default, new ResponseDTO("Bạn chỉ có thể báo cáo sự cố cho phiên gửi xe của mình", 403, false));
+            }
 
             User? handledByStaff = null;
             if (handledByStaffId.HasValue && handledByStaffId.Value != Guid.Empty)
