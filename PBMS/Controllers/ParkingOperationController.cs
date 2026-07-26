@@ -93,6 +93,34 @@ namespace PBMS.Controllers
             return StatusCode(res.StatusCode, res);
         }
 
+        [HttpGet("check-out/payment/{paymentId:guid}")]
+        public async Task<IActionResult> GetCheckoutPaymentStatus(Guid paymentId)
+        {
+            var res = await _parkingOperationService.GetCheckoutPaymentStatusAsync(paymentId);
+            return StatusCode(res.StatusCode, res);
+        }
+
+        [HttpPost("check-out/payment/{paymentId:guid}/confirm-cash")]
+        public async Task<IActionResult> ConfirmCashCheckout(Guid paymentId)
+        {
+            var res = await _parkingOperationService.ConfirmCashCheckoutAsync(paymentId);
+            return StatusCode(res.StatusCode, res);
+        }
+
+        [HttpPost("check-out/payment/{paymentId:guid}/cancel")]
+        public async Task<IActionResult> CancelCheckout(Guid paymentId)
+        {
+            var res = await _parkingOperationService.CancelCheckoutAsync(paymentId);
+            return StatusCode(res.StatusCode, res);
+        }
+
+        [HttpGet("fee-preview/{sessionId:guid}")]
+        public async Task<IActionResult> GetFeePreview(Guid sessionId)
+        {
+            var res = await _parkingOperationService.GetFeePreviewAsync(sessionId);
+            return StatusCode(res.StatusCode, res);
+        }
+
         [HttpGet("availability")]
         public async Task<IActionResult> GetAvailability([FromQuery] Guid? vehicleTypeId, [FromQuery] string? floorKeyword)
         {

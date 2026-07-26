@@ -24,6 +24,12 @@ public class PayOSService : IPayOSService
 
     public async Task<string> CreatePaymentLinkAsync(Payment payment)
     {
+        var result = await CreatePaymentLinkDetailsAsync(payment);
+        return result.PaymentUrl;
+    }
+
+    public async Task<PayOSPaymentLinkResult> CreatePaymentLinkDetailsAsync(Payment payment)
+    {
         long orderCode = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
         var descriptionPrefix = payment.PaymentType == PaymentType.CheckoutFee.ToString()
@@ -45,6 +51,22 @@ public class PayOSService : IPayOSService
 
         payment.TransactionReference = orderCode.ToString();
 
-        return result.CheckoutUrl;
+        return new PayOSPaymentLinkResult
+        {
+            PaymentUrl = result.CheckoutUrl,
+            QrCode = result.QrCode,
+            PaymentLinkId = result.PaymentLinkId
+        };
     }
+
+    public async Task CancelPaymentLinkAsync(Payment payment)
+    {
+        if (!long.TryParse(payment.TransactionReference, out var orderCode))
+        {
+            throw new InvalidOperationException("Thanh toán PayOS chưa có order code hợp lệ");
+        }
+
+        await _payOS.PaymentRequests.CancelAsync(orderCode, "Nhân viên hủy checkout");
+    }
+
 }

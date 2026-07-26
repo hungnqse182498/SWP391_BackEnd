@@ -27,7 +27,7 @@ public class PaymentService : IPaymentService
 
         if (payment == null) return;
 
-        if (string.Equals(payment.PaymentStatus, PaymentStatus.Success.ToString(), StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(payment.PaymentStatus, PaymentStatus.Pending.ToString(), StringComparison.OrdinalIgnoreCase))
             return;
 
         payment.PaymentStatus = dto.Code == "00"
@@ -37,7 +37,14 @@ public class PaymentService : IPaymentService
         payment.PaymentTime = DateTime.UtcNow;
 
         await _unitOfWork.PaymentRepo.UpdateAsync(payment);
-        await DispatchPaymentAsync(payment);
+        if (string.Equals(payment.PaymentStatus, PaymentStatus.Success.ToString(), StringComparison.OrdinalIgnoreCase))
+        {
+            await DispatchPaymentAsync(payment);
+        }
+        else
+        {
+            await RestoreCheckoutSessionAfterFailedPaymentAsync(payment);
+        }
         await _unitOfWork.SaveAsync();
     }
 
@@ -406,6 +413,28 @@ public class PaymentService : IPaymentService
         }
 
         await CompleteReservationIfNeededAsync(session);
+        await _unitOfWork.ParkingSessionRepo.UpdateAsync(session);
+    }
+
+    private async Task RestoreCheckoutSessionAfterFailedPaymentAsync(Payment payment)
+    {
+        if (!payment.SessionId.HasValue ||
+            !string.Equals(payment.PaymentType, PaymentType.CheckoutFee.ToString(), StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var session = await _unitOfWork.ParkingSessionRepo.GetByIdAsync(payment.SessionId.Value);
+        if (session == null ||
+            !string.Equals(session.Status, SessionStatus.Active.ToString(), StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        session.ExitGateId = null;
+        session.ExitTime = null;
+        session.LicensePlateOut = null;
+        session.ExitImageUrl = null;
         await _unitOfWork.ParkingSessionRepo.UpdateAsync(session);
     }
 

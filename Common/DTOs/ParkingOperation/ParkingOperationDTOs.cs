@@ -53,7 +53,15 @@ namespace Common.DTOs.ParkingOperation
         public DateTime EntryTime { get; set; }
         public DateTime ExitTime { get; set; }
         public double TotalHours { get; set; }
+        public int BilledHours { get; set; }
         public decimal Amount { get; set; }
         public Guid? PricingPolicyId { get; set; }
+        public decimal? BasePrice { get; set; }
+        public int? BaseHours { get; set; }
+        public decimal? ExtraHourPrice { get; set; }
+        public decimal? NightSurcharge { get; set; }
+        public int NightSurchargeCount { get; set; }
+        public bool HasNightSurcharge { get; set; }
+        public bool IsCoveredBySubscription { get; set; }
     }
 }

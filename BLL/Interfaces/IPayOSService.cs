@@ -7,8 +7,17 @@ using System.Threading.Tasks;
 
 namespace BLL.Interfaces
 {
+    public class PayOSPaymentLinkResult
+    {
+        public string PaymentUrl { get; set; } = string.Empty;
+        public string QrCode { get; set; } = string.Empty;
+        public string PaymentLinkId { get; set; } = string.Empty;
+    }
+
     public interface IPayOSService
     {
         Task<string> CreatePaymentLinkAsync(Payment payment);
+        Task<PayOSPaymentLinkResult> CreatePaymentLinkDetailsAsync(Payment payment);
+        Task CancelPaymentLinkAsync(Payment payment);
     }
 }
