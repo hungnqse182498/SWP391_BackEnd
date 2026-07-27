@@ -54,6 +54,8 @@ namespace Common.DTOs.ParkingOperation
         public DateTime ExitTime { get; set; }
         public double TotalHours { get; set; }
         public int BilledHours { get; set; }
+        public decimal GrossAmount { get; set; }
+        public decimal DepositAmount { get; set; }
         public decimal Amount { get; set; }
         public Guid? PricingPolicyId { get; set; }
         public decimal? BasePrice { get; set; }

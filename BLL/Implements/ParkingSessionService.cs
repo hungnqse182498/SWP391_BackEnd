@@ -2,6 +2,7 @@ using BLL.Interfaces;
 using Common.DTOs;
 using Common.DTOs.ParkingSession;
 using Common.Enums;
+using Common.Utilities;
 using DAL.Models;
 using DAL.UnitOfWorks;
 
@@ -187,6 +188,10 @@ namespace BLL.Implements
             Guid? currentSessionId)
         {
             if (string.IsNullOrWhiteSpace(licensePlateIn)) return (default, new ResponseDTO("Vui lòng nhập biển số vào", 400, false));
+            if (!LicensePlateNormalizer.IsValid(licensePlateIn))
+                return (default, new ResponseDTO("Biển số phải gồm 4-15 chữ cái và chữ số", 400, false));
+            if (!string.IsNullOrWhiteSpace(licensePlateOut) && !LicensePlateNormalizer.IsValid(licensePlateOut))
+                return (default, new ResponseDTO("Biển số ra phải gồm 4-15 chữ cái và chữ số", 400, false));
             if (vehicleTypeId == Guid.Empty) return (default, new ResponseDTO("Vui lòng chọn loại phương tiện", 400, false));
             if (entryGateId == Guid.Empty) return (default, new ResponseDTO("Vui lòng chọn cổng vào", 400, false));
 
@@ -279,7 +284,7 @@ namespace BLL.Implements
 
         private static string NormalizePlate(string plate)
         {
-            return plate.Trim().ToUpper();
+            return LicensePlateNormalizer.Normalize(plate);
         }
 
         internal static ParkingSessionDTO MapToDTO(ParkingSession session)

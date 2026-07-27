@@ -295,6 +295,9 @@ public class ReservationService : IReservationService
                 {
                     paymentLinkId = paymentUrl.Substring(paymentUrl.LastIndexOf('/') + 1);
                 }
+
+                await _unitOfWork.PaymentRepo.UpdateAsync(payment);
+                await _unitOfWork.SaveAsync();
             }
             catch (Exception ex)
             {

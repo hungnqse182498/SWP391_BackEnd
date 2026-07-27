@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using BLL.Interfaces;
+using Common.Utilities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
@@ -74,7 +75,7 @@ namespace BLL.Implements
                         "OCR recognized license plate {LicensePlate} from {FileName}",
                         plate,
                         fileName);
-                    return plate;
+                    return LicensePlateNormalizer.Normalize(plate);
                 }
 
                 if (aspectRatio <= TwoLinePlateMaxAspectRatio)
@@ -151,7 +152,7 @@ namespace BLL.Implements
                 return null;
             }
 
-            var plate = $"{prefix}{FormatSerial(serial)}";
+            var plate = LicensePlateNormalizer.Normalize($"{prefix}{FormatSerial(serial)}");
             _logger.LogInformation(
                 "OCR recognized two-line license plate {LicensePlate} from {FileName}",
                 plate,

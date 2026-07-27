@@ -20,8 +20,34 @@ public class PaymentController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> PayOSWebhook([FromBody] PayOSWebhookDTO dto)
     {
-        await _paymentService.PayOSWebhookAsync(dto);
-        return Ok();
+        try
+        {
+            await _paymentService.PayOSWebhookAsync(dto);
+            return Ok();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                new
+                {
+                    statusCode = StatusCodes.Status500InternalServerError,
+                    message = ex.Message,
+                    isSuccess = false
+                });
+        }
+        catch (Exception ex)
+        {
+            var errorMessage = ex.InnerException?.Message ?? ex.Message;
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                new
+                {
+                    statusCode = StatusCodes.Status500InternalServerError,
+                    message = $"Lỗi xử lý webhook PayOS: {errorMessage}",
+                    isSuccess = false
+                });
+        }
     }
 
     [HttpGet]

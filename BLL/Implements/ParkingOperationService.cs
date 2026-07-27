@@ -3,6 +3,7 @@ using Common.DTOs;
 using Common.DTOs.ParkingOperation;
 using Common.DTOs.ParkingSession;
 using Common.Enums;
+using Common.Utilities;
 using DAL.Models;
 using DAL.UnitOfWorks;
 using Microsoft.EntityFrameworkCore;
@@ -276,6 +277,18 @@ namespace BLL.Implements
             if (floorValidation != null) return floorValidation;
 
             var licensePlate = NormalizePlate(dto.LicensePlate);
+            if (!LicensePlateNormalizer.IsValid(licensePlate))
+                return new ResponseDTO("Biển số phải gồm 4-15 chữ cái và chữ số", 400, false);
+
+            var activeSubscription = await _unitOfWork.MonthlySubscriptionRepo
+                .GetActiveByPlateAndVehicleTypeAsync(licensePlate, vehicleTypeId, DateTime.UtcNow);
+            if (activeSubscription != null)
+            {
+                return new ResponseDTO(
+                    "Biển số này đang có gói tháng hợp lệ. Vui lòng check-in tại tầng cư dân / khách tháng",
+                    403,
+                    false);
+            }
 
             var activeValidation = await ValidateNoActiveSessionAsync(licensePlate);
             if (activeValidation != null) return activeValidation;
@@ -356,6 +369,42 @@ namespace BLL.Implements
             var exitTime = DateTime.UtcNow;
             var feeResult = await CalculateFeeAsync(session, exitTime);
             if (feeResult.Error != null) return feeResult.Error;
+
+            if (feeResult.Preview!.Amount <= 0)
+            {
+                var coveredPayment = new Payment
+                {
+                    PaymentId = Guid.NewGuid(),
+                    SessionId = session.SessionId,
+                    ReservationId = session.ReservationId,
+                    Amount = 0,
+                    PaymentMethod = paymentMethod,
+                    PaymentType = PaymentType.CheckoutFee.ToString(),
+                    PaymentTime = exitTime,
+                    PaymentStatus = PaymentStatus.Success.ToString(),
+                    TransactionReference = string.Empty
+                };
+
+                await CloseSessionAsync(
+                    session,
+                    exitGateResult.Gate!.GateId,
+                    checkoutPlate,
+                    dto.ExitImageUrl,
+                    exitTime);
+                await _unitOfWork.PaymentRepo.AddAsync(coveredPayment);
+                await _unitOfWork.SaveChangeAsync();
+
+                return new ResponseDTO(
+                    "Tiền cọc đã thanh toán đủ phí gửi xe; checkout thành công và không cần thanh toán thêm",
+                    200,
+                    true,
+                    new
+                    {
+                        Session = await GetSessionDTOAsync(session.SessionId),
+                        Payment = MapOperationPayment(coveredPayment),
+                        Fee = feeResult.Preview
+                    });
+            }
 
             var payment = new Payment
             {
@@ -445,6 +494,8 @@ namespace BLL.Implements
             if (floorValidation != null) return floorValidation;
 
             var licensePlate = NormalizePlate(dto.LicensePlate);
+            if (!LicensePlateNormalizer.IsValid(licensePlate))
+                return new ResponseDTO("Biển số phải gồm 4-15 chữ cái và chữ số", 400, false);
 
             var now = DateTime.UtcNow;
             var subscription = await _unitOfWork.MonthlySubscriptionRepo
@@ -588,6 +639,22 @@ namespace BLL.Implements
             }
 
             var licensePlate = NormalizePlate(dto.LicensePlate);
+            if (!LicensePlateNormalizer.IsValid(licensePlate))
+                return new ResponseDTO("Biển số phải gồm 4-15 chữ cái và chữ số", 400, false);
+
+            var activeSubscription = await _unitOfWork.MonthlySubscriptionRepo
+                .GetActiveByPlateAndVehicleTypeAsync(
+                    licensePlate,
+                    reservation.VehicleTypeId,
+                    now);
+            if (activeSubscription != null)
+            {
+                return new ResponseDTO(
+                    "Biển số này đang có gói tháng hợp lệ. Không thể check-in bằng vé đặt trước; vui lòng check-in tại tầng cư dân / khách tháng",
+                    403,
+                    false);
+            }
+
             var activeValidation = await ValidateNoActiveSessionAsync(licensePlate);
             if (activeValidation != null) return activeValidation;
 
@@ -1104,6 +1171,21 @@ namespace BLL.Implements
                 amount += nightSurchargeCount * (policy.NightSurcharge ?? 0);
             }
 
+            var grossAmount = amount;
+            var depositAmount = 0m;
+            if (session.ReservationId.HasValue)
+            {
+                var successfulDepositAmount = await _unitOfWork.PaymentRepo.GetAll()
+                    .Where(payment =>
+                        payment.ReservationId == session.ReservationId.Value &&
+                        payment.PaymentType == PaymentType.Deposit.ToString() &&
+                        payment.PaymentStatus == PaymentStatus.Success.ToString())
+                    .SumAsync(payment => payment.Amount);
+
+                depositAmount = Math.Min(grossAmount, successfulDepositAmount);
+                amount = Math.Max(0, grossAmount - depositAmount);
+            }
+
             return (new ParkingFeePreviewDTO
             {
                 SessionId = session.SessionId,
@@ -1112,6 +1194,8 @@ namespace BLL.Implements
                 ExitTime = exitTime,
                 TotalHours = Math.Round(totalHours, 2),
                 BilledHours = billedHours,
+                GrossAmount = grossAmount,
+                DepositAmount = depositAmount,
                 Amount = amount,
                 PricingPolicyId = policy.PolicyId,
                 BasePrice = policy.BasePrice,
@@ -1260,7 +1344,7 @@ namespace BLL.Implements
 
         private static string NormalizePlate(string plate)
         {
-            return plate.Trim().ToUpper();
+            return LicensePlateNormalizer.Normalize(plate);
         }
 
         private static string? NormalizeCustomerType(string? customerType)

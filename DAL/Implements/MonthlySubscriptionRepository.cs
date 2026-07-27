@@ -1,5 +1,6 @@
 ﻿using DAL.Interfaces;
 using Common.Enums;
+using Common.Utilities;
 using DAL.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -60,7 +61,7 @@ namespace DAL.Implements
         {
             if (string.IsNullOrWhiteSpace(licensePlate)) return null;
 
-            var normalizedPlate = licensePlate.Trim().ToUpper();
+            var normalizedPlate = LicensePlateNormalizer.Normalize(licensePlate);
             return await _context.MonthlySubscriptions
                 .Include(s => s.User)
                 .Include(s => s.Package)

@@ -3,6 +3,7 @@ using Common.DTOs;
 using Common.DTOs.Subscription;
 using Common.DTOs.Payment;
 using Common.Enums;
+using Common.Utilities;
 using DAL.Models;
 using DAL.UnitOfWorks;
 using Microsoft.EntityFrameworkCore;
@@ -39,7 +40,9 @@ namespace BLL.Implements
             var package = await _unitOfWork.SubscriptionPackageRepo.GetActivePackageWithVehicleTypeAsync(dto.PackageId);
             if (package == null) return new ResponseDTO("Gói không tồn tại hoặc đã ngừng bán", 404);
 
-            var normalizedPlate = string.IsNullOrWhiteSpace(dto.LicensePlate) ? string.Empty : dto.LicensePlate.Trim().ToUpperInvariant();
+            var normalizedPlate = LicensePlateNormalizer.Normalize(dto.LicensePlate);
+            if (!LicensePlateNormalizer.IsValid(normalizedPlate))
+                return new ResponseDTO("Biển số phải gồm 4-15 chữ cái và chữ số", 400);
 
             var plateExists = await _unitOfWork.MonthlySubscriptionRepo.HasUsablePlateAsync(normalizedPlate);
             if (plateExists) return new ResponseDTO("Biển số này đã có gói đang hiệu lực hoặc đang chờ thanh toán", 400);
@@ -291,7 +294,7 @@ namespace BLL.Implements
 
             if (!string.IsNullOrWhiteSpace(dto.LicensePlate))
             {
-                var normalizedPlate = dto.LicensePlate.Trim().ToUpperInvariant();
+                var normalizedPlate = LicensePlateNormalizer.Normalize(dto.LicensePlate);
                 if (normalizedPlate != sub.LicensePlate)
                 {
                     return new ResponseDTO("Biển số chỉ được thay đổi qua quy trình yêu cầu đổi biển số", 400, false);

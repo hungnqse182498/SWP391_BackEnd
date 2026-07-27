@@ -1,6 +1,7 @@
 ﻿using DAL.Interfaces;
 using DAL.Models;
 using Common.Enums;
+using Common.Utilities;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -77,7 +78,7 @@ namespace DAL.Implements
 
             if (!string.IsNullOrWhiteSpace(licensePlate))
             {
-                var normalizedPlate = licensePlate.Trim().ToUpper();
+                var normalizedPlate = LicensePlateNormalizer.Normalize(licensePlate);
                 query = query.Where(s => s.LicensePlateIn.ToUpper() == normalizedPlate);
             }
 
@@ -88,7 +89,7 @@ namespace DAL.Implements
         {
             if (string.IsNullOrWhiteSpace(licensePlate)) return false;
 
-            var normalizedPlate = licensePlate.Trim().ToUpper();
+            var normalizedPlate = LicensePlateNormalizer.Normalize(licensePlate);
             return await _context.ParkingSessions.AnyAsync(s =>
                 s.Status == SessionStatus.Active.ToString() &&
                 s.LicensePlateIn.ToUpper() == normalizedPlate &&

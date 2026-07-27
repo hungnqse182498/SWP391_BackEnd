@@ -2,6 +2,7 @@
 using Common.DTOs;
 using Common.DTOs.Subscription;
 using Common.Enums;
+using Common.Utilities;
 using DAL.Interfaces;
 using DAL.Models;
 using DAL.UnitOfWorks;
@@ -10,7 +11,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace BLL.Implements
@@ -250,8 +250,8 @@ namespace BLL.Implements
             var normalizedPlate = NormalizePlate(rawPlate);
             if (string.IsNullOrWhiteSpace(normalizedPlate))
                 return (null, null, new ResponseDTO("Vui lòng nhập biển số xe mới hợp lệ", 400, false));
-            if (normalizedPlate.Length > 15 || !Regex.IsMatch(normalizedPlate, "^[A-Z0-9.-]{4,15}$"))
-                return (null, null, new ResponseDTO("Biển số chỉ gồm 4-15 chữ cái, chữ số, dấu chấm hoặc dấu gạch ngang", 400, false));
+            if (!LicensePlateNormalizer.IsValid(normalizedPlate))
+                return (null, null, new ResponseDTO("Biển số chỉ gồm 4-15 chữ cái và chữ số, không có dấu hoặc khoảng trắng", 400, false));
 
             if (await HasUsablePlateAsync(normalizedPlate, sub.SubscriptionId))
                 return (null, null, new ResponseDTO("Biển số xe mới này hiện đang được sử dụng ở một gói khác", 400, false));
@@ -266,7 +266,7 @@ namespace BLL.Implements
 
         private static string NormalizePlate(string? plate)
         {
-            return string.IsNullOrWhiteSpace(plate) ? string.Empty : plate.Trim().ToUpperInvariant();
+            return LicensePlateNormalizer.Normalize(plate);
         }
 
         private static VehicleChangeRequestDTO MapToDTO(VehicleChangeRequest request, MonthlySubscription? sub)

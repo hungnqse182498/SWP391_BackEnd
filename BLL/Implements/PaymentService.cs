@@ -56,7 +56,8 @@ public class PaymentService : IPaymentService
             return;
 
         if (!Enum.TryParse<PaymentType>(payment.PaymentType, true, out var paymentType))
-            return;
+            throw new InvalidOperationException(
+                $"Không thể xử lý thanh toán {payment.PaymentId}: loại thanh toán '{payment.PaymentType}' không hợp lệ.");
 
         switch (paymentType)
         {
@@ -64,33 +65,54 @@ public class PaymentService : IPaymentService
                 await HandleReservationAsync(payment);
                 break;
 
-            case PaymentType.SubscriptionFee when payment.SubscriptionId.HasValue:
+            case PaymentType.SubscriptionFee:
+                if (!payment.SubscriptionId.HasValue)
+                {
+                    throw new InvalidOperationException(
+                        $"Không thể kích hoạt gói tháng cho thanh toán {payment.PaymentId}: thiếu SubscriptionId.");
+                }
                 await ActivateSubscriptionAsync(payment.SubscriptionId.Value);
                 break;
 
-            case PaymentType.SubscriptionRenewal when payment.SubscriptionId.HasValue:
+            case PaymentType.SubscriptionRenewal:
+                if (!payment.SubscriptionId.HasValue)
+                {
+                    throw new InvalidOperationException(
+                        $"Không thể gia hạn gói tháng cho thanh toán {payment.PaymentId}: thiếu SubscriptionId.");
+                }
                 await CompleteRenewalAsync(payment);
                 break;
 
             case PaymentType.CheckoutFee:
                 await CompleteCheckoutSessionIfNeededAsync(payment);
                 break;
+
+            default:
+                throw new InvalidOperationException(
+                    $"Không có luồng xử lý cho loại thanh toán '{payment.PaymentType}'.");
         }
     }
 
     //3
     private async Task HandleReservationAsync(Payment payment)
     {
-        if (!payment.ReservationId.HasValue) return;
+        if (!payment.ReservationId.HasValue)
+        {
+            throw new InvalidOperationException(
+                $"Không thể xác nhận đặt chỗ cho thanh toán {payment.PaymentId}: thiếu ReservationId.");
+        }
 
         var reservation = await _unitOfWork.ReservationRepo
             .GetByIdAsync(payment.ReservationId.Value);
 
-        if (reservation != null)
+        if (reservation == null)
         {
-            reservation.Status = ReservationStatus.Confirmed.ToString();
-            await _unitOfWork.ReservationRepo.UpdateAsync(reservation);
+            throw new InvalidOperationException(
+                $"Thanh toán {payment.PaymentId} thành công nhưng không tìm thấy đặt chỗ {payment.ReservationId.Value}.");
         }
+
+        reservation.Status = ReservationStatus.Confirmed.ToString();
+        await _unitOfWork.ReservationRepo.UpdateAsync(reservation);
     }
 
     //4
@@ -98,7 +120,17 @@ public class PaymentService : IPaymentService
     {
         var subscription = await _unitOfWork.MonthlySubscriptionRepo.GetActivationDetailAsync(subscriptionId);
         
-        if (subscription == null) return;
+        if (subscription == null)
+        {
+            throw new InvalidOperationException(
+                $"Thanh toán thành công nhưng không tìm thấy đăng ký gói tháng {subscriptionId}.");
+        }
+
+        if (subscription.Package == null)
+        {
+            throw new InvalidOperationException(
+                $"Không thể kích hoạt gói tháng {subscriptionId}: không tìm thấy thông tin gói đăng ký.");
+        }
 
         var isMotorbike = IsMotorbike(subscription.VehicleType?.TypeName);
         if (!isMotorbike)
@@ -108,7 +140,11 @@ public class PaymentService : IPaymentService
             {
                 var availableSlots = await _unitOfWork.ParkingSlotRepo
                     .GetAvailableByVehicleTypeAndResidentFlagAsync(subscription.VehicleTypeId, true);
-                if (availableSlots.Count == 0) return;
+                if (availableSlots.Count == 0)
+                {
+                    throw new InvalidOperationException(
+                        $"Không thể kích hoạt gói tháng {subscriptionId}: không còn slot cư dân phù hợp với loại xe.");
+                }
 
                 selectedSlot = availableSlots[Random.Shared.Next(availableSlots.Count)];
                 selectedSlot.Status = ParkingSlotStatus.Reserved.ToString();
@@ -128,7 +164,8 @@ public class PaymentService : IPaymentService
                 selectedSlot.AssignedUserId != subscription.UserId ||
                 selectedSlot.Status != ParkingSlotStatus.Reserved.ToString())
             {
-                return;
+                throw new InvalidOperationException(
+                    $"Không thể kích hoạt gói tháng {subscriptionId}: slot cố định không tồn tại hoặc không còn hợp lệ.");
             }
         }
 
@@ -152,11 +189,31 @@ public class PaymentService : IPaymentService
     //5
     private async Task CompleteRenewalAsync(Payment payment)
     {
-        var subscription = await _unitOfWork.MonthlySubscriptionRepo.GetByIdAsync(payment.SubscriptionId!.Value);
-        if (subscription == null || subscription.Price <= 0) return;
+        if (!payment.SubscriptionId.HasValue)
+        {
+            throw new InvalidOperationException(
+                $"Không thể gia hạn cho thanh toán {payment.PaymentId}: thiếu SubscriptionId.");
+        }
+
+        var subscription = await _unitOfWork.MonthlySubscriptionRepo.GetByIdAsync(payment.SubscriptionId.Value);
+        if (subscription == null)
+        {
+            throw new InvalidOperationException(
+                $"Thanh toán thành công nhưng không tìm thấy gói tháng {payment.SubscriptionId.Value} để gia hạn.");
+        }
+
+        if (subscription.Price <= 0)
+        {
+            throw new InvalidOperationException(
+                $"Không thể gia hạn gói tháng {subscription.SubscriptionId}: giá gói không hợp lệ.");
+        }
 
         var package = await _unitOfWork.SubscriptionPackageRepo.GetByIdAsync(subscription.PackageId);
-        if (package == null) return;
+        if (package == null)
+        {
+            throw new InvalidOperationException(
+                $"Không thể gia hạn gói tháng {subscription.SubscriptionId}: không tìm thấy gói đăng ký {subscription.PackageId}.");
+        }
         
         var oldEnd = subscription.EndDate;
         var start = subscription.EndDate < DateTime.UtcNow ? DateTime.UtcNow : subscription.EndDate;
@@ -378,12 +435,26 @@ public class PaymentService : IPaymentService
 
     private async Task CompleteCheckoutSessionIfNeededAsync(Payment payment)
     {
-        if (!payment.SessionId.HasValue) return;
-        if (!string.Equals(payment.PaymentType, PaymentType.CheckoutFee.ToString(), StringComparison.OrdinalIgnoreCase)) return;
+        if (!payment.SessionId.HasValue)
+        {
+            throw new InvalidOperationException(
+                $"Không thể hoàn tất checkout cho thanh toán {payment.PaymentId}: thiếu SessionId.");
+        }
+
+        if (!string.Equals(payment.PaymentType, PaymentType.CheckoutFee.ToString(), StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                $"Không thể hoàn tất checkout: thanh toán {payment.PaymentId} không thuộc loại CheckoutFee.");
+        }
 
         var session = await _unitOfWork.ParkingSessionRepo.GetByIdAsync(payment.SessionId.Value);
-        if (session == null ||
-            string.Equals(session.Status, SessionStatus.Completed.ToString(), StringComparison.OrdinalIgnoreCase))
+        if (session == null)
+        {
+            throw new InvalidOperationException(
+                $"Thanh toán thành công nhưng không tìm thấy phiên gửi xe {payment.SessionId.Value}.");
+        }
+
+        if (string.Equals(session.Status, SessionStatus.Completed.ToString(), StringComparison.OrdinalIgnoreCase))
         {
             return;
         }
@@ -395,21 +466,27 @@ public class PaymentService : IPaymentService
         if (session.ActualSlotId.HasValue)
         {
             var actualSlot = await _unitOfWork.ParkingSlotRepo.GetByIdAsync(session.ActualSlotId.Value);
-            if (actualSlot != null)
+            if (actualSlot == null)
             {
-                actualSlot.Status = ParkingSlotStatus.Available.ToString();
-                await _unitOfWork.ParkingSlotRepo.UpdateAsync(actualSlot);
+                throw new InvalidOperationException(
+                    $"Không thể hoàn tất phiên {session.SessionId}: không tìm thấy slot thực tế {session.ActualSlotId.Value}.");
             }
+
+            actualSlot.Status = ParkingSlotStatus.Available.ToString();
+            await _unitOfWork.ParkingSlotRepo.UpdateAsync(actualSlot);
         }
 
         if (session.AssignedSlotId.HasValue && session.AssignedSlotId != session.ActualSlotId)
         {
             var assignedSlot = await _unitOfWork.ParkingSlotRepo.GetByIdAsync(session.AssignedSlotId.Value);
-            if (assignedSlot != null)
+            if (assignedSlot == null)
             {
-                assignedSlot.Status = ParkingSlotStatus.Available.ToString();
-                await _unitOfWork.ParkingSlotRepo.UpdateAsync(assignedSlot);
+                throw new InvalidOperationException(
+                    $"Không thể hoàn tất phiên {session.SessionId}: không tìm thấy slot được xếp {session.AssignedSlotId.Value}.");
             }
+
+            assignedSlot.Status = ParkingSlotStatus.Available.ToString();
+            await _unitOfWork.ParkingSlotRepo.UpdateAsync(assignedSlot);
         }
 
         await CompleteReservationIfNeededAsync(session);
@@ -443,7 +520,11 @@ public class PaymentService : IPaymentService
         if (!session.ReservationId.HasValue) return;
 
         var reservation = await _unitOfWork.ReservationRepo.GetByIdAsync(session.ReservationId.Value);
-        if (reservation == null) return;
+        if (reservation == null)
+        {
+            throw new InvalidOperationException(
+                $"Không thể hoàn tất phiên {session.SessionId}: không tìm thấy đặt chỗ {session.ReservationId.Value}.");
+        }
         if (IsSameStatus(reservation.Status, ReservationStatus.Completed.ToString()) ||
             IsSameStatus(reservation.Status, ReservationStatus.Cancelled.ToString()) ||
             IsSameStatus(reservation.Status, ReservationStatus.NoShow.ToString()))
