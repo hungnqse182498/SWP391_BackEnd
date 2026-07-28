@@ -5,13 +5,14 @@ namespace Common.DTOs.Reports
         public DateTime? From { get; set; }
         public DateTime? To { get; set; }
         public string? GroupBy { get; set; } = "day";
+        public string? Period { get; set; }
         public Guid? VehicleTypeId { get; set; }
     }
 
     public class ReportExportRequestDTO : ReportFilterDTO
     {
         public string ReportType { get; set; } = "summary";
-        public string Format { get; set; } = "excel";
+        public string Format { get; set; } = "pdf";
     }
 
     public class ReportExportFileDTO
@@ -67,6 +68,8 @@ namespace Common.DTOs.Reports
         public List<ReportSeriesPointDTO> RevenueSeries { get; set; } = new();
         public List<ReportBreakdownDTO> RevenueByPaymentType { get; set; } = new();
         public List<ReportBreakdownDTO> RevenueByPaymentMethod { get; set; } = new();
+        public RevenueComparisonDTO RevenueComparison { get; set; } = new();
+        public RevenueChartsDTO RevenueCharts { get; set; } = new();
         public SlotOverviewDTO Slots { get; set; } = new();
         public List<FloorOccupancyDTO> SlotOccupancyByFloor { get; set; } = new();
     }
@@ -77,10 +80,110 @@ namespace Common.DTOs.Reports
         public decimal TotalRevenue { get; set; }
         public int SuccessfulPaymentCount { get; set; }
         public decimal AveragePaymentAmount { get; set; }
+        public RevenueOverviewDTO Overview { get; set; } = new();
+        public RevenueComparisonDTO Comparison { get; set; } = new();
+        public RevenueChartsDTO Charts { get; set; } = new();
         public List<ReportSeriesPointDTO> RevenueSeries { get; set; } = new();
         public List<ReportBreakdownDTO> ByPaymentType { get; set; } = new();
         public List<ReportBreakdownDTO> ByPaymentMethod { get; set; } = new();
+        public List<ReportBreakdownDTO> ByVehicleType { get; set; } = new();
         public List<RevenuePaymentRowDTO> LatestPayments { get; set; } = new();
+    }
+
+    public class RevenueOverviewDTO
+    {
+        public decimal TotalRevenue { get; set; }
+        public int SuccessfulPaymentCount { get; set; }
+        public decimal AveragePaymentAmount { get; set; }
+        public decimal HighestRevenueAmount { get; set; }
+        public string HighestRevenuePeriod { get; set; } = string.Empty;
+        public decimal LowestRevenueAmount { get; set; }
+        public string LowestRevenuePeriod { get; set; } = string.Empty;
+    }
+
+    public class RevenueComparisonDTO
+    {
+        public RevenueComparisonItemDTO PreviousPeriod { get; set; } = new();
+        public RevenueComparisonItemDTO SamePeriodLastYear { get; set; } = new();
+    }
+
+    public class RevenueComparisonItemDTO
+    {
+        public string Label { get; set; } = string.Empty;
+        public DateTime CurrentFrom { get; set; }
+        public DateTime CurrentTo { get; set; }
+        public DateTime ComparisonFrom { get; set; }
+        public DateTime ComparisonTo { get; set; }
+        public decimal CurrentRevenue { get; set; }
+        public decimal ComparisonRevenue { get; set; }
+        public decimal DifferenceAmount { get; set; }
+        public decimal GrowthPercent { get; set; }
+        public int CurrentPaymentCount { get; set; }
+        public int ComparisonPaymentCount { get; set; }
+        public int PaymentCountDifference { get; set; }
+        public decimal PaymentCountGrowthPercent { get; set; }
+    }
+
+    public class RevenueChartsDTO
+    {
+        public LineChartDTO LineChart { get; set; } = new();
+        public List<PieChartDTO> PieCharts { get; set; } = new();
+        public DoubleBarChartDTO DoubleBarChart { get; set; } = new();
+        public DoubleBarChartDTO PreviousPeriodDoubleBarChart { get; set; } = new();
+    }
+
+    public class LineChartDTO
+    {
+        public string Title { get; set; } = string.Empty;
+        public string Unit { get; set; } = "VND";
+        public string GroupBy { get; set; } = "day";
+        public List<ChartPointDTO> Points { get; set; } = new();
+    }
+
+    public class ChartPointDTO
+    {
+        public string Label { get; set; } = string.Empty;
+        public DateTime From { get; set; }
+        public DateTime To { get; set; }
+        public decimal Value { get; set; }
+        public int Count { get; set; }
+    }
+
+    public class PieChartDTO
+    {
+        public string Title { get; set; } = string.Empty;
+        public string Dimension { get; set; } = string.Empty;
+        public string Unit { get; set; } = "VND";
+        public List<PieChartSliceDTO> Slices { get; set; } = new();
+    }
+
+    public class PieChartSliceDTO
+    {
+        public string Label { get; set; } = string.Empty;
+        public decimal Value { get; set; }
+        public int Count { get; set; }
+        public decimal Percent { get; set; }
+    }
+
+    public class DoubleBarChartDTO
+    {
+        public string Title { get; set; } = string.Empty;
+        public string Unit { get; set; } = "VND";
+        public string GroupBy { get; set; } = "day";
+        public string CurrentSeriesName { get; set; } = string.Empty;
+        public string ComparisonSeriesName { get; set; } = string.Empty;
+        public List<DoubleBarChartPointDTO> Points { get; set; } = new();
+    }
+
+    public class DoubleBarChartPointDTO
+    {
+        public string Label { get; set; } = string.Empty;
+        public string CurrentPeriod { get; set; } = string.Empty;
+        public string ComparisonPeriod { get; set; } = string.Empty;
+        public decimal CurrentValue { get; set; }
+        public decimal ComparisonValue { get; set; }
+        public int CurrentCount { get; set; }
+        public int ComparisonCount { get; set; }
     }
 
     public class RevenuePaymentRowDTO

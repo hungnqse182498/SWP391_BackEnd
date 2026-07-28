@@ -13,7 +13,7 @@ namespace BLL.Implements
     public class ReportService : IReportService
     {
         private const int LatestRowLimit = 100;
-        private static readonly string[] SupportedFormats = { "excel", "pdf" };
+        private static readonly string[] SupportedFormats = { "pdf" };
         private static readonly string[] SupportedReportTypes = { "summary", "revenue", "operations" };
 
         private readonly IUnitOfWork _unitOfWork;
@@ -59,6 +59,10 @@ namespace BLL.Implements
             if (error != null) return error;
 
             var payments = await GetSuccessfulPaymentsAsync(range);
+            var previousRange = BuildPreviousPeriodRange(range);
+            var samePeriodRange = BuildSamePeriodLastYearRange(range);
+            var previousPayments = await GetSuccessfulPaymentsAsync(previousRange);
+            var samePeriodPayments = await GetSuccessfulPaymentsAsync(samePeriodRange);
             var sessions = await GetEntrySessionsAsync(range);
             var exits = await GetExitSessionsAsync(range);
             var reservations = await GetReservationsAsync(range);
@@ -81,9 +85,11 @@ namespace BLL.Implements
             var summary = new ReportSummaryDTO
             {
                 Range = range,
-                RevenueSeries = BuildRevenueSeries(payments, range.GroupBy),
+                RevenueSeries = BuildRevenueSeries(payments, range),
                 RevenueByPaymentType = BuildPaymentBreakdown(payments, p => p.PaymentType),
                 RevenueByPaymentMethod = BuildPaymentBreakdown(payments, p => p.PaymentMethod),
+                RevenueComparison = BuildRevenueComparison(range, payments, previousRange, previousPayments, samePeriodRange, samePeriodPayments),
+                RevenueCharts = BuildRevenueCharts(range, payments, previousRange, previousPayments, samePeriodRange, samePeriodPayments),
                 Slots = slotOverview,
                 SlotOccupancyByFloor = floorOccupancy,
                 Metrics =
@@ -115,7 +121,12 @@ namespace BLL.Implements
             if (error != null) return error;
 
             var payments = await GetSuccessfulPaymentsAsync(range);
+            var previousRange = BuildPreviousPeriodRange(range);
+            var samePeriodRange = BuildSamePeriodLastYearRange(range);
+            var previousPayments = await GetSuccessfulPaymentsAsync(previousRange);
+            var samePeriodPayments = await GetSuccessfulPaymentsAsync(samePeriodRange);
             var totalRevenue = payments.Sum(p => p.Amount);
+            var revenueSeries = BuildRevenueSeries(payments, range);
 
             var report = new RevenueReportDTO
             {
@@ -123,9 +134,13 @@ namespace BLL.Implements
                 TotalRevenue = totalRevenue,
                 SuccessfulPaymentCount = payments.Count,
                 AveragePaymentAmount = payments.Count == 0 ? 0 : Math.Round(totalRevenue / payments.Count, 2),
-                RevenueSeries = BuildRevenueSeries(payments, range.GroupBy),
+                Overview = BuildRevenueOverview(totalRevenue, payments.Count, revenueSeries),
+                Comparison = BuildRevenueComparison(range, payments, previousRange, previousPayments, samePeriodRange, samePeriodPayments),
+                Charts = BuildRevenueCharts(range, payments, previousRange, previousPayments, samePeriodRange, samePeriodPayments),
+                RevenueSeries = revenueSeries,
                 ByPaymentType = BuildPaymentBreakdown(payments, p => p.PaymentType),
                 ByPaymentMethod = BuildPaymentBreakdown(payments, p => p.PaymentMethod),
+                ByVehicleType = BuildPaymentBreakdown(payments, GetPaymentVehicleTypeName),
                 LatestPayments = payments
                     .OrderByDescending(p => p.PaymentTime)
                     .Take(LatestRowLimit)
@@ -225,7 +240,7 @@ namespace BLL.Implements
 
             if (!SupportedFormats.Contains(format))
             {
-                return new ResponseDTO("Định dạng xuất báo cáo chỉ được là excel hoặc pdf", 400, false);
+                return new ResponseDTO("Định dạng xuất báo cáo chỉ được là pdf", 400, false);
             }
 
             ResponseDTO reportResponse = reportType switch
@@ -244,19 +259,12 @@ namespace BLL.Implements
             var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
             var fileBaseName = $"report_{reportType}_{timestamp}";
 
-            ReportExportFileDTO file = format == "pdf"
-                ? new ReportExportFileDTO
-                {
-                    Content = BuildPdf(fileBaseName, RowsToPdfLines(rows)),
-                    ContentType = "application/pdf",
-                    FileName = $"{fileBaseName}.pdf"
-                }
-                : new ReportExportFileDTO
-                {
-                    Content = BuildCsv(rows),
-                    ContentType = "application/vnd.ms-excel; charset=utf-8",
-                    FileName = $"{fileBaseName}.csv"
-                };
+            var file = new ReportExportFileDTO
+            {
+                Content = BuildPdf(fileBaseName, rows),
+                ContentType = "application/pdf",
+                FileName = $"{fileBaseName}.pdf"
+            };
 
             return new ResponseDTO("Xuất báo cáo thành công", 200, true, file);
         }
@@ -266,8 +274,11 @@ namespace BLL.Implements
             var query = _unitOfWork.PaymentRepo.GetAll()
                 .AsNoTracking()
                 .Include(p => p.Session)
+                    .ThenInclude(s => s.VehicleType)
                 .Include(p => p.Reservation)
+                    .ThenInclude(r => r.VehicleType)
                 .Include(p => p.Subscription)
+                    .ThenInclude(s => s.VehicleType)
                 .Where(p =>
                     p.PaymentStatus == PaymentStatus.Success.ToString() &&
                     p.PaymentTime >= range.From &&
@@ -517,18 +528,285 @@ namespace BLL.Implements
             };
         }
 
-        private static List<ReportSeriesPointDTO> BuildRevenueSeries(List<Payment> payments, string groupBy)
+        private static List<ReportSeriesPointDTO> BuildRevenueSeries(List<Payment> payments, ReportRangeDTO range)
         {
-            return payments
-                .GroupBy(p => GetPeriodKey(p.PaymentTime, groupBy))
-                .OrderBy(g => g.Key)
-                .Select(g => new ReportSeriesPointDTO
+            var groupedPayments = payments
+                .GroupBy(p => GetPeriodKey(p.PaymentTime, range.GroupBy))
+                .ToDictionary(
+                    g => g.Key,
+                    g => new
+                    {
+                        Count = g.Count(),
+                        Amount = g.Sum(p => p.Amount)
+                    });
+
+            return BuildPeriodBuckets(range)
+                .Select(bucket =>
                 {
-                    Period = g.Key,
-                    Count = g.Count(),
-                    Amount = g.Sum(p => p.Amount)
+                    groupedPayments.TryGetValue(bucket.Label, out var data);
+
+                    return new ReportSeriesPointDTO
+                    {
+                        Period = bucket.Label,
+                        Count = data?.Count ?? 0,
+                        Amount = data?.Amount ?? 0
+                    };
                 })
                 .ToList();
+        }
+
+        private static RevenueOverviewDTO BuildRevenueOverview(
+            decimal totalRevenue,
+            int successfulPaymentCount,
+            List<ReportSeriesPointDTO> revenueSeries)
+        {
+            var averagePaymentAmount = successfulPaymentCount == 0
+                ? 0
+                : Math.Round(totalRevenue / successfulPaymentCount, 2);
+
+            var highest = revenueSeries
+                .OrderByDescending(x => x.Amount)
+                .FirstOrDefault();
+            var lowest = revenueSeries
+                .OrderBy(x => x.Amount)
+                .FirstOrDefault();
+
+            return new RevenueOverviewDTO
+            {
+                TotalRevenue = totalRevenue,
+                SuccessfulPaymentCount = successfulPaymentCount,
+                AveragePaymentAmount = averagePaymentAmount,
+                HighestRevenueAmount = highest?.Amount ?? 0,
+                HighestRevenuePeriod = highest?.Period ?? string.Empty,
+                LowestRevenueAmount = lowest?.Amount ?? 0,
+                LowestRevenuePeriod = lowest?.Period ?? string.Empty
+            };
+        }
+
+        private static RevenueComparisonDTO BuildRevenueComparison(
+            ReportRangeDTO currentRange,
+            List<Payment> currentPayments,
+            ReportRangeDTO previousRange,
+            List<Payment> previousPayments,
+            ReportRangeDTO samePeriodRange,
+            List<Payment> samePeriodPayments)
+        {
+            return new RevenueComparisonDTO
+            {
+                PreviousPeriod = BuildRevenueComparisonItem(
+                    "Kỳ trước",
+                    currentRange,
+                    currentPayments,
+                    previousRange,
+                    previousPayments),
+                SamePeriodLastYear = BuildRevenueComparisonItem(
+                    "Cùng kỳ năm trước",
+                    currentRange,
+                    currentPayments,
+                    samePeriodRange,
+                    samePeriodPayments)
+            };
+        }
+
+        private static RevenueComparisonItemDTO BuildRevenueComparisonItem(
+            string label,
+            ReportRangeDTO currentRange,
+            List<Payment> currentPayments,
+            ReportRangeDTO comparisonRange,
+            List<Payment> comparisonPayments)
+        {
+            var currentRevenue = currentPayments.Sum(p => p.Amount);
+            var comparisonRevenue = comparisonPayments.Sum(p => p.Amount);
+            var currentCount = currentPayments.Count;
+            var comparisonCount = comparisonPayments.Count;
+
+            return new RevenueComparisonItemDTO
+            {
+                Label = label,
+                CurrentFrom = currentRange.From,
+                CurrentTo = currentRange.To,
+                ComparisonFrom = comparisonRange.From,
+                ComparisonTo = comparisonRange.To,
+                CurrentRevenue = currentRevenue,
+                ComparisonRevenue = comparisonRevenue,
+                DifferenceAmount = currentRevenue - comparisonRevenue,
+                GrowthPercent = GrowthPercent(currentRevenue, comparisonRevenue),
+                CurrentPaymentCount = currentCount,
+                ComparisonPaymentCount = comparisonCount,
+                PaymentCountDifference = currentCount - comparisonCount,
+                PaymentCountGrowthPercent = GrowthPercent(currentCount, comparisonCount)
+            };
+        }
+
+        private static RevenueChartsDTO BuildRevenueCharts(
+            ReportRangeDTO currentRange,
+            List<Payment> currentPayments,
+            ReportRangeDTO previousRange,
+            List<Payment> previousPayments,
+            ReportRangeDTO samePeriodRange,
+            List<Payment> samePeriodPayments)
+        {
+            var byPaymentType = BuildPaymentBreakdown(currentPayments, p => p.PaymentType);
+            var byPaymentMethod = BuildPaymentBreakdown(currentPayments, p => p.PaymentMethod);
+            var byVehicleType = BuildPaymentBreakdown(currentPayments, GetPaymentVehicleTypeName);
+
+            return new RevenueChartsDTO
+            {
+                LineChart = BuildRevenueLineChart(currentRange, currentPayments),
+                PieCharts =
+                {
+                    BuildPieChart("Tỷ trọng doanh thu theo loại thanh toán", "paymentType", byPaymentType),
+                    BuildPieChart("Tỷ trọng doanh thu theo phương thức thanh toán", "paymentMethod", byPaymentMethod),
+                    BuildPieChart("Tỷ trọng doanh thu theo loại xe", "vehicleType", byVehicleType)
+                },
+                DoubleBarChart = BuildDoubleBarChart(
+                    "Doanh thu kỳ này so với cùng kỳ năm trước",
+                    "Kỳ này",
+                    "Cùng kỳ năm trước",
+                    currentRange,
+                    currentPayments,
+                    samePeriodRange,
+                    samePeriodPayments),
+                PreviousPeriodDoubleBarChart = BuildDoubleBarChart(
+                    "Doanh thu kỳ này so với kỳ trước",
+                    "Kỳ này",
+                    "Kỳ trước",
+                    currentRange,
+                    currentPayments,
+                    previousRange,
+                    previousPayments)
+            };
+        }
+
+        private static LineChartDTO BuildRevenueLineChart(ReportRangeDTO range, List<Payment> payments)
+        {
+            var groupedPayments = payments
+                .GroupBy(p => GetPeriodKey(p.PaymentTime, range.GroupBy))
+                .ToDictionary(
+                    g => g.Key,
+                    g => new
+                    {
+                        Count = g.Count(),
+                        Amount = g.Sum(p => p.Amount)
+                    });
+
+            return new LineChartDTO
+            {
+                Title = "Biểu đồ đường doanh thu",
+                GroupBy = range.GroupBy,
+                Unit = "VND",
+                Points = BuildPeriodBuckets(range)
+                    .Select(bucket =>
+                    {
+                        groupedPayments.TryGetValue(bucket.Label, out var data);
+
+                        return new ChartPointDTO
+                        {
+                            Label = bucket.Label,
+                            From = bucket.From,
+                            To = bucket.To,
+                            Value = data?.Amount ?? 0,
+                            Count = data?.Count ?? 0
+                        };
+                    })
+                    .ToList()
+            };
+        }
+
+        private static PieChartDTO BuildPieChart(
+            string title,
+            string dimension,
+            List<ReportBreakdownDTO> breakdown)
+        {
+            return new PieChartDTO
+            {
+                Title = title,
+                Dimension = dimension,
+                Unit = "VND",
+                Slices = breakdown
+                    .Select(item => new PieChartSliceDTO
+                    {
+                        Label = item.Name,
+                        Value = item.Amount,
+                        Count = item.Count,
+                        Percent = item.Percent
+                    })
+                    .ToList()
+            };
+        }
+
+        private static DoubleBarChartDTO BuildDoubleBarChart(
+            string title,
+            string currentSeriesName,
+            string comparisonSeriesName,
+            ReportRangeDTO currentRange,
+            List<Payment> currentPayments,
+            ReportRangeDTO comparisonRange,
+            List<Payment> comparisonPayments)
+        {
+            var currentGrouped = currentPayments
+                .GroupBy(p => GetPeriodKey(p.PaymentTime, currentRange.GroupBy))
+                .ToDictionary(
+                    g => g.Key,
+                    g => new
+                    {
+                        Count = g.Count(),
+                        Amount = g.Sum(p => p.Amount)
+                    });
+
+            var comparisonGrouped = comparisonPayments
+                .GroupBy(p => GetPeriodKey(p.PaymentTime, comparisonRange.GroupBy))
+                .ToDictionary(
+                    g => g.Key,
+                    g => new
+                    {
+                        Count = g.Count(),
+                        Amount = g.Sum(p => p.Amount)
+                    });
+
+            var currentBuckets = BuildPeriodBuckets(currentRange);
+            var comparisonBuckets = BuildPeriodBuckets(comparisonRange);
+
+            return new DoubleBarChartDTO
+            {
+                Title = title,
+                Unit = "VND",
+                GroupBy = currentRange.GroupBy,
+                CurrentSeriesName = currentSeriesName,
+                ComparisonSeriesName = comparisonSeriesName,
+                Points = currentBuckets
+                    .Select((currentBucket, index) =>
+                    {
+                        currentGrouped.TryGetValue(currentBucket.Label, out var currentData);
+                        if (index < comparisonBuckets.Count)
+                        {
+                            var comparisonBucket = comparisonBuckets[index];
+                            comparisonGrouped.TryGetValue(comparisonBucket.Label, out var comparisonData);
+                            return new DoubleBarChartPointDTO
+                            {
+                                Label = currentBucket.Label,
+                                CurrentPeriod = currentBucket.Label,
+                                ComparisonPeriod = comparisonBucket.Label,
+                                CurrentValue = currentData?.Amount ?? 0,
+                                ComparisonValue = comparisonData?.Amount ?? 0,
+                                CurrentCount = currentData?.Count ?? 0,
+                                ComparisonCount = comparisonData?.Count ?? 0
+                            };
+                        }
+
+                        return new DoubleBarChartPointDTO
+                        {
+                            Label = currentBucket.Label,
+                            CurrentPeriod = currentBucket.Label,
+                            ComparisonPeriod = string.Empty,
+                            CurrentValue = currentData?.Amount ?? 0,
+                            ComparisonValue = 0,
+                            CurrentCount = currentData?.Count ?? 0,
+                            ComparisonCount = 0
+                        };
+                    })
+                    .ToList()
+            };
         }
 
         private static List<ReportBreakdownDTO> BuildPaymentBreakdown(List<Payment> payments, Func<Payment, string?> keySelector)
@@ -602,11 +880,103 @@ namespace BLL.Implements
             return total <= 0 ? 0 : Math.Round(value / total * 100, 2);
         }
 
+        private static decimal GrowthPercent(decimal current, decimal comparison)
+        {
+            if (comparison == 0)
+            {
+                return current == 0 ? 0 : 100;
+            }
+
+            return Math.Round((current - comparison) / comparison * 100, 2);
+        }
+
         private static string GetPeriodKey(DateTime value, string groupBy)
         {
-            return groupBy == "month"
-                ? value.ToString("yyyy-MM", CultureInfo.InvariantCulture)
-                : value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            return groupBy switch
+            {
+                "month" => value.ToString("yyyy-MM", CultureInfo.InvariantCulture),
+                "quarter" => $"{value.Year}-Q{GetQuarter(value)}",
+                "year" => value.ToString("yyyy", CultureInfo.InvariantCulture),
+                _ => value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+            };
+        }
+
+        private static int GetQuarter(DateTime value)
+        {
+            return ((value.Month - 1) / 3) + 1;
+        }
+
+        private static DateTime GetPeriodStart(DateTime value, string groupBy)
+        {
+            var date = value.Date;
+            return groupBy switch
+            {
+                "month" => new DateTime(date.Year, date.Month, 1),
+                "quarter" => new DateTime(date.Year, ((date.Month - 1) / 3) * 3 + 1, 1),
+                "year" => new DateTime(date.Year, 1, 1),
+                _ => date
+            };
+        }
+
+        private static DateTime MoveToNextPeriod(DateTime periodStart, string groupBy)
+        {
+            return groupBy switch
+            {
+                "month" => periodStart.AddMonths(1),
+                "quarter" => periodStart.AddMonths(3),
+                "year" => periodStart.AddYears(1),
+                _ => periodStart.AddDays(1)
+            };
+        }
+
+        private static List<(string Label, DateTime From, DateTime To)> BuildPeriodBuckets(ReportRangeDTO range)
+        {
+            var buckets = new List<(string Label, DateTime From, DateTime To)>();
+            var cursor = GetPeriodStart(range.From, range.GroupBy);
+
+            while (cursor <= range.To)
+            {
+                var nextPeriod = MoveToNextPeriod(cursor, range.GroupBy);
+                var bucketFrom = cursor < range.From ? range.From : cursor;
+                var bucketTo = nextPeriod.AddTicks(-1) > range.To ? range.To : nextPeriod.AddTicks(-1);
+
+                buckets.Add((GetPeriodKey(cursor, range.GroupBy), bucketFrom, bucketTo));
+                cursor = nextPeriod;
+            }
+
+            return buckets;
+        }
+
+        private static ReportRangeDTO BuildPreviousPeriodRange(ReportRangeDTO range)
+        {
+            var durationTicks = range.To.Ticks - range.From.Ticks + 1;
+
+            return new ReportRangeDTO
+            {
+                From = range.From.AddTicks(-durationTicks),
+                To = range.From.AddTicks(-1),
+                GroupBy = range.GroupBy,
+                VehicleTypeId = range.VehicleTypeId
+            };
+        }
+
+        private static ReportRangeDTO BuildSamePeriodLastYearRange(ReportRangeDTO range)
+        {
+            return new ReportRangeDTO
+            {
+                From = range.From.AddYears(-1),
+                To = range.To.AddYears(-1),
+                GroupBy = range.GroupBy,
+                VehicleTypeId = range.VehicleTypeId
+            };
+        }
+
+        private static string GetPaymentVehicleTypeName(Payment payment)
+        {
+            return payment.Session?.VehicleType?.TypeName
+                ?? payment.Reservation?.VehicleType?.TypeName
+                ?? payment.Subscription?.VehicleType?.TypeName
+                ?? "Unknown";
         }
 
         private static string NormalizeGroupName(string? value)
@@ -632,7 +1002,9 @@ namespace BLL.Implements
 
             var from = (filter.From ?? DateTime.Today.AddDays(-30)).Date;
             var to = (filter.To ?? DateTime.Today).Date.AddDays(1).AddTicks(-1);
-            var groupBy = NormalizeToken(filter.GroupBy);
+            var groupBy = !string.IsNullOrWhiteSpace(filter.Period)
+                ? NormalizeToken(filter.Period)
+                : NormalizeToken(filter.GroupBy);
             groupBy = string.IsNullOrWhiteSpace(groupBy) ? "day" : groupBy;
 
             if (from > to)
@@ -640,9 +1012,9 @@ namespace BLL.Implements
                 return (new ReportRangeDTO(), new ResponseDTO("Ngày bắt đầu không được lớn hơn ngày kết thúc", 400, false));
             }
 
-            if (groupBy is not ("day" or "month"))
+            if (groupBy is not ("day" or "month" or "quarter" or "year"))
             {
-                return (new ReportRangeDTO(), new ResponseDTO("GroupBy chỉ được là day hoặc month", 400, false));
+                return (new ReportRangeDTO(), new ResponseDTO("GroupBy must be one of: day, month, quarter, year", 400, false));
             }
 
             return (new ReportRangeDTO
@@ -818,54 +1190,328 @@ namespace BLL.Implements
             return value.ToString("0.##", CultureInfo.InvariantCulture);
         }
 
-        private static byte[] BuildCsv(List<string[]> rows)
+        private static byte[] BuildPdf(string fileBaseName, List<string[]> rows)
         {
-            var csv = new StringBuilder();
-            csv.Append('\uFEFF');
+            const double pageWidth = 595;
+            const double pageHeight = 842;
+            const double margin = 36;
+            const double footerHeight = 44;
+            const double contentWidth = pageWidth - margin * 2;
 
-            foreach (var row in rows)
+            var reportTitle = rows.FirstOrDefault(row => row.Length > 0)?.FirstOrDefault() ?? fileBaseName;
+            var generatedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+            var pages = new List<string>();
+            var content = new StringBuilder();
+            var pageNumber = 0;
+            var y = 0d;
+            var currentSection = string.Empty;
+
+            void StartPage()
             {
-                csv.AppendLine(string.Join(",", row.Select(EscapeCsv)));
+                pageNumber++;
+                content = new StringBuilder();
+                DrawPageChrome(content, reportTitle, generatedAt, pageNumber, pageWidth, pageHeight, margin);
+                y = pageHeight - 138;
             }
 
-            return Encoding.UTF8.GetBytes(csv.ToString());
-        }
-
-        private static string EscapeCsv(string? value)
-        {
-            value ??= string.Empty;
-            return $"\"{value.Replace("\"", "\"\"")}\"";
-        }
-
-        private static List<string> RowsToPdfLines(List<string[]> rows)
-        {
-            return rows
-                .Select(row => row.Length == 0 ? string.Empty : string.Join(" | ", row.Where(value => !string.IsNullOrWhiteSpace(value))))
-                .ToList();
-        }
-
-        private static byte[] BuildPdf(string title, List<string> lines)
-        {
-            var pdfLines = new List<string>
+            void FinishPage()
             {
-                title,
-                $"Generated at: {DateTime.Now:yyyy-MM-dd HH:mm:ss}",
-                string.Empty
-            };
-            pdfLines.AddRange(lines.Select(RemoveDiacritics));
+                pages.Add(content.ToString());
+            }
 
-            var pages = pdfLines
-                .Select(line => line.Length > 100 ? line[..100] : line)
-                .Chunk(44)
-                .Select(chunk => chunk.ToList())
+            void EnsureSpace(double requiredHeight, bool repeatSectionOnNewPage = true)
+            {
+                if (y - requiredHeight >= footerHeight)
+                {
+                    return;
+                }
+
+                FinishPage();
+                StartPage();
+
+                if (repeatSectionOnNewPage && !string.IsNullOrWhiteSpace(currentSection))
+                {
+                    DrawSectionHeader(currentSection + " (continued)");
+                }
+            }
+
+            void DrawSectionHeader(string title)
+            {
+                currentSection = title.Replace(" (continued)", string.Empty);
+                EnsureSpace(34, false);
+                y -= 6;
+                DrawRect(content, margin, y - 24, 4, 22, "0.15 0.39 0.92");
+                DrawText(content, title, margin + 12, y - 18, 12, "F2", "0.08 0.13 0.24");
+                DrawLine(content, margin, y - 29, pageWidth - margin, y - 29, "0.86 0.90 0.96");
+                y -= 42;
+            }
+
+            void DrawMetadata(List<string[]> metadataRows)
+            {
+                if (metadataRows.Count == 0)
+                {
+                    return;
+                }
+
+                var rowsPerColumn = (int)Math.Ceiling(metadataRows.Count / 2d);
+                var cardHeight = 28 + rowsPerColumn * 22;
+                EnsureSpace(cardHeight + 12);
+                DrawRect(content, margin, y - cardHeight, contentWidth, cardHeight, "0.94 0.97 1.00");
+                DrawStrokeRect(content, margin, y - cardHeight, contentWidth, cardHeight, "0.78 0.86 0.98");
+                DrawText(content, "Report information", margin + 14, y - 19, 11, "F2", "0.15 0.39 0.92");
+
+                for (var index = 0; index < metadataRows.Count; index++)
+                {
+                    var row = metadataRows[index];
+                    var column = index / rowsPerColumn;
+                    var rowIndex = index % rowsPerColumn;
+                    var x = margin + 14 + column * (contentWidth / 2);
+                    var textY = y - 43 - rowIndex * 22;
+                    var label = row.ElementAtOrDefault(0) ?? string.Empty;
+                    var value = row.ElementAtOrDefault(1) ?? string.Empty;
+
+                    DrawText(content, FitText(label, 82, 8), x, textY, 8, "F2", "0.38 0.46 0.58");
+                    DrawText(content, FitText(value, contentWidth / 2 - 104, 9), x + 90, textY, 9, "F1", "0.08 0.13 0.24");
+                }
+
+                y -= cardHeight + 18;
+            }
+
+            void DrawKeyValueBlock(List<string[]> block)
+            {
+                const double rowHeight = 24;
+                foreach (var (row, index) in block.Select((row, index) => (row, index)))
+                {
+                    EnsureSpace(rowHeight + 2);
+                    var bg = index % 2 == 0 ? "1 1 1" : "0.98 0.99 1";
+                    DrawRect(content, margin, y - rowHeight, contentWidth, rowHeight, bg);
+                    DrawStrokeRect(content, margin, y - rowHeight, contentWidth, rowHeight, "0.88 0.91 0.95");
+                    DrawText(content, FitText(row.ElementAtOrDefault(0) ?? string.Empty, contentWidth * 0.42, 9), margin + 8, y - 16, 9, "F2", "0.30 0.36 0.47");
+                    DrawText(content, FitText(row.ElementAtOrDefault(1) ?? string.Empty, contentWidth * 0.52, 9), margin + contentWidth * 0.44, y - 16, 9, "F1", "0.08 0.13 0.24");
+                    y -= rowHeight;
+                }
+
+                y -= 12;
+            }
+
+            void DrawTable(List<string[]> block)
+            {
+                if (block.Count == 0)
+                {
+                    return;
+                }
+
+                var columnCount = Math.Max(1, block.Max(row => row.Length));
+                var widths = GetColumnWidths(columnCount, contentWidth);
+                var header = block[0];
+                var dataRows = block.Skip(1).ToList();
+                var fontSize = columnCount >= 6 ? 7 : 8;
+                const double headerHeight = 25;
+                const double rowHeight = 23;
+
+                void DrawHeader()
+                {
+                    EnsureSpace(headerHeight + rowHeight);
+                    DrawRect(content, margin, y - headerHeight, contentWidth, headerHeight, "0.15 0.39 0.92");
+
+                    var x = margin;
+                    for (var col = 0; col < columnCount; col++)
+                    {
+                        DrawText(content, FitText(header.ElementAtOrDefault(col) ?? string.Empty, widths[col] - 10, fontSize), x + 5, y - 16, fontSize, "F2", "1 1 1");
+                        x += widths[col];
+                    }
+
+                    y -= headerHeight;
+                }
+
+                DrawHeader();
+
+                if (dataRows.Count == 0)
+                {
+                    EnsureSpace(rowHeight);
+                    DrawRect(content, margin, y - rowHeight, contentWidth, rowHeight, "1 1 1");
+                    DrawStrokeRect(content, margin, y - rowHeight, contentWidth, rowHeight, "0.88 0.91 0.95");
+                    DrawText(content, "No data", margin + 8, y - 15, 9, "F1", "0.38 0.46 0.58");
+                    y -= rowHeight + 12;
+                    return;
+                }
+
+                for (var rowIndex = 0; rowIndex < dataRows.Count; rowIndex++)
+                {
+                    if (y - rowHeight < footerHeight)
+                    {
+                        FinishPage();
+                        StartPage();
+                        if (!string.IsNullOrWhiteSpace(currentSection))
+                        {
+                            DrawSectionHeader(currentSection + " (continued)");
+                        }
+                        DrawHeader();
+                    }
+
+                    var row = dataRows[rowIndex];
+                    var bg = rowIndex % 2 == 0 ? "1 1 1" : "0.98 0.99 1";
+                    DrawRect(content, margin, y - rowHeight, contentWidth, rowHeight, bg);
+                    DrawStrokeRect(content, margin, y - rowHeight, contentWidth, rowHeight, "0.88 0.91 0.95");
+
+                    var x = margin;
+                    for (var col = 0; col < columnCount; col++)
+                    {
+                        var value = row.ElementAtOrDefault(col) ?? string.Empty;
+                        DrawText(content, FitText(value, widths[col] - 10, fontSize), x + 5, y - 15, fontSize, "F1", "0.08 0.13 0.24");
+                        x += widths[col];
+                    }
+
+                    y -= rowHeight;
+                }
+
+                y -= 14;
+            }
+
+            StartPage();
+
+            var metadata = rows
+                .Skip(1)
+                .TakeWhile(row => row.Length > 0)
                 .ToList();
+            DrawMetadata(metadata);
 
+            var i = 1 + metadata.Count;
+            while (i < rows.Count && rows[i].Length == 0)
+            {
+                i++;
+            }
+
+            while (i < rows.Count)
+            {
+                var row = rows[i];
+                if (row.Length == 0)
+                {
+                    y -= 8;
+                    i++;
+                    continue;
+                }
+
+                if (IsSectionRow(row))
+                {
+                    DrawSectionHeader(row.ElementAtOrDefault(1) ?? string.Empty);
+                    i++;
+                    continue;
+                }
+
+                var block = new List<string[]>();
+                while (i < rows.Count && rows[i].Length > 0 && !IsSectionRow(rows[i]))
+                {
+                    block.Add(rows[i]);
+                    i++;
+                }
+
+                if (string.IsNullOrWhiteSpace(currentSection))
+                {
+                    DrawSectionHeader("Overview");
+                }
+
+                var maxColumns = block.Count == 0 ? 0 : block.Max(item => item.Length);
+                if (maxColumns <= 2)
+                {
+                    DrawKeyValueBlock(block);
+                }
+                else
+                {
+                    DrawTable(block);
+                }
+            }
+
+            if (pages.Count == 0 || content.Length > 0)
+            {
+                FinishPage();
+            }
+
+            return BuildPdfDocument(pages);
+        }
+
+        private static bool IsSectionRow(string[] row)
+        {
+            return row.Length >= 2 && string.IsNullOrWhiteSpace(row[0]) && !string.IsNullOrWhiteSpace(row[1]);
+        }
+
+        private static void DrawPageChrome(StringBuilder content, string title, string generatedAt, int pageNumber, double pageWidth, double pageHeight, double margin)
+        {
+            DrawRect(content, 0, 0, pageWidth, pageHeight, "0.96 0.98 1.00");
+            DrawRect(content, margin, pageHeight - 108, pageWidth - margin * 2, 72, "0.15 0.39 0.92");
+            DrawText(content, "PARKING BUILDING MANAGEMENT", margin + 18, pageHeight - 62, 8, "F2", "0.78 0.86 1.00");
+            DrawText(content, FitText(title, pageWidth - margin * 2 - 36, 17), margin + 18, pageHeight - 84, 17, "F2", "1 1 1");
+            DrawText(content, $"Generated at {generatedAt}", margin + 18, pageHeight - 100, 8, "F1", "0.88 0.93 1.00");
+            DrawText(content, $"Page {pageNumber}", pageWidth - margin - 52, 28, 8, "F1", "0.45 0.52 0.64");
+            DrawLine(content, margin, 48, pageWidth - margin, 48, "0.86 0.90 0.96");
+        }
+
+        private static void DrawRect(StringBuilder content, double x, double y, double width, double height, string color)
+        {
+            content.AppendLine($"q {color} rg {PdfNumber(x)} {PdfNumber(y)} {PdfNumber(width)} {PdfNumber(height)} re f Q");
+        }
+
+        private static void DrawStrokeRect(StringBuilder content, double x, double y, double width, double height, string color)
+        {
+            content.AppendLine($"q {color} RG 0.6 w {PdfNumber(x)} {PdfNumber(y)} {PdfNumber(width)} {PdfNumber(height)} re S Q");
+        }
+
+        private static void DrawLine(StringBuilder content, double x1, double y1, double x2, double y2, string color)
+        {
+            content.AppendLine($"q {color} RG 0.7 w {PdfNumber(x1)} {PdfNumber(y1)} m {PdfNumber(x2)} {PdfNumber(y2)} l S Q");
+        }
+
+        private static void DrawText(StringBuilder content, string text, double x, double y, int fontSize, string fontName, string color)
+        {
+            content.AppendLine($"BT /{fontName} {fontSize} Tf {color} rg {PdfNumber(x)} {PdfNumber(y)} Td ({EscapePdfText(RemoveDiacritics(text))}) Tj ET");
+        }
+
+        private static string FitText(string value, double maxWidth, double fontSize)
+        {
+            value = RemoveDiacritics(value ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return string.Empty;
+            }
+
+            var maxCharacters = Math.Max(3, (int)Math.Floor(maxWidth / (fontSize * 0.52)));
+            return value.Length <= maxCharacters
+                ? value
+                : value[..Math.Max(1, maxCharacters - 3)] + "...";
+        }
+
+        private static double[] GetColumnWidths(int columnCount, double totalWidth)
+        {
+            double[] weights = columnCount switch
+            {
+                2 => new[] { 0.42, 0.58 },
+                3 => new[] { 0.42, 0.18, 0.40 },
+                4 => new[] { 0.34, 0.17, 0.25, 0.24 },
+                5 => new[] { 0.26, 0.15, 0.20, 0.20, 0.19 },
+                6 => new[] { 0.20, 0.13, 0.18, 0.16, 0.16, 0.17 },
+                7 => new[] { 0.18, 0.13, 0.14, 0.13, 0.14, 0.13, 0.15 },
+                _ => Enumerable.Repeat(1d / columnCount, columnCount).ToArray()
+            };
+
+            var sum = weights.Sum();
+            return weights.Select(weight => totalWidth * weight / sum).ToArray();
+        }
+
+        private static string PdfNumber(double value)
+        {
+            return value.ToString("0.##", CultureInfo.InvariantCulture);
+        }
+
+        private static byte[] BuildPdfDocument(List<string> pages)
+        {
             if (pages.Count == 0)
             {
-                pages.Add(new List<string> { "No data" });
+                pages.Add(string.Empty);
             }
 
-            var fontObjectId = 3 + pages.Count * 2;
+            var fontRegularId = 3 + pages.Count * 2;
+            var fontBoldId = fontRegularId + 1;
+            var fontMonoId = fontRegularId + 2;
             var objects = new List<string>
             {
                 "<< /Type /Catalog /Pages 2 0 R >>",
@@ -876,14 +1522,17 @@ namespace BLL.Implements
             {
                 var pageObjectId = 3 + i * 2;
                 var contentObjectId = pageObjectId + 1;
-                var content = BuildPdfPageContent(pages[i]);
-                var contentLength = Encoding.ASCII.GetByteCount(content);
+                var pageContent = pages[i];
+                var contentLength = Encoding.ASCII.GetByteCount(pageContent);
+                var resources = $"<< /Font << /F1 {fontRegularId} 0 R /F2 {fontBoldId} 0 R /F3 {fontMonoId} 0 R >> >>";
 
-                objects.Add($"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 {fontObjectId} 0 R >> >> /Contents {contentObjectId} 0 R >>");
-                objects.Add($"<< /Length {contentLength} >>\nstream\n{content}\nendstream");
+                objects.Add($"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources {resources} /Contents {contentObjectId} 0 R >>");
+                objects.Add($"<< /Length {contentLength} >>\nstream\n{pageContent}\nendstream");
             }
 
             objects.Add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+            objects.Add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>");
+            objects.Add("<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>");
 
             var output = new StringBuilder("%PDF-1.4\n");
             var offsets = new List<int>();
@@ -912,23 +1561,6 @@ namespace BLL.Implements
                 .Append("%%EOF");
 
             return Encoding.ASCII.GetBytes(output.ToString());
-        }
-
-        private static string BuildPdfPageContent(List<string> lines)
-        {
-            var content = new StringBuilder();
-            content.AppendLine("BT");
-            content.AppendLine("/F1 11 Tf");
-            content.AppendLine("50 800 Td");
-
-            foreach (var line in lines)
-            {
-                content.Append('(').Append(EscapePdfText(line)).AppendLine(") Tj");
-                content.AppendLine("0 -16 Td");
-            }
-
-            content.AppendLine("ET");
-            return content.ToString();
         }
 
         private static string EscapePdfText(string value)
