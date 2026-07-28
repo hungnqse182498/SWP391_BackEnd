@@ -46,6 +46,14 @@ namespace PBMS.Controllers
             return StatusCode(res.StatusCode, res);
         }
 
+        [HttpPatch("{id:guid}/status")]
+        [Authorize(Roles = "Manager, Staff")]
+        public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateParkingSlotStatusDTO dto)
+        {
+            var res = await _parkingSlotService.UpdateStatusAsync(id, dto);
+            return StatusCode(res.StatusCode, res);
+        }
+
         [HttpDelete("{id:guid}")]
         [Authorize(Roles = "Manager")]
         public async Task<IActionResult> Delete(Guid id)

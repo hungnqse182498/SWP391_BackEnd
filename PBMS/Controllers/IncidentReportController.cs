@@ -35,6 +35,22 @@ namespace PBMS.Controllers
         public async Task<IActionResult> GetById(Guid id)
         {
             var res = await _incidentReportService.GetByIdAsync(id);
+            if (res.IsSuccess &&
+                res.Result is IncidentReportDTO incident &&
+                !User.IsInRole("Manager") &&
+                !User.IsInRole("Staff") &&
+                incident.ReportedByUserId != User.GetUserId())
+            {
+                return Forbid();
+            }
+            return StatusCode(res.StatusCode, res);
+        }
+
+        [HttpGet("assignees")]
+        [Authorize(Roles = "Manager")]
+        public async Task<IActionResult> GetAssignableHandlers()
+        {
+            var res = await _incidentReportService.GetAssignableHandlersAsync();
             return StatusCode(res.StatusCode, res);
         }
 

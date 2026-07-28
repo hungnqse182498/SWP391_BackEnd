@@ -15,6 +15,7 @@ namespace BLL.Interfaces
         Task<ResponseDTO> AssignToStaffAsync(Guid incidentId, Guid staffId);
         Task<ResponseDTO> ResolveAsync(Guid incidentId, Guid staffId, ResolveIncidentDTO dto);
         Task<ResponseDTO> GetByUserIdAsync(Guid userId);
+        Task<ResponseDTO> GetAssignableHandlersAsync();
 
 
     }

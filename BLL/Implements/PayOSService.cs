@@ -69,4 +69,20 @@ public class PayOSService : IPayOSService
         await _payOS.PaymentRequests.CancelAsync(orderCode, "Nhân viên hủy checkout");
     }
 
+    public async Task<PayOSPaymentLinkResult> GetPaymentLinkDetailsAsync(Payment payment)
+    {
+        if (!long.TryParse(payment.TransactionReference, out var orderCode))
+        {
+            throw new InvalidOperationException("Thanh toán PayOS chưa có order code hợp lệ");
+        }
+
+        var result = await _payOS.PaymentRequests.GetAsync(orderCode);
+        return new PayOSPaymentLinkResult
+        {
+            PaymentUrl = $"https://pay.payos.vn/web/{result.Id}",
+            QrCode = string.Empty,
+            PaymentLinkId = result.Id
+        };
+    }
+
 }

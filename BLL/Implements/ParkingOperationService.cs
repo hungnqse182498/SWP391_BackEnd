@@ -98,6 +98,56 @@ namespace BLL.Implements
                 feeResult.Preview);
         }
 
+        public async Task<ResponseDTO> GetMyFeePreviewAsync(Guid sessionId, Guid userId)
+        {
+            var ownershipError = await ValidateSessionOwnerAsync(sessionId, userId);
+            return ownershipError ?? await GetFeePreviewAsync(sessionId);
+        }
+
+        public async Task<ResponseDTO> GetMyCheckoutPaymentAsync(Guid sessionId, Guid userId)
+        {
+            var ownershipError = await ValidateSessionOwnerAsync(sessionId, userId);
+            if (ownershipError != null) return ownershipError;
+
+            var payment = await _unitOfWork.PaymentRepo.GetPendingCheckoutPaymentAsync(sessionId);
+            if (payment == null)
+            {
+                return new ResponseDTO(
+                    "Chưa có yêu cầu thanh toán checkout",
+                    200,
+                    true,
+                    new { Payment = (object?)null, OnlinePayment = (object?)null });
+            }
+
+            object? onlinePayment = null;
+            if (IsSameStatus(payment.PaymentMethod, PaymentMethod.PayOS.ToString()))
+            {
+                try
+                {
+                    var link = await _payOSService.GetPaymentLinkDetailsAsync(payment);
+                    onlinePayment = new
+                    {
+                        link.PaymentUrl,
+                        PaymentQrCodeDataUrl = string.IsNullOrWhiteSpace(link.QrCode)
+                            ? null
+                            : CreateQrCodeDataUrl(link.QrCode),
+                        link.PaymentLinkId,
+                        OrderCode = payment.TransactionReference
+                    };
+                }
+                catch (Exception ex)
+                {
+                    return new ResponseDTO($"Không thể tải liên kết thanh toán: {ex.Message}", 502, false);
+                }
+            }
+
+            return new ResponseDTO(
+                "Lấy yêu cầu thanh toán checkout thành công",
+                200,
+                true,
+                new { Payment = MapOperationPayment(payment), OnlinePayment = onlinePayment });
+        }
+
         public async Task<ResponseDTO> GetCheckoutPaymentStatusAsync(Guid paymentId)
         {
             var paymentResult = await FindCheckoutPaymentAsync(paymentId);
@@ -778,6 +828,20 @@ namespace BLL.Implements
             }
 
             return (payment, null);
+        }
+
+        private async Task<ResponseDTO?> ValidateSessionOwnerAsync(Guid sessionId, Guid userId)
+        {
+            if (sessionId == Guid.Empty || userId == Guid.Empty)
+                return new ResponseDTO("Thông tin phiên gửi xe không hợp lệ", 400, false);
+
+            var session = await _unitOfWork.ParkingSessionRepo.GetByIdAsync(sessionId);
+            if (session == null)
+                return new ResponseDTO("Không tìm thấy phiên gửi xe", 404, false);
+            if (!session.DriverUserId.HasValue || session.DriverUserId.Value != userId)
+                return new ResponseDTO("Bạn không có quyền xem phiên gửi xe này", 403, false);
+
+            return null;
         }
 
         private async Task RestoreSessionAfterCancelledCheckoutAsync(Guid? sessionId)

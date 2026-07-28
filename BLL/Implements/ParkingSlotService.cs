@@ -80,6 +80,33 @@ namespace BLL.Implements
             return new ResponseDTO("Cập nhật vị trí đỗ thành công", 200, true, MapToDTO(slot));
         }
 
+        public async Task<ResponseDTO> UpdateStatusAsync(Guid id, UpdateParkingSlotStatusDTO dto)
+        {
+            if (id == Guid.Empty || dto == null)
+                return new ResponseDTO("Dữ liệu cập nhật trạng thái slot không hợp lệ", 400, false);
+
+            if (!Enum.TryParse<ParkingSlotStatus>(dto.Status?.Trim(), true, out var status))
+                return new ResponseDTO(
+                    "Trạng thái slot không hợp lệ (Available, Occupied, Reserved, Assigned, Maintenance, Locked)",
+                    400,
+                    false);
+
+            var slot = await _unitOfWork.ParkingSlotRepo.GetByIdAsync(id);
+            if (slot == null)
+                return new ResponseDTO("Không tìm thấy vị trí đỗ", 404, false);
+
+            slot.Status = status.ToString();
+            await _unitOfWork.ParkingSlotRepo.UpdateAsync(slot);
+            await _unitOfWork.SaveChangeAsync();
+
+            var updated = await _unitOfWork.ParkingSlotRepo.GetDetailWithFloorAndTypeAsync(id);
+            return new ResponseDTO(
+                "Cập nhật trạng thái slot thành công",
+                200,
+                true,
+                MapToDTO(updated ?? slot));
+        }
+
         public async Task<ResponseDTO> DeleteAsync(Guid id)
         {
             if (id == Guid.Empty) return new ResponseDTO("Vui lòng nhập SlotId", 400, false);
@@ -120,7 +147,7 @@ namespace BLL.Implements
 
             if (string.IsNullOrWhiteSpace(status) || !Enum.TryParse<ParkingSlotStatus>(status.Trim(), true, out var parsedStatus))
             {
-                return (null, null, default, new ResponseDTO("Trạng thái vị trí đỗ không hợp lệ (Chỉ nhận: Available, Occupied, Reserved, Assigned)", 400, false));
+                return (null, null, default, new ResponseDTO("Trạng thái vị trí đỗ không hợp lệ (Available, Occupied, Reserved, Assigned, Maintenance, Locked)", 400, false));
             }
 
             var vehicleType = await _unitOfWork.VehicleTypeRepo.GetByIdAsync(vehicleTypeId);

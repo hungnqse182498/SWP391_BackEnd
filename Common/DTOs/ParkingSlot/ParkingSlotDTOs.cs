@@ -30,4 +30,9 @@ namespace Common.DTOs.ParkingSlot
         public Guid VehicleTypeId { get; set; }
         public string Status { get; set; }
     }
+
+    public class UpdateParkingSlotStatusDTO
+    {
+        public string Status { get; set; } = string.Empty;
+    }
 }

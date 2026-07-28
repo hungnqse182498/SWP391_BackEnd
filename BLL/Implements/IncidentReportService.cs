@@ -1,6 +1,7 @@
 using BLL.Interfaces;
 using Common.DTOs;
 using Common.DTOs.IncidentReport;
+using Common.DTOs.User;
 using Common.Enums; 
 using DAL.Models;
 using DAL.UnitOfWorks;
@@ -33,6 +34,41 @@ namespace BLL.Implements
 
             var dtos = incidentList.Select(MapToDTO).ToList();
             return new ResponseDTO("Lấy danh sách sự cố thành công", 200, true, dtos);
+        }
+
+        public async Task<ResponseDTO> GetAssignableHandlersAsync()
+        {
+            var users = await _unitOfWork.UserRepo.GetAllWithRoleAsync();
+            var handlers = users
+                .Where(user =>
+                {
+                    var roleName = user.Role?.RoleName?.Trim();
+                    return string.Equals(user.Status, "Active", StringComparison.OrdinalIgnoreCase) &&
+                           (string.Equals(roleName, "Staff", StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(roleName, "Manager", StringComparison.OrdinalIgnoreCase));
+                })
+                .Select(user => new UserDTO
+                {
+                    UserId = user.UserId,
+                    UserName = user.UserName,
+                    Email = user.Email,
+                    FullName = user.FullName,
+                    PhoneNumber = user.PhoneNumber,
+                    Status = user.Status,
+                    RoleId = user.RoleId,
+                    RoleName = user.Role?.RoleName ?? string.Empty
+                })
+                .OrderBy(user => user.RoleName)
+                .ThenBy(user => user.FullName)
+                .ToList();
+
+            return new ResponseDTO(
+                handlers.Count == 0
+                    ? "Không có nhân viên đang hoạt động để phân công"
+                    : "Lấy danh sách người xử lý sự cố thành công",
+                200,
+                true,
+                handlers);
         }
 
         public async Task<ResponseDTO> GetByIdAsync(Guid id)

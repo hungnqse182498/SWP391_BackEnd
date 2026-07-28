@@ -11,6 +11,7 @@ namespace BLL.Interfaces
         Task<ResponseDTO> GetByIdAsync(Guid id);
         Task<ResponseDTO> CreateAsync(CreateParkingSlotDTO dto);
         Task<ResponseDTO> UpdateAsync(UpdateParkingSlotDTO dto);
+        Task<ResponseDTO> UpdateStatusAsync(Guid id, UpdateParkingSlotStatusDTO dto);
         Task<ResponseDTO> DeleteAsync(Guid id);
     }
 }

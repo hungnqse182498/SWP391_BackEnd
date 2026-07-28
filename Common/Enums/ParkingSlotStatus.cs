@@ -11,6 +11,8 @@ namespace Common.Enums
         Available,
         Occupied,
         Reserved,
-        Assigned
+        Assigned,
+        Maintenance,
+        Locked
     }
 }

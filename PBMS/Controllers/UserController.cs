@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace PBMS.Controllers
 {
     [ApiController]
-    [Authorize(Roles = "Admin,admin,Manager")]
+    [Authorize(Roles = "Admin,admin")]
     [Route("api/[controller]")]
     public class UserController : ControllerBase
     {

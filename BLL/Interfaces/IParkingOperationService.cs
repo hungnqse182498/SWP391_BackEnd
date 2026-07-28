@@ -13,6 +13,8 @@ namespace BLL.Interfaces
         Task<ResponseDTO> ConfirmCashCheckoutAsync(Guid paymentId);
         Task<ResponseDTO> CancelCheckoutAsync(Guid paymentId);
         Task<ResponseDTO> GetFeePreviewAsync(Guid sessionId);
+        Task<ResponseDTO> GetMyFeePreviewAsync(Guid sessionId, Guid userId);
+        Task<ResponseDTO> GetMyCheckoutPaymentAsync(Guid sessionId, Guid userId);
         Task<ResponseDTO> DecodeQrImageAsync(Stream imageStream, string fileName, string? imageUrl = null, CancellationToken cancellationToken = default);
         Task<ResponseDTO> GetAvailabilityAsync(Guid? vehicleTypeId, string? floorKeyword);
     }

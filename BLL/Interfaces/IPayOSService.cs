@@ -18,6 +18,7 @@ namespace BLL.Interfaces
     {
         Task<string> CreatePaymentLinkAsync(Payment payment);
         Task<PayOSPaymentLinkResult> CreatePaymentLinkDetailsAsync(Payment payment);
+        Task<PayOSPaymentLinkResult> GetPaymentLinkDetailsAsync(Payment payment);
         Task CancelPaymentLinkAsync(Payment payment);
     }
 }

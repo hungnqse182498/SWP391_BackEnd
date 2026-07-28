@@ -12,10 +12,14 @@ namespace PBMS.Controllers
     public class ParkingSessionController : ControllerBase
     {
         private readonly IParkingSessionService _parkingSessionService;
+        private readonly IParkingOperationService _parkingOperationService;
 
-        public ParkingSessionController(IParkingSessionService parkingSessionService)
+        public ParkingSessionController(
+            IParkingSessionService parkingSessionService,
+            IParkingOperationService parkingOperationService)
         {
             _parkingSessionService = parkingSessionService;
+            _parkingOperationService = parkingOperationService;
         }
 
         [HttpGet]
@@ -31,6 +35,22 @@ namespace PBMS.Controllers
         public async Task<IActionResult> GetMy()
         {
             var res = await _parkingSessionService.GetMyAsync(User.GetUserId());
+            return StatusCode(res.StatusCode, res);
+        }
+
+        [HttpGet("my/{id:guid}/fee-preview")]
+        [Authorize(Roles = "Customer, User")]
+        public async Task<IActionResult> GetMyFeePreview(Guid id)
+        {
+            var res = await _parkingOperationService.GetMyFeePreviewAsync(id, User.GetUserId());
+            return StatusCode(res.StatusCode, res);
+        }
+
+        [HttpGet("my/{id:guid}/checkout-payment")]
+        [Authorize(Roles = "Customer, User")]
+        public async Task<IActionResult> GetMyCheckoutPayment(Guid id)
+        {
+            var res = await _parkingOperationService.GetMyCheckoutPaymentAsync(id, User.GetUserId());
             return StatusCode(res.StatusCode, res);
         }
 

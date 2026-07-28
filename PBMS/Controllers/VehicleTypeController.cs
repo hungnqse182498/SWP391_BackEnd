@@ -35,6 +35,7 @@ namespace PBMS.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Manager")]
         public async Task<IActionResult> Create([FromBody] CreateVehicleTypeDTO dto)
         {
             var res = await _vehicleTypeService.CreateAsync(dto);
@@ -42,6 +43,7 @@ namespace PBMS.Controllers
         }
 
         [HttpPut]
+        [Authorize(Roles = "Manager")]
         public async Task<IActionResult> Update([FromBody] UpdateVehicleTypeDTO dto)
         {
             var res = await _vehicleTypeService.UpdateAsync(dto);
@@ -49,6 +51,7 @@ namespace PBMS.Controllers
         }
 
         [HttpDelete("{id:guid}")]
+        [Authorize(Roles = "Manager")]
         public async Task<IActionResult> Delete(Guid id)
         {
             var res = await _vehicleTypeService.DeleteAsync(id);
