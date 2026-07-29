@@ -76,7 +76,7 @@ namespace PBMS.Controllers
         [HttpPut("{id:guid}/cancel")]
         public async Task<IActionResult> Cancel(Guid id)
         {
-            var res = await _monthlySubscriptionService.CancelAsync(id);
+            var res = await _monthlySubscriptionService.CancelAsync(id, User.GetUserId());
             return StatusCode(res.StatusCode, res);
         }
 

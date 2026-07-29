@@ -14,7 +14,7 @@ namespace BLL.Interfaces
         Task<ResponseDTO> GetMyAsync(Guid userId);
         Task<ResponseDTO> GetByUserAsync(Guid userId);
         Task<ResponseDTO> UpdateAsync(Guid id, UpdateMonthlySubscriptionDTO dto); 
-        Task<ResponseDTO> CancelAsync(Guid id);
+        Task<ResponseDTO> CancelAsync(Guid id, Guid userId);
         Task<ResponseDTO> DeleteAsync(Guid id); 
         Task<ResponseDTO> CreatePaymentAsync(Guid subscriptionId, Guid userId);
     }

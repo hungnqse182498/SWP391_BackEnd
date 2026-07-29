@@ -259,10 +259,19 @@ namespace BLL.Implements
             return new ResponseDTO("OK", 200, true, list.Select(MapToDTO).ToList());
         }
 
-        public async Task<ResponseDTO> CancelAsync(Guid id)
+        public async Task<ResponseDTO> CancelAsync(Guid id, Guid userId)
         {
+            if (userId == Guid.Empty) return new ResponseDTO("Vui lòng đăng nhập", 401, false);
+
             var sub = await _unitOfWork.MonthlySubscriptionRepo.GetDetailAsync(id);
             if (sub == null) return new ResponseDTO("Không tìm thấy", 404);
+            if (sub.UserId != userId)
+                return new ResponseDTO("Bạn không có quyền hủy gói đăng ký này", 403, false);
+
+            if (sub.Status == MonthlySubscriptionStatus.Cancelled.ToString())
+                return new ResponseDTO("Gói đăng ký đã được hủy trước đó", 400, false);
+            if (sub.Status == MonthlySubscriptionStatus.Expired.ToString())
+                return new ResponseDTO("Không thể hủy gói đăng ký đã hết hạn", 400, false);
 
             sub.Status = MonthlySubscriptionStatus.Cancelled.ToString();
             if (sub.FixedSlotId.HasValue)
