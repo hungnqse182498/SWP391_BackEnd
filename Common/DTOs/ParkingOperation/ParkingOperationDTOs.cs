@@ -43,7 +43,7 @@ namespace Common.DTOs.ParkingOperation
         public int TotalSlots { get; set; }
         public int AvailableSlots { get; set; }
         public int OccupiedSlots { get; set; }
-        public int ReservedSlots { get; set; }
+        public int AssignedSlots { get; set; }
     }
 
     public class ParkingFeePreviewDTO

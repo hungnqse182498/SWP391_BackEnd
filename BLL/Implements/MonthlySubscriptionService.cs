@@ -125,7 +125,7 @@ namespace BLL.Implements
 
                 if (selectedFixedSlot != null)
                 {
-                    selectedFixedSlot.Status = ParkingSlotStatus.Reserved.ToString();
+                    selectedFixedSlot.Status = ParkingSlotStatus.Assigned.ToString();
                     selectedFixedSlot.AssignedUserId = userId;
                     await _unitOfWork.ParkingSlotRepo.UpdateAsync(selectedFixedSlot);
                 }

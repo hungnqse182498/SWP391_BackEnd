@@ -254,7 +254,6 @@ namespace Common.DTOs.Reports
         public int TotalSlots { get; set; }
         public int AvailableSlots { get; set; }
         public int OccupiedSlots { get; set; }
-        public int ReservedSlots { get; set; }
         public int AssignedSlots { get; set; }
         public decimal UtilizationRate { get; set; }
     }
@@ -266,7 +265,6 @@ namespace Common.DTOs.Reports
         public int TotalSlots { get; set; }
         public int AvailableSlots { get; set; }
         public int OccupiedSlots { get; set; }
-        public int ReservedSlots { get; set; }
         public int AssignedSlots { get; set; }
         public decimal UtilizationRate { get; set; }
     }

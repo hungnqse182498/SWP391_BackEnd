@@ -10,7 +10,6 @@ namespace Common.Enums
     { 
         Available,
         Occupied,
-        Reserved,
         Assigned,
         Maintenance,
         Locked

@@ -583,7 +583,6 @@ namespace BLL.Implements
                     slot.Floor?.IsResident != true ||
                     slot.AssignedUserId != subscription.UserId ||
                     (!newlyAssignedSlot &&
-                     slot.Status != ParkingSlotStatus.Reserved.ToString() &&
                      slot.Status != ParkingSlotStatus.Assigned.ToString()))
                 {
                     return new ResponseDTO("Vị trí ô tô của gói không khả dụng", 409, false);
@@ -770,7 +769,7 @@ namespace BLL.Implements
                     TotalSlots = g.Count(),
                     AvailableSlots = g.Count(s => s.Status == ParkingSlotStatus.Available.ToString()),
                     OccupiedSlots = g.Count(s => s.Status == ParkingSlotStatus.Occupied.ToString()),
-                    ReservedSlots = g.Count(s => s.Status == ParkingSlotStatus.Reserved.ToString())
+                    AssignedSlots = g.Count(s => s.Status == ParkingSlotStatus.Assigned.ToString())
                 })
                 .OrderBy(a => a.FloorName)
                 .ToList();
@@ -1277,7 +1276,7 @@ namespace BLL.Implements
             string? licensePlateOut,
             string? exitImageUrl,
             DateTime exitTime,
-            Guid? reservedFixedSlotId = null)
+            Guid? assignedFixedSlotId = null)
         {
             session.ExitGateId = exitGateId;
             session.ExitTime = exitTime;
@@ -1290,8 +1289,8 @@ namespace BLL.Implements
                 var actualSlot = await _unitOfWork.ParkingSlotRepo.GetByIdAsync(session.ActualSlotId.Value);
                 if (actualSlot != null)
                 {
-                    actualSlot.Status = reservedFixedSlotId == actualSlot.SlotId
-                        ? ParkingSlotStatus.Reserved.ToString()
+                    actualSlot.Status = assignedFixedSlotId == actualSlot.SlotId
+                        ? ParkingSlotStatus.Assigned.ToString()
                         : ParkingSlotStatus.Available.ToString();
                     await _unitOfWork.ParkingSlotRepo.UpdateAsync(actualSlot);
                 }
@@ -1302,8 +1301,8 @@ namespace BLL.Implements
                 var assignedSlot = await _unitOfWork.ParkingSlotRepo.GetByIdAsync(session.AssignedSlotId.Value);
                 if (assignedSlot != null)
                 {
-                    assignedSlot.Status = reservedFixedSlotId == assignedSlot.SlotId
-                        ? ParkingSlotStatus.Reserved.ToString()
+                    assignedSlot.Status = assignedFixedSlotId == assignedSlot.SlotId
+                        ? ParkingSlotStatus.Assigned.ToString()
                         : ParkingSlotStatus.Available.ToString();
                     await _unitOfWork.ParkingSlotRepo.UpdateAsync(assignedSlot);
                 }

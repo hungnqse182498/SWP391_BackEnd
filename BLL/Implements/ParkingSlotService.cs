@@ -87,7 +87,7 @@ namespace BLL.Implements
 
             if (!Enum.TryParse<ParkingSlotStatus>(dto.Status?.Trim(), true, out var status))
                 return new ResponseDTO(
-                    "Trạng thái slot không hợp lệ (Available, Occupied, Reserved, Assigned, Maintenance, Locked)",
+                    "Trạng thái slot không hợp lệ (Available, Occupied, Assigned, Maintenance, Locked)",
                     400,
                     false);
 
@@ -147,7 +147,7 @@ namespace BLL.Implements
 
             if (string.IsNullOrWhiteSpace(status) || !Enum.TryParse<ParkingSlotStatus>(status.Trim(), true, out var parsedStatus))
             {
-                return (null, null, default, new ResponseDTO("Trạng thái vị trí đỗ không hợp lệ (Available, Occupied, Reserved, Assigned, Maintenance, Locked)", 400, false));
+                return (null, null, default, new ResponseDTO("Trạng thái vị trí đỗ không hợp lệ (Available, Occupied, Assigned, Maintenance, Locked)", 400, false));
             }
 
             var vehicleType = await _unitOfWork.VehicleTypeRepo.GetByIdAsync(vehicleTypeId);

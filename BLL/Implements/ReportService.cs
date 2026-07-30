@@ -491,7 +491,6 @@ namespace BLL.Implements
                     var total = floorSlots.Count;
                     var available = CountByStatus(floorSlots, s => s.Status, ParkingSlotStatus.Available.ToString());
                     var occupied = CountByStatus(floorSlots, s => s.Status, ParkingSlotStatus.Occupied.ToString());
-                    var reserved = CountByStatus(floorSlots, s => s.Status, ParkingSlotStatus.Reserved.ToString());
                     var assigned = CountByStatus(floorSlots, s => s.Status, ParkingSlotStatus.Assigned.ToString());
 
                     return new FloorOccupancyDTO
@@ -501,9 +500,8 @@ namespace BLL.Implements
                         TotalSlots = total,
                         AvailableSlots = available,
                         OccupiedSlots = occupied,
-                        ReservedSlots = reserved,
                         AssignedSlots = assigned,
-                        UtilizationRate = Percent(occupied + reserved + assigned, total)
+                        UtilizationRate = Percent(occupied + assigned, total)
                     };
                 })
                 .ToList();
@@ -514,7 +512,6 @@ namespace BLL.Implements
             var total = slots.Count;
             var available = CountByStatus(slots, s => s.Status, ParkingSlotStatus.Available.ToString());
             var occupied = CountByStatus(slots, s => s.Status, ParkingSlotStatus.Occupied.ToString());
-            var reserved = CountByStatus(slots, s => s.Status, ParkingSlotStatus.Reserved.ToString());
             var assigned = CountByStatus(slots, s => s.Status, ParkingSlotStatus.Assigned.ToString());
 
             return new SlotOverviewDTO
@@ -522,9 +519,8 @@ namespace BLL.Implements
                 TotalSlots = total,
                 AvailableSlots = available,
                 OccupiedSlots = occupied,
-                ReservedSlots = reserved,
                 AssignedSlots = assigned,
-                UtilizationRate = Percent(occupied + reserved + assigned, total)
+                UtilizationRate = Percent(occupied + assigned, total)
             };
         }
 
@@ -1048,14 +1044,13 @@ namespace BLL.Implements
             rows.AddRange(report.RevenueSeries.Select(x => new[] { x.Period, x.Count.ToString(), FormatValue(x.Amount) }));
 
             rows.Add(Section("Tình trạng chỗ đỗ theo tầng"));
-            rows.Add(new[] { "Tầng", "Tổng", "Trống", "Đang dùng", "Đặt trước", "Đã gán", "Tỷ lệ sử dụng" });
+            rows.Add(new[] { "Tầng", "Tổng", "Trống", "Đang dùng", "Đã gán", "Tỷ lệ sử dụng" });
             rows.AddRange(report.SlotOccupancyByFloor.Select(x => new[]
             {
                 x.FloorName,
                 x.TotalSlots.ToString(),
                 x.AvailableSlots.ToString(),
                 x.OccupiedSlots.ToString(),
-                x.ReservedSlots.ToString(),
                 x.AssignedSlots.ToString(),
                 $"{FormatValue(x.UtilizationRate)}%"
             }));
@@ -1130,14 +1125,13 @@ namespace BLL.Implements
             rows.Add(new[] { "Cancelled", report.Incidents.CancelledIncidents.ToString() });
 
             rows.Add(Section("Tình trạng chỗ đỗ theo tầng"));
-            rows.Add(new[] { "Tầng", "Tổng", "Trống", "Đang dùng", "Đặt trước", "Đã gán", "Tỷ lệ sử dụng" });
+            rows.Add(new[] { "Tầng", "Tổng", "Trống", "Đang dùng", "Đã gán", "Tỷ lệ sử dụng" });
             rows.AddRange(report.SlotOccupancyByFloor.Select(x => new[]
             {
                 x.FloorName,
                 x.TotalSlots.ToString(),
                 x.AvailableSlots.ToString(),
                 x.OccupiedSlots.ToString(),
-                x.ReservedSlots.ToString(),
                 x.AssignedSlots.ToString(),
                 $"{FormatValue(x.UtilizationRate)}%"
             }));

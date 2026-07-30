@@ -147,7 +147,7 @@ public class PaymentService : IPaymentService
                 }
 
                 selectedSlot = availableSlots[Random.Shared.Next(availableSlots.Count)];
-                selectedSlot.Status = ParkingSlotStatus.Reserved.ToString();
+                selectedSlot.Status = ParkingSlotStatus.Assigned.ToString();
                 selectedSlot.AssignedUserId = subscription.UserId;
                 subscription.FixedSlotId = selectedSlot.SlotId;
                 await _unitOfWork.ParkingSlotRepo.UpdateAsync(selectedSlot);
@@ -162,7 +162,7 @@ public class PaymentService : IPaymentService
                 selectedSlot.VehicleTypeId != subscription.VehicleTypeId ||
                 selectedSlot.Floor?.IsResident != true ||
                 selectedSlot.AssignedUserId != subscription.UserId ||
-                selectedSlot.Status != ParkingSlotStatus.Reserved.ToString())
+                selectedSlot.Status != ParkingSlotStatus.Assigned.ToString())
             {
                 throw new InvalidOperationException(
                     $"Không thể kích hoạt gói tháng {subscriptionId}: slot cố định không tồn tại hoặc không còn hợp lệ.");
