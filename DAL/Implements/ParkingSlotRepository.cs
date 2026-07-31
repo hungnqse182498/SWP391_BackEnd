@@ -56,6 +56,15 @@ namespace DAL.Implements
                 .ToListAsync();
         }
 
+        public async Task<int> CountByVehicleTypeAndResidentFlagAsync(Guid vehicleTypeId, bool isResident)
+        {
+            return await _context.ParkingSlots
+                .CountAsync(s => s.VehicleTypeId == vehicleTypeId &&
+                                 s.Floor != null &&
+                                 s.Floor.IsResident == isResident &&
+                                 s.Floor.DedicatedVehicleTypeId == vehicleTypeId);
+        }
+
         public async Task<int> GetSlotsCountByFloorAsync(Guid floorId)
         {
             return await _context.ParkingSlots

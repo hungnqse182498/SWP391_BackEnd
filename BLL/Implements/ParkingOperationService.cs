@@ -28,6 +28,7 @@ namespace BLL.Implements
         private const string QrCodeTypeSession = "Session";
         private const string QrCodeTypeReservation = "Reservation";
         private const string QrCodeTypeMixed = "SessionAndReservation";
+        private const double GuestCapacityPercent = 0.80;
         private static readonly string[] ReservationFloorKeywords = { "Đặt trước", "Dat truoc" };
         private static readonly Regex GuidRegex = new(
             @"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}",
@@ -342,6 +343,29 @@ namespace BLL.Implements
 
             var activeValidation = await ValidateNoActiveSessionAsync(licensePlate);
             if (activeValidation != null) return activeValidation;
+
+            if (string.Equals(vehicleType.TypeName, "Ô tô", StringComparison.OrdinalIgnoreCase))
+            {
+                var floorId = gateResult.Gate!.FloorId;
+                var totalCarSlots = await _unitOfWork.ParkingSlotRepo.GetAll()
+                    .CountAsync(s => s.FloorId == floorId && s.VehicleTypeId == vehicleTypeId);
+                var maximumGuestSlots = (int)(totalCarSlots * GuestCapacityPercent);
+                var activeGuestSessions = await _unitOfWork.ParkingSessionRepo.GetAll()
+                    .CountAsync(s => s.Status == SessionStatus.Active.ToString()
+                                  && !s.ReservationId.HasValue
+                                  && !s.DriverUserId.HasValue
+                                  && s.VehicleTypeId == vehicleTypeId
+                                  && s.ActualSlot != null
+                                  && s.ActualSlot.FloorId == floorId);
+
+                if (activeGuestSessions >= maximumGuestSlots)
+                {
+                    return new ResponseDTO(
+                        "Khách vãng lai đã sử dụng hết giới hạn 80% của tầng. 20% chỗ còn lại được dành cho xe đặt trước.",
+                        409,
+                        false);
+                }
+            }
 
             var slot = await FindGuestAvailableSlotAsync(vehicleTypeId, gateResult.Gate!.FloorId);
             if (slot == null) return new ResponseDTO("Không còn chỗ trống cho khách vãng lai", 409, false);

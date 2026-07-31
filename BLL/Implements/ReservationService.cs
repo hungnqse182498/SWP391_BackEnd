@@ -54,11 +54,12 @@ public class ReservationService : IReservationService
                 return new ResponseDTO("Không tìm thấy loại phương tiện", 500);
             }
 
-            int totalCarCapacity = await _unitOfWork.FloorRepo.GetTotalCapacityByVehicleTypeAsync(carVehicleType.VehicleTypeId, isResident: false);
+            int totalCarCapacity = await _unitOfWork.ParkingSlotRepo
+                .CountByVehicleTypeAndResidentFlagAsync(carVehicleType.VehicleTypeId, isResident: false);
             if (totalCarCapacity == 0)
             {
                 await _unitOfWork.RollbackTransactionAsync();
-                return new ResponseDTO("Hệ thống hiện tại không có tầng nào hỗ trợ đỗ xe Ô tô vãng lai", 400);
+                return new ResponseDTO("Hệ thống hiện tại không có slot Ô tô vãng lai hợp lệ", 400);
             }
 
             int maxReservationSlots = (int)(totalCarCapacity * RESERVATION_QUOTA_PERCENT);
@@ -189,16 +190,17 @@ public class ReservationService : IReservationService
                 return new ResponseDTO("Phải thực hiện đổi lịch trước giờ hẹn cũ ít nhất 15 phút.", 400);
             }
 
-            int totalCarCapacity = await _unitOfWork.FloorRepo.GetTotalCapacityByVehicleTypeAsync(reservation.VehicleTypeId, isResident: false);
+            int totalCarCapacity = await _unitOfWork.ParkingSlotRepo
+                .CountByVehicleTypeAndResidentFlagAsync(reservation.VehicleTypeId, isResident: false);
             int maxReservationSlots = (int)(totalCarCapacity * RESERVATION_QUOTA_PERCENT);
 
             int currentActiveReservations = await _unitOfWork.ReservationRepo
-                            .CountActiveReservationsAsync(
-                                reservation.VehicleTypeId,
-                                ReservationStatus.Confirmed.ToString(),
-                                ReservationStatus.Modified.ToString(),
-                                reservationId
-                            );
+                .CountActiveReservationsAsync(
+                    reservation.VehicleTypeId,
+                    ReservationStatus.Confirmed.ToString(),
+                    ReservationStatus.Modified.ToString(),
+                    reservationId
+                );
             if (currentActiveReservations >= maxReservationSlots)
             {
                 return new ResponseDTO("Khung giờ mới đã hết hạn ngạch đặt trước. Vui lòng giữ nguyên giờ cũ.", 400);
