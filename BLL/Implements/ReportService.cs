@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text;
 using BLL.Interfaces;
 using Common.DTOs;
 using Common.DTOs.Reports;
@@ -7,6 +6,9 @@ using Common.Enums;
 using DAL.Models;
 using DAL.UnitOfWorks;
 using Microsoft.EntityFrameworkCore;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
 
 namespace BLL.Implements
 {
@@ -14,7 +16,7 @@ namespace BLL.Implements
     {
         private const int LatestRowLimit = 100;
         private static readonly string[] SupportedFormats = { "pdf" };
-        private static readonly string[] SupportedReportTypes = { "summary", "revenue", "operations" };
+        private static readonly string[] SupportedReportTypes = { "full" };
 
         private readonly IUnitOfWork _unitOfWork;
 
@@ -29,23 +31,9 @@ namespace BLL.Implements
             {
                 new()
                 {
-                    Key = "summary",
-                    Name = "Báo cáo tổng quan",
-                    Description = "Tổng hợp doanh thu, lượt xe, đặt chỗ, gói tháng, sự cố và tình trạng chỗ đỗ.",
-                    SupportedFormats = SupportedFormats
-                },
-                new()
-                {
-                    Key = "revenue",
-                    Name = "Thống kê doanh thu",
-                    Description = "Doanh thu thanh toán thành công theo thời gian, loại thanh toán và phương thức thanh toán.",
-                    SupportedFormats = SupportedFormats
-                },
-                new()
-                {
-                    Key = "operations",
-                    Name = "Thống kê vận hành bãi xe",
-                    Description = "Lượt vào/ra, phiên đang hoạt động, đặt chỗ, gói tháng, sự cố và tỷ lệ sử dụng chỗ đỗ.",
+                    Key = "full",
+                    Name = "Báo cáo thống kê đầy đủ",
+                    Description = "Gộp tổng quan, doanh thu và vận hành bãi xe trong cùng một file PDF.",
                     SupportedFormats = SupportedFormats
                 }
             };
@@ -231,11 +219,13 @@ namespace BLL.Implements
         public async Task<ResponseDTO> ExportAsync(ReportExportRequestDTO request)
         {
             var reportType = NormalizeToken(request.ReportType);
+            reportType = string.IsNullOrWhiteSpace(reportType) ? "full" : reportType;
             var format = NormalizeToken(request.Format);
+            format = string.IsNullOrWhiteSpace(format) ? "pdf" : format;
 
             if (!SupportedReportTypes.Contains(reportType))
             {
-                return new ResponseDTO("Loại báo cáo chỉ được là summary, revenue hoặc operations", 400, false);
+                return new ResponseDTO("Loại báo cáo chỉ hỗ trợ báo cáo thống kê đầy đủ", 400, false);
             }
 
             if (!SupportedFormats.Contains(format))
@@ -243,21 +233,27 @@ namespace BLL.Implements
                 return new ResponseDTO("Định dạng xuất báo cáo chỉ được là pdf", 400, false);
             }
 
-            ResponseDTO reportResponse = reportType switch
+            var summaryResponse = await GetSummaryAsync(request);
+            if (!summaryResponse.IsSuccess || summaryResponse.Result is not ReportSummaryDTO summary)
             {
-                "revenue" => await GetRevenueAsync(request),
-                "operations" => await GetParkingOperationsAsync(request),
-                _ => await GetSummaryAsync(request)
-            };
-
-            if (!reportResponse.IsSuccess || reportResponse.Result == null)
-            {
-                return reportResponse;
+                return summaryResponse;
             }
 
-            var rows = BuildExportRows(reportType, reportResponse.Result);
+            var revenueResponse = await GetRevenueAsync(request);
+            if (!revenueResponse.IsSuccess || revenueResponse.Result is not RevenueReportDTO revenue)
+            {
+                return revenueResponse;
+            }
+
+            var operationsResponse = await GetParkingOperationsAsync(request);
+            if (!operationsResponse.IsSuccess || operationsResponse.Result is not ParkingOperationReportDTO operations)
+            {
+                return operationsResponse;
+            }
+
+            var rows = BuildFullReportRows(summary, revenue, operations);
             var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
-            var fileBaseName = $"report_{reportType}_{timestamp}";
+            var fileBaseName = $"report_full_{timestamp}";
 
             var file = new ReportExportFileDTO
             {
@@ -1022,15 +1018,24 @@ namespace BLL.Implements
             }, null);
         }
 
-        private static List<string[]> BuildExportRows(string reportType, object report)
+        private static List<string[]> BuildFullReportRows(
+            ReportSummaryDTO summary,
+            RevenueReportDTO revenue,
+            ParkingOperationReportDTO operations)
         {
-            return reportType switch
-            {
-                "revenue" when report is RevenueReportDTO revenue => BuildRevenueRows(revenue),
-                "operations" when report is ParkingOperationReportDTO operations => BuildOperationRows(operations),
-                _ when report is ReportSummaryDTO summary => BuildSummaryRows(summary),
-                _ => new List<string[]> { new[] { "Không có dữ liệu báo cáo để xuất" } }
-            };
+            var rows = BaseRows("Báo cáo thống kê đầy đủ", summary.Range);
+
+            AppendReportRows(rows, "Tổng quan", BuildSummaryRows(summary));
+            AppendReportRows(rows, "Doanh thu chi tiết", BuildRevenueRows(revenue));
+            AppendReportRows(rows, "Vận hành bãi xe", BuildOperationRows(operations));
+
+            return rows;
+        }
+
+        private static void AppendReportRows(List<string[]> rows, string title, List<string[]> sourceRows)
+        {
+            rows.Add(Section(title));
+            rows.AddRange(sourceRows.Skip(6).Where(row => row.Length > 0));
         }
 
         private static List<string[]> BuildSummaryRows(ReportSummaryDTO report)
@@ -1071,22 +1076,26 @@ namespace BLL.Implements
 
             rows.Add(Section("Theo loại thanh toán"));
             rows.Add(new[] { "Loại", "Số thanh toán", "Doanh thu", "Tỷ trọng" });
-            rows.AddRange(report.ByPaymentType.Select(x => new[] { x.Name, x.Count.ToString(), FormatValue(x.Amount), $"{FormatValue(x.Percent)}%" }));
+            rows.AddRange(report.ByPaymentType.Select(x => new[] { LocalizeReportLabel(x.Name), x.Count.ToString(), FormatValue(x.Amount), $"{FormatValue(x.Percent)}%" }));
 
             rows.Add(Section("Theo phương thức thanh toán"));
             rows.Add(new[] { "Phương thức", "Số thanh toán", "Doanh thu", "Tỷ trọng" });
-            rows.AddRange(report.ByPaymentMethod.Select(x => new[] { x.Name, x.Count.ToString(), FormatValue(x.Amount), $"{FormatValue(x.Percent)}%" }));
+            rows.AddRange(report.ByPaymentMethod.Select(x => new[] { LocalizeReportLabel(x.Name), x.Count.ToString(), FormatValue(x.Amount), $"{FormatValue(x.Percent)}%" }));
+
+            rows.Add(Section("Theo loại xe"));
+            rows.Add(new[] { "Loại xe", "Số thanh toán", "Doanh thu", "Tỷ trọng" });
+            rows.AddRange(report.ByVehicleType.Select(x => new[] { LocalizeReportLabel(x.Name), x.Count.ToString(), FormatValue(x.Amount), $"{FormatValue(x.Percent)}%" }));
 
             rows.Add(Section("Thanh toán gần nhất"));
-            rows.Add(new[] { "PaymentId", "Thời gian", "Loại", "Phương thức", "Số tiền", "Trạng thái", "Mã giao dịch" });
+            rows.Add(new[] { "Mã thanh toán", "Thời gian", "Loại", "Phương thức", "Số tiền", "Trạng thái", "Mã giao dịch" });
             rows.AddRange(report.LatestPayments.Select(x => new[]
             {
                 x.PaymentId.ToString(),
                 FormatDateTime(x.PaymentTime),
-                x.PaymentType,
-                x.PaymentMethod,
+                LocalizeReportLabel(x.PaymentType),
+                LocalizeReportLabel(x.PaymentMethod),
                 FormatValue(x.Amount),
-                x.PaymentStatus,
+                LocalizeReportLabel(x.PaymentStatus),
                 x.TransactionReference ?? string.Empty
             }));
 
@@ -1105,12 +1114,12 @@ namespace BLL.Implements
 
             rows.Add(Section("Đặt chỗ"));
             rows.Add(new[] { "Tổng", report.Reservations.Total.ToString() });
-            rows.Add(new[] { "Pending", report.Reservations.Pending.ToString() });
-            rows.Add(new[] { "Confirmed", report.Reservations.Confirmed.ToString() });
-            rows.Add(new[] { "CheckedIn", report.Reservations.CheckedIn.ToString() });
-            rows.Add(new[] { "Completed", report.Reservations.Completed.ToString() });
-            rows.Add(new[] { "Cancelled", report.Reservations.Cancelled.ToString() });
-            rows.Add(new[] { "NoShow", report.Reservations.NoShow.ToString() });
+            rows.Add(new[] { "Chờ xử lý", report.Reservations.Pending.ToString() });
+            rows.Add(new[] { "Đã xác nhận", report.Reservations.Confirmed.ToString() });
+            rows.Add(new[] { "Đã vào bãi", report.Reservations.CheckedIn.ToString() });
+            rows.Add(new[] { "Hoàn tất", report.Reservations.Completed.ToString() });
+            rows.Add(new[] { "Đã hủy", report.Reservations.Cancelled.ToString() });
+            rows.Add(new[] { "Không đến", report.Reservations.NoShow.ToString() });
 
             rows.Add(Section("Gói tháng"));
             rows.Add(new[] { "Tạo mới", report.Subscriptions.NewSubscriptions.ToString() });
@@ -1119,10 +1128,10 @@ namespace BLL.Implements
             rows.Add(new[] { "Sắp hết hạn 7 ngày", report.Subscriptions.ExpiringInNext7Days.ToString() });
 
             rows.Add(Section("Sự cố"));
-            rows.Add(new[] { "Open", report.Incidents.OpenIncidents.ToString() });
-            rows.Add(new[] { "InProgress", report.Incidents.InProgressIncidents.ToString() });
-            rows.Add(new[] { "Resolved trong kỳ", report.Incidents.ResolvedInRange.ToString() });
-            rows.Add(new[] { "Cancelled", report.Incidents.CancelledIncidents.ToString() });
+            rows.Add(new[] { "Đang mở", report.Incidents.OpenIncidents.ToString() });
+            rows.Add(new[] { "Đang xử lý", report.Incidents.InProgressIncidents.ToString() });
+            rows.Add(new[] { "Đã xử lý trong kỳ", report.Incidents.ResolvedInRange.ToString() });
+            rows.Add(new[] { "Đã hủy", report.Incidents.CancelledIncidents.ToString() });
 
             rows.Add(Section("Tình trạng chỗ đỗ theo tầng"));
             rows.Add(new[] { "Tầng", "Tổng", "Trống", "Đang dùng", "Đã gán", "Tỷ lệ sử dụng" });
@@ -1137,7 +1146,7 @@ namespace BLL.Implements
             }));
 
             rows.Add(Section("Phiên gửi xe gần nhất"));
-            rows.Add(new[] { "SessionId", "Biển số", "Loại xe", "Giờ vào", "Giờ ra", "Trạng thái" });
+            rows.Add(new[] { "Mã phiên", "Biển số", "Loại xe", "Giờ vào", "Giờ ra", "Trạng thái" });
             rows.AddRange(report.LatestSessions.Select(x => new[]
             {
                 x.SessionId.ToString(),
@@ -1145,7 +1154,7 @@ namespace BLL.Implements
                 x.VehicleTypeName,
                 FormatDateTime(x.EntryTime),
                 x.ExitTime.HasValue ? FormatDateTime(x.ExitTime.Value) : string.Empty,
-                x.Status
+                LocalizeReportLabel(x.Status)
             }));
 
             return rows;
@@ -1158,8 +1167,8 @@ namespace BLL.Implements
                 new[] { title },
                 new[] { "Từ ngày", FormatDate(range.From) },
                 new[] { "Đến ngày", FormatDate(range.To) },
-                new[] { "Nhóm theo", range.GroupBy },
-                new[] { "VehicleTypeId", range.VehicleTypeId?.ToString() ?? "Tất cả" },
+                new[] { "Nhóm theo", LocalizeGroupBy(range.GroupBy) },
+                new[] { "Loại phương tiện", range.VehicleTypeId?.ToString() ?? "Tất cả" },
                 Array.Empty<string>()
             };
         }
@@ -1184,244 +1193,337 @@ namespace BLL.Implements
             return value.ToString("0.##", CultureInfo.InvariantCulture);
         }
 
+        private static string LocalizeGroupBy(string? groupBy)
+        {
+            return NormalizeToken(groupBy) switch
+            {
+                "month" => "Theo tháng",
+                "quarter" => "Theo quý",
+                "year" => "Theo năm",
+                _ => "Theo ngày"
+            };
+        }
+
+        private static string LocalizeReportLabel(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return "Chưa xác định";
+            }
+
+            var key = value.Replace(" ", string.Empty)
+                .Replace("_", string.Empty)
+                .Replace("-", string.Empty)
+                .ToLowerInvariant();
+
+            return key switch
+            {
+                "deposit" => "Tiền đặt cọc",
+                "checkoutfee" => "Phí gửi xe",
+                "subscriptionfee" => "Phí đăng ký gói tháng",
+                "subscriptionrenewal" => "Phí gia hạn gói tháng",
+                "payos" => "Chuyển khoản PayOS",
+                "cash" => "Tiền mặt",
+                "pending" => "Chờ xử lý",
+                "success" => "Thành công",
+                "successful" => "Thành công",
+                "paid" => "Đã thanh toán",
+                "failed" => "Thất bại",
+                "confirmed" => "Đã xác nhận",
+                "checkedin" => "Đã vào bãi",
+                "completed" => "Hoàn tất",
+                "cancelled" => "Đã hủy",
+                "canceled" => "Đã hủy",
+                "noshow" => "Không đến",
+                "active" => "Đang hoạt động",
+                "expired" => "Hết hạn",
+                "open" => "Đang mở",
+                "inprogress" => "Đang xử lý",
+                "resolved" => "Đã xử lý",
+                "unknown" => "Chưa xác định",
+                _ => value.Trim()
+            };
+        }
+
         private static byte[] BuildPdf(string fileBaseName, List<string[]> rows)
         {
-            const double pageWidth = 595;
-            const double pageHeight = 842;
-            const double margin = 36;
-            const double footerHeight = 44;
-            const double contentWidth = pageWidth - margin * 2;
-
             var reportTitle = rows.FirstOrDefault(row => row.Length > 0)?.FirstOrDefault() ?? fileBaseName;
             var generatedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
-            var pages = new List<string>();
-            var content = new StringBuilder();
-            var pageNumber = 0;
-            var y = 0d;
-            var currentSection = string.Empty;
-
-            void StartPage()
-            {
-                pageNumber++;
-                content = new StringBuilder();
-                DrawPageChrome(content, reportTitle, generatedAt, pageNumber, pageWidth, pageHeight, margin);
-                y = pageHeight - 138;
-            }
-
-            void FinishPage()
-            {
-                pages.Add(content.ToString());
-            }
-
-            void EnsureSpace(double requiredHeight, bool repeatSectionOnNewPage = true)
-            {
-                if (y - requiredHeight >= footerHeight)
-                {
-                    return;
-                }
-
-                FinishPage();
-                StartPage();
-
-                if (repeatSectionOnNewPage && !string.IsNullOrWhiteSpace(currentSection))
-                {
-                    DrawSectionHeader(currentSection + " (continued)");
-                }
-            }
-
-            void DrawSectionHeader(string title)
-            {
-                currentSection = title.Replace(" (continued)", string.Empty);
-                EnsureSpace(34, false);
-                y -= 6;
-                DrawRect(content, margin, y - 24, 4, 22, "0.15 0.39 0.92");
-                DrawText(content, title, margin + 12, y - 18, 12, "F2", "0.08 0.13 0.24");
-                DrawLine(content, margin, y - 29, pageWidth - margin, y - 29, "0.86 0.90 0.96");
-                y -= 42;
-            }
-
-            void DrawMetadata(List<string[]> metadataRows)
-            {
-                if (metadataRows.Count == 0)
-                {
-                    return;
-                }
-
-                var rowsPerColumn = (int)Math.Ceiling(metadataRows.Count / 2d);
-                var cardHeight = 28 + rowsPerColumn * 22;
-                EnsureSpace(cardHeight + 12);
-                DrawRect(content, margin, y - cardHeight, contentWidth, cardHeight, "0.94 0.97 1.00");
-                DrawStrokeRect(content, margin, y - cardHeight, contentWidth, cardHeight, "0.78 0.86 0.98");
-                DrawText(content, "Report information", margin + 14, y - 19, 11, "F2", "0.15 0.39 0.92");
-
-                for (var index = 0; index < metadataRows.Count; index++)
-                {
-                    var row = metadataRows[index];
-                    var column = index / rowsPerColumn;
-                    var rowIndex = index % rowsPerColumn;
-                    var x = margin + 14 + column * (contentWidth / 2);
-                    var textY = y - 43 - rowIndex * 22;
-                    var label = row.ElementAtOrDefault(0) ?? string.Empty;
-                    var value = row.ElementAtOrDefault(1) ?? string.Empty;
-
-                    DrawText(content, FitText(label, 82, 8), x, textY, 8, "F2", "0.38 0.46 0.58");
-                    DrawText(content, FitText(value, contentWidth / 2 - 104, 9), x + 90, textY, 9, "F1", "0.08 0.13 0.24");
-                }
-
-                y -= cardHeight + 18;
-            }
-
-            void DrawKeyValueBlock(List<string[]> block)
-            {
-                const double rowHeight = 24;
-                foreach (var (row, index) in block.Select((row, index) => (row, index)))
-                {
-                    EnsureSpace(rowHeight + 2);
-                    var bg = index % 2 == 0 ? "1 1 1" : "0.98 0.99 1";
-                    DrawRect(content, margin, y - rowHeight, contentWidth, rowHeight, bg);
-                    DrawStrokeRect(content, margin, y - rowHeight, contentWidth, rowHeight, "0.88 0.91 0.95");
-                    DrawText(content, FitText(row.ElementAtOrDefault(0) ?? string.Empty, contentWidth * 0.42, 9), margin + 8, y - 16, 9, "F2", "0.30 0.36 0.47");
-                    DrawText(content, FitText(row.ElementAtOrDefault(1) ?? string.Empty, contentWidth * 0.52, 9), margin + contentWidth * 0.44, y - 16, 9, "F1", "0.08 0.13 0.24");
-                    y -= rowHeight;
-                }
-
-                y -= 12;
-            }
-
-            void DrawTable(List<string[]> block)
-            {
-                if (block.Count == 0)
-                {
-                    return;
-                }
-
-                var columnCount = Math.Max(1, block.Max(row => row.Length));
-                var widths = GetColumnWidths(columnCount, contentWidth);
-                var header = block[0];
-                var dataRows = block.Skip(1).ToList();
-                var fontSize = columnCount >= 6 ? 7 : 8;
-                const double headerHeight = 25;
-                const double rowHeight = 23;
-
-                void DrawHeader()
-                {
-                    EnsureSpace(headerHeight + rowHeight);
-                    DrawRect(content, margin, y - headerHeight, contentWidth, headerHeight, "0.15 0.39 0.92");
-
-                    var x = margin;
-                    for (var col = 0; col < columnCount; col++)
-                    {
-                        DrawText(content, FitText(header.ElementAtOrDefault(col) ?? string.Empty, widths[col] - 10, fontSize), x + 5, y - 16, fontSize, "F2", "1 1 1");
-                        x += widths[col];
-                    }
-
-                    y -= headerHeight;
-                }
-
-                DrawHeader();
-
-                if (dataRows.Count == 0)
-                {
-                    EnsureSpace(rowHeight);
-                    DrawRect(content, margin, y - rowHeight, contentWidth, rowHeight, "1 1 1");
-                    DrawStrokeRect(content, margin, y - rowHeight, contentWidth, rowHeight, "0.88 0.91 0.95");
-                    DrawText(content, "No data", margin + 8, y - 15, 9, "F1", "0.38 0.46 0.58");
-                    y -= rowHeight + 12;
-                    return;
-                }
-
-                for (var rowIndex = 0; rowIndex < dataRows.Count; rowIndex++)
-                {
-                    if (y - rowHeight < footerHeight)
-                    {
-                        FinishPage();
-                        StartPage();
-                        if (!string.IsNullOrWhiteSpace(currentSection))
-                        {
-                            DrawSectionHeader(currentSection + " (continued)");
-                        }
-                        DrawHeader();
-                    }
-
-                    var row = dataRows[rowIndex];
-                    var bg = rowIndex % 2 == 0 ? "1 1 1" : "0.98 0.99 1";
-                    DrawRect(content, margin, y - rowHeight, contentWidth, rowHeight, bg);
-                    DrawStrokeRect(content, margin, y - rowHeight, contentWidth, rowHeight, "0.88 0.91 0.95");
-
-                    var x = margin;
-                    for (var col = 0; col < columnCount; col++)
-                    {
-                        var value = row.ElementAtOrDefault(col) ?? string.Empty;
-                        DrawText(content, FitText(value, widths[col] - 10, fontSize), x + 5, y - 15, fontSize, "F1", "0.08 0.13 0.24");
-                        x += widths[col];
-                    }
-
-                    y -= rowHeight;
-                }
-
-                y -= 14;
-            }
-
-            StartPage();
 
             var metadata = rows
                 .Skip(1)
                 .TakeWhile(row => row.Length > 0)
                 .ToList();
-            DrawMetadata(metadata);
+            var contentRows = rows
+                .Skip(1 + metadata.Count)
+                .ToList();
 
-            var i = 1 + metadata.Count;
-            while (i < rows.Count && rows[i].Length == 0)
+            QuestPDF.Settings.License = LicenseType.Community;
+
+            return Document.Create(document =>
             {
-                i++;
-            }
+                document.Page(page =>
+                {
+                    page.Size(PageSizes.A4);
+                    page.Margin(32);
+                    page.DefaultTextStyle(style => style
+                        .FontFamily("Arial", "Segoe UI", "Tahoma")
+                        .FontSize(9)
+                        .FontColor(Color.FromHex("0F172A")));
 
-            while (i < rows.Count)
+                    page.Header().Element(container => ComposePdfHeader(container, reportTitle, generatedAt));
+                    page.Content().PaddingTop(14).Column(column =>
+                    {
+                        column.Spacing(10);
+
+                        if (metadata.Count > 0)
+                        {
+                            column.Item().Element(container => ComposePdfMetadata(container, metadata));
+                        }
+
+                        var index = 0;
+                        while (index < contentRows.Count)
+                        {
+                            var row = contentRows[index];
+                            if (row.Length == 0)
+                            {
+                                index++;
+                                continue;
+                            }
+
+                            if (IsSectionRow(row))
+                            {
+                                column.Item().Element(container => ComposePdfSectionHeader(container, row.ElementAtOrDefault(1) ?? string.Empty));
+                                index++;
+                                continue;
+                            }
+
+                            var block = new List<string[]>();
+                            while (index < contentRows.Count && contentRows[index].Length > 0 && !IsSectionRow(contentRows[index]))
+                            {
+                                block.Add(contentRows[index]);
+                                index++;
+                            }
+
+                            if (block.Count == 0)
+                            {
+                                continue;
+                            }
+
+                            var maxColumns = block.Max(item => item.Length);
+                            if (maxColumns <= 2)
+                            {
+                                column.Item().Element(container => ComposePdfKeyValueBlock(container, block));
+                            }
+                            else
+                            {
+                                column.Item().Element(container => ComposePdfTable(container, block));
+                            }
+                        }
+                    });
+
+                    page.Footer()
+                        .BorderTop(1)
+                        .BorderColor(Color.FromHex("E2E8F0"))
+                        .PaddingTop(8)
+                        .AlignRight()
+                        .Text(text =>
+                        {
+                            text.DefaultTextStyle(style => style.FontSize(8).FontColor(Color.FromHex("64748B")));
+                            text.Span("Trang ");
+                            text.CurrentPageNumber();
+                            text.Span(" / ");
+                            text.TotalPages();
+                        });
+                });
+            }).GeneratePdf();
+        }
+
+        private static void ComposePdfHeader(IContainer container, string title, string generatedAt)
+        {
+            container
+                .Background(Color.FromHex("2563EB"))
+                .PaddingVertical(16)
+                .PaddingHorizontal(18)
+                .Column(column =>
+                {
+                    column.Spacing(3);
+                    column.Item().Text("HỆ THỐNG QUẢN LÝ BÃI XE")
+                        .FontSize(8)
+                        .SemiBold()
+                        .FontColor(Color.FromHex("BFDBFE"));
+                    column.Item().Text(title)
+                        .FontSize(17)
+                        .Bold()
+                        .FontColor(Colors.White);
+                    column.Item().Text($"Tạo lúc {generatedAt}")
+                        .FontSize(8)
+                        .FontColor(Color.FromHex("DBEAFE"));
+                });
+        }
+
+        private static void ComposePdfMetadata(IContainer container, List<string[]> metadataRows)
+        {
+            container
+                .Border(1)
+                .BorderColor(Color.FromHex("BFDBFE"))
+                .Background(Color.FromHex("EFF6FF"))
+                .Padding(12)
+                .Column(column =>
+                {
+                    column.Spacing(8);
+                    column.Item().Text("Thông tin báo cáo")
+                        .FontSize(11)
+                        .Bold()
+                        .FontColor(Color.FromHex("2563EB"));
+                    column.Item().Table(table =>
+                    {
+                        table.ColumnsDefinition(columns =>
+                        {
+                            columns.RelativeColumn();
+                            columns.RelativeColumn();
+                        });
+
+                        foreach (var row in metadataRows)
+                        {
+                            table.Cell().Element(PdfMetadataLabelCell).Text(row.ElementAtOrDefault(0) ?? string.Empty);
+                            table.Cell().Element(PdfMetadataValueCell).Text(row.ElementAtOrDefault(1) ?? string.Empty);
+                        }
+                    });
+                });
+        }
+
+        private static void ComposePdfSectionHeader(IContainer container, string title)
+        {
+            container
+                .PaddingTop(4)
+                .PaddingBottom(2)
+                .Row(row =>
+                {
+                    row.ConstantItem(4)
+                        .Height(20)
+                        .Background(Color.FromHex("2563EB"));
+                    row.RelativeItem()
+                        .PaddingLeft(8)
+                        .AlignMiddle()
+                        .Text(title)
+                        .FontSize(12)
+                        .Bold()
+                        .FontColor(Color.FromHex("0F172A"));
+                });
+        }
+
+        private static void ComposePdfKeyValueBlock(IContainer container, List<string[]> block)
+        {
+            container.Table(table =>
             {
-                var row = rows[i];
-                if (row.Length == 0)
+                table.ColumnsDefinition(columns =>
                 {
-                    y -= 8;
-                    i++;
-                    continue;
-                }
+                    columns.RelativeColumn(0.42f);
+                    columns.RelativeColumn(0.58f);
+                });
 
-                if (IsSectionRow(row))
+                for (var index = 0; index < block.Count; index++)
                 {
-                    DrawSectionHeader(row.ElementAtOrDefault(1) ?? string.Empty);
-                    i++;
-                    continue;
+                    var row = block[index];
+                    var background = index % 2 == 0 ? "FFFFFF" : "F8FAFC";
+                    table.Cell().Element(cell => PdfBodyCell(cell, background)).Text(row.ElementAtOrDefault(0) ?? string.Empty).SemiBold().FontColor(Color.FromHex("475569"));
+                    table.Cell().Element(cell => PdfBodyCell(cell, background)).Text(row.ElementAtOrDefault(1) ?? string.Empty);
                 }
+            });
+        }
 
-                var block = new List<string[]>();
-                while (i < rows.Count && rows[i].Length > 0 && !IsSectionRow(rows[i]))
-                {
-                    block.Add(rows[i]);
-                    i++;
-                }
+        private static void ComposePdfTable(IContainer container, List<string[]> block)
+        {
+            var columnCount = Math.Max(1, block.Max(row => row.Length));
+            var header = block[0];
+            var dataRows = block.Skip(1).ToList();
+            var fontSize = columnCount >= 6 ? 7 : 8;
 
-                if (string.IsNullOrWhiteSpace(currentSection))
-                {
-                    DrawSectionHeader("Overview");
-                }
-
-                var maxColumns = block.Count == 0 ? 0 : block.Max(item => item.Length);
-                if (maxColumns <= 2)
-                {
-                    DrawKeyValueBlock(block);
-                }
-                else
-                {
-                    DrawTable(block);
-                }
-            }
-
-            if (pages.Count == 0 || content.Length > 0)
+            container.Table(table =>
             {
-                FinishPage();
-            }
+                table.ColumnsDefinition(columns =>
+                {
+                    var weights = GetColumnWeights(columnCount);
+                    foreach (var weight in weights)
+                    {
+                        columns.RelativeColumn((float)weight);
+                    }
+                });
 
-            return BuildPdfDocument(pages);
+                table.Header(headerCells =>
+                {
+                    for (var col = 0; col < columnCount; col++)
+                    {
+                        headerCells.Cell()
+                            .Element(PdfHeaderCell)
+                            .Text(header.ElementAtOrDefault(col) ?? string.Empty)
+                            .FontSize(fontSize)
+                            .Bold()
+                            .FontColor(Colors.White);
+                    }
+                });
+
+                if (dataRows.Count == 0)
+                {
+                    table.Cell()
+                        .ColumnSpan((uint)columnCount)
+                        .Element(cell => PdfBodyCell(cell, "FFFFFF"))
+                        .Text("Không có dữ liệu")
+                        .FontSize(9)
+                        .FontColor(Color.FromHex("64748B"));
+                    return;
+                }
+
+                for (var rowIndex = 0; rowIndex < dataRows.Count; rowIndex++)
+                {
+                    var row = dataRows[rowIndex];
+                    var background = rowIndex % 2 == 0 ? "FFFFFF" : "F8FAFC";
+
+                    for (var col = 0; col < columnCount; col++)
+                    {
+                        table.Cell()
+                            .Element(cell => PdfBodyCell(cell, background))
+                            .Text(row.ElementAtOrDefault(col) ?? string.Empty)
+                            .FontSize(fontSize);
+                    }
+                }
+            });
+        }
+
+        private static IContainer PdfMetadataLabelCell(IContainer container)
+        {
+            return container
+                .PaddingVertical(3)
+                .PaddingRight(8)
+                .DefaultTextStyle(style => style.FontSize(8).SemiBold().FontColor(Color.FromHex("64748B")));
+        }
+
+        private static IContainer PdfMetadataValueCell(IContainer container)
+        {
+            return container
+                .PaddingVertical(3)
+                .DefaultTextStyle(style => style.FontSize(9).FontColor(Color.FromHex("0F172A")));
+        }
+
+        private static IContainer PdfHeaderCell(IContainer container)
+        {
+            return container
+                .Background(Color.FromHex("2563EB"))
+                .Border(0.5f)
+                .BorderColor(Color.FromHex("DBEAFE"))
+                .PaddingVertical(7)
+                .PaddingHorizontal(6);
+        }
+
+        private static IContainer PdfBodyCell(IContainer container, string background)
+        {
+            return container
+                .Background(Color.FromHex(background))
+                .Border(0.5f)
+                .BorderColor(Color.FromHex("E2E8F0"))
+                .PaddingVertical(6)
+                .PaddingHorizontal(6);
         }
 
         private static bool IsSectionRow(string[] row)
@@ -1429,54 +1531,9 @@ namespace BLL.Implements
             return row.Length >= 2 && string.IsNullOrWhiteSpace(row[0]) && !string.IsNullOrWhiteSpace(row[1]);
         }
 
-        private static void DrawPageChrome(StringBuilder content, string title, string generatedAt, int pageNumber, double pageWidth, double pageHeight, double margin)
+        private static double[] GetColumnWeights(int columnCount)
         {
-            DrawRect(content, 0, 0, pageWidth, pageHeight, "0.96 0.98 1.00");
-            DrawRect(content, margin, pageHeight - 108, pageWidth - margin * 2, 72, "0.15 0.39 0.92");
-            DrawText(content, "PARKING BUILDING MANAGEMENT", margin + 18, pageHeight - 62, 8, "F2", "0.78 0.86 1.00");
-            DrawText(content, FitText(title, pageWidth - margin * 2 - 36, 17), margin + 18, pageHeight - 84, 17, "F2", "1 1 1");
-            DrawText(content, $"Generated at {generatedAt}", margin + 18, pageHeight - 100, 8, "F1", "0.88 0.93 1.00");
-            DrawText(content, $"Page {pageNumber}", pageWidth - margin - 52, 28, 8, "F1", "0.45 0.52 0.64");
-            DrawLine(content, margin, 48, pageWidth - margin, 48, "0.86 0.90 0.96");
-        }
-
-        private static void DrawRect(StringBuilder content, double x, double y, double width, double height, string color)
-        {
-            content.AppendLine($"q {color} rg {PdfNumber(x)} {PdfNumber(y)} {PdfNumber(width)} {PdfNumber(height)} re f Q");
-        }
-
-        private static void DrawStrokeRect(StringBuilder content, double x, double y, double width, double height, string color)
-        {
-            content.AppendLine($"q {color} RG 0.6 w {PdfNumber(x)} {PdfNumber(y)} {PdfNumber(width)} {PdfNumber(height)} re S Q");
-        }
-
-        private static void DrawLine(StringBuilder content, double x1, double y1, double x2, double y2, string color)
-        {
-            content.AppendLine($"q {color} RG 0.7 w {PdfNumber(x1)} {PdfNumber(y1)} m {PdfNumber(x2)} {PdfNumber(y2)} l S Q");
-        }
-
-        private static void DrawText(StringBuilder content, string text, double x, double y, int fontSize, string fontName, string color)
-        {
-            content.AppendLine($"BT /{fontName} {fontSize} Tf {color} rg {PdfNumber(x)} {PdfNumber(y)} Td ({EscapePdfText(RemoveDiacritics(text))}) Tj ET");
-        }
-
-        private static string FitText(string value, double maxWidth, double fontSize)
-        {
-            value = RemoveDiacritics(value ?? string.Empty).Trim();
-            if (string.IsNullOrWhiteSpace(value))
-            {
-                return string.Empty;
-            }
-
-            var maxCharacters = Math.Max(3, (int)Math.Floor(maxWidth / (fontSize * 0.52)));
-            return value.Length <= maxCharacters
-                ? value
-                : value[..Math.Max(1, maxCharacters - 3)] + "...";
-        }
-
-        private static double[] GetColumnWidths(int columnCount, double totalWidth)
-        {
-            double[] weights = columnCount switch
+            return columnCount switch
             {
                 2 => new[] { 0.42, 0.58 },
                 3 => new[] { 0.42, 0.18, 0.40 },
@@ -1486,105 +1543,6 @@ namespace BLL.Implements
                 7 => new[] { 0.18, 0.13, 0.14, 0.13, 0.14, 0.13, 0.15 },
                 _ => Enumerable.Repeat(1d / columnCount, columnCount).ToArray()
             };
-
-            var sum = weights.Sum();
-            return weights.Select(weight => totalWidth * weight / sum).ToArray();
-        }
-
-        private static string PdfNumber(double value)
-        {
-            return value.ToString("0.##", CultureInfo.InvariantCulture);
-        }
-
-        private static byte[] BuildPdfDocument(List<string> pages)
-        {
-            if (pages.Count == 0)
-            {
-                pages.Add(string.Empty);
-            }
-
-            var fontRegularId = 3 + pages.Count * 2;
-            var fontBoldId = fontRegularId + 1;
-            var fontMonoId = fontRegularId + 2;
-            var objects = new List<string>
-            {
-                "<< /Type /Catalog /Pages 2 0 R >>",
-                $"<< /Type /Pages /Kids [{string.Join(" ", Enumerable.Range(0, pages.Count).Select(i => $"{3 + i * 2} 0 R"))}] /Count {pages.Count} >>"
-            };
-
-            for (var i = 0; i < pages.Count; i++)
-            {
-                var pageObjectId = 3 + i * 2;
-                var contentObjectId = pageObjectId + 1;
-                var pageContent = pages[i];
-                var contentLength = Encoding.ASCII.GetByteCount(pageContent);
-                var resources = $"<< /Font << /F1 {fontRegularId} 0 R /F2 {fontBoldId} 0 R /F3 {fontMonoId} 0 R >> >>";
-
-                objects.Add($"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources {resources} /Contents {contentObjectId} 0 R >>");
-                objects.Add($"<< /Length {contentLength} >>\nstream\n{pageContent}\nendstream");
-            }
-
-            objects.Add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
-            objects.Add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>");
-            objects.Add("<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>");
-
-            var output = new StringBuilder("%PDF-1.4\n");
-            var offsets = new List<int>();
-
-            for (var i = 0; i < objects.Count; i++)
-            {
-                offsets.Add(Encoding.ASCII.GetByteCount(output.ToString()));
-                output.Append(i + 1).Append(" 0 obj\n")
-                    .Append(objects[i]).Append("\nendobj\n");
-            }
-
-            var xrefOffset = Encoding.ASCII.GetByteCount(output.ToString());
-            output.Append("xref\n")
-                .Append("0 ").Append(objects.Count + 1).Append('\n')
-                .Append("0000000000 65535 f \n");
-
-            foreach (var offset in offsets)
-            {
-                output.Append(offset.ToString("0000000000", CultureInfo.InvariantCulture)).Append(" 00000 n \n");
-            }
-
-            output.Append("trailer\n")
-                .Append("<< /Size ").Append(objects.Count + 1).Append(" /Root 1 0 R >>\n")
-                .Append("startxref\n")
-                .Append(xrefOffset).Append('\n')
-                .Append("%%EOF");
-
-            return Encoding.ASCII.GetBytes(output.ToString());
-        }
-
-        private static string EscapePdfText(string value)
-        {
-            return value
-                .Replace("\\", "\\\\")
-                .Replace("(", "\\(")
-                .Replace(")", "\\)");
-        }
-
-        private static string RemoveDiacritics(string text)
-        {
-            if (string.IsNullOrWhiteSpace(text)) return string.Empty;
-
-            var normalized = text
-                .Replace('đ', 'd')
-                .Replace('Đ', 'D')
-                .Normalize(NormalizationForm.FormD);
-
-            var builder = new StringBuilder();
-            foreach (var character in normalized)
-            {
-                var category = CharUnicodeInfo.GetUnicodeCategory(character);
-                if (category != UnicodeCategory.NonSpacingMark && character <= 127)
-                {
-                    builder.Append(character);
-                }
-            }
-
-            return builder.ToString().Normalize(NormalizationForm.FormC);
         }
     }
 }

@@ -11,7 +11,7 @@ namespace Common.DTOs.Reports
 
     public class ReportExportRequestDTO : ReportFilterDTO
     {
-        public string ReportType { get; set; } = "summary";
+        public string ReportType { get; set; } = "full";
         public string Format { get; set; } = "pdf";
     }
 
