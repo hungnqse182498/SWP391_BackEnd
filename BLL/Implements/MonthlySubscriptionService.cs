@@ -75,8 +75,6 @@ namespace BLL.Implements
                         .GetAvailableByVehicleTypeAndResidentFlagAsync(package.VehicleTypeId, true);
                     if (availableSlots.Count == 0)
                         return new ResponseDTO("Không còn vị trí ô tô trống tại tầng cư dân", 409);
-
-                    selectedFixedSlot = availableSlots[Random.Shared.Next(availableSlots.Count)];
                 }
             }
             else if (dto.FixedSlotId.HasValue)
@@ -121,13 +119,6 @@ namespace BLL.Implements
                 if (payment != null)
                 {
                     await _unitOfWork.PaymentRepo.AddAsync(payment);
-                }
-
-                if (selectedFixedSlot != null)
-                {
-                    selectedFixedSlot.Status = ParkingSlotStatus.Assigned.ToString();
-                    selectedFixedSlot.AssignedUserId = userId;
-                    await _unitOfWork.ParkingSlotRepo.UpdateAsync(selectedFixedSlot);
                 }
 
                 await _unitOfWork.SaveAsync();

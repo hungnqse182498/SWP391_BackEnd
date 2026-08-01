@@ -156,6 +156,22 @@ public class PaymentService : IPaymentService
             {
                 selectedSlot = await _unitOfWork.ParkingSlotRepo
                     .GetDetailWithFloorAndTypeAsync(subscription.FixedSlotId.Value);
+
+                if (selectedSlot == null ||
+                    selectedSlot.VehicleTypeId != subscription.VehicleTypeId ||
+                    selectedSlot.Floor?.IsResident != true)
+                {
+                    throw new InvalidOperationException(
+                        $"Không thể kích hoạt gói tháng {subscriptionId}: slot cố định không tồn tại hoặc không còn hợp lệ.");
+                }
+
+                if (selectedSlot.Status == ParkingSlotStatus.Available.ToString() &&
+                    !selectedSlot.AssignedUserId.HasValue)
+                {
+                    selectedSlot.Status = ParkingSlotStatus.Assigned.ToString();
+                    selectedSlot.AssignedUserId = subscription.UserId;
+                    await _unitOfWork.ParkingSlotRepo.UpdateAsync(selectedSlot);
+                }
             }
 
             if (selectedSlot == null ||
