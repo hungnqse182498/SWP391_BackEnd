@@ -2,9 +2,6 @@ using BLL.Interfaces;
 using Common.DTOs.ParkingOperation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Hosting;
-using System.IO;
 
 namespace PBMS.Controllers
 {
@@ -14,17 +11,17 @@ namespace PBMS.Controllers
     public class ParkingOperationController : ControllerBase
     {
         private readonly IParkingOperationService _parkingOperationService;
-        private readonly IOcrService _ocrService;
+        private readonly IPlateRecognitionService _plateRecognitionService;
         private readonly IWebHostEnvironment _env;
-        private static readonly string[] AllowedImageExtensions = { ".jpg", ".jpeg", ".png", ".gif" };
+        private static readonly string[] AllowedImageExtensions = { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
 
         public ParkingOperationController(
             IParkingOperationService parkingOperationService,
-            IOcrService ocrService,
+            IPlateRecognitionService plateRecognitionService,
             IWebHostEnvironment env)
         {
             _parkingOperationService = parkingOperationService;
-            _ocrService = ocrService;
+            _plateRecognitionService = plateRecognitionService;
             _env = env;
         }
 
@@ -32,41 +29,33 @@ namespace PBMS.Controllers
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> UploadAndRecognizePlate(IFormFile file)
         {
-            var upload = await SaveUploadedImageAsync(file, "Vui lòng chọn ảnh biển số xe để upload");
+            var upload = await SaveUploadedImageAsync(file, "Vui long chon anh bien so xe de upload");
             if (upload.Error != null) return upload.Error;
 
-            // Run OCR recognition
-            string? licensePlate;
+            PlateRecognitionResultDTO recognition;
             using (var stream = new FileStream(upload.FilePath!, FileMode.Open, FileAccess.Read))
             {
-                licensePlate = await _ocrService.RecognizeLicensePlateAsync(
+                recognition = await _plateRecognitionService.RecognizeLicensePlateAsync(
                     stream,
                     file.FileName,
                     HttpContext.RequestAborted);
             }
 
-            if (string.IsNullOrWhiteSpace(licensePlate))
+            recognition.ImageUrl = upload.ImageUrl;
+
+            if (string.IsNullOrWhiteSpace(recognition.LicensePlate))
             {
-                return UnprocessableEntity(new
-                {
-                    imageUrl = upload.ImageUrl,
-                    licensePlate = (string?)null,
-                    message = "Không thể nhận diện biển số từ ảnh. Vui lòng chụp rõ và sát biển số hơn rồi thử lại."
-                });
+                return UnprocessableEntity(recognition);
             }
 
-            return Ok(new
-            {
-                imageUrl = upload.ImageUrl,
-                licensePlate
-            });
+            return Ok(recognition);
         }
 
         [HttpPost("upload-and-decode-qr")]
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> UploadAndDecodeQr(IFormFile file)
         {
-            var upload = await SaveUploadedImageAsync(file, "Vui lòng chọn ảnh QR để upload");
+            var upload = await SaveUploadedImageAsync(file, "Vui long chon anh QR de upload");
             if (upload.Error != null) return upload.Error;
 
             using var stream = new FileStream(upload.FilePath!, FileMode.Open, FileAccess.Read);
@@ -76,6 +65,13 @@ namespace PBMS.Controllers
                 upload.ImageUrl,
                 HttpContext.RequestAborted);
 
+            return StatusCode(res.StatusCode, res);
+        }
+
+        [HttpPost("resolve-qr-payload")]
+        public async Task<IActionResult> ResolveQrPayload([FromBody] ResolveQrPayloadDTO dto)
+        {
+            var res = await _parkingOperationService.ResolveQrPayloadAsync(dto?.QrPayload);
             return StatusCode(res.StatusCode, res);
         }
 
@@ -141,7 +137,7 @@ namespace PBMS.Controllers
             var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
             if (string.IsNullOrEmpty(ext) || !AllowedImageExtensions.Contains(ext))
             {
-                return (null, null, BadRequest(new { message = "Chỉ cho phép upload file ảnh (.jpg, .jpeg, .png, .gif)" }));
+                return (null, null, BadRequest(new { message = "Chi cho phep upload file anh (.jpg, .jpeg, .png, .gif, .webp)" }));
             }
 
             var uploadRoot = _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");

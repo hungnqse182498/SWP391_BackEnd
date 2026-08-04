@@ -16,6 +16,7 @@ namespace BLL.Interfaces
         Task<ResponseDTO> GetMyFeePreviewAsync(Guid sessionId, Guid userId);
         Task<ResponseDTO> GetMyCheckoutPaymentAsync(Guid sessionId, Guid userId);
         Task<ResponseDTO> DecodeQrImageAsync(Stream imageStream, string fileName, string? imageUrl = null, CancellationToken cancellationToken = default);
+        Task<ResponseDTO> ResolveQrPayloadAsync(string? qrPayload);
         Task<ResponseDTO> GetAvailabilityAsync(Guid? vehicleTypeId, string? floorKeyword);
     }
 }

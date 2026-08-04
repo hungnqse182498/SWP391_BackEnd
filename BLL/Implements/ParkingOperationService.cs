@@ -300,7 +300,7 @@ namespace BLL.Implements
                 return new ResponseDTO("Không tìm thấy mã QR trong ảnh", 422, false, new { ImageUrl = imageUrl });
             }
 
-            var resolved = await ResolveQrPayloadAsync(qrPayload);
+            var resolved = await ResolveQrPayloadCoreAsync(qrPayload);
             if (resolved.Error != null) return resolved.Error;
 
             return new ResponseDTO("Đọc mã QR thành công", 200, true, new ParkingQrDecodeResultDTO
@@ -310,6 +310,25 @@ namespace BLL.Implements
                 ReservationId = resolved.ReservationId,
                 SessionId = resolved.SessionId,
                 ImageUrl = imageUrl
+            });
+        }
+
+        public async Task<ResponseDTO> ResolveQrPayloadAsync(string? qrPayload)
+        {
+            if (string.IsNullOrWhiteSpace(qrPayload))
+            {
+                return new ResponseDTO("Vui lòng gửi QrPayload", 400, false);
+            }
+
+            var resolved = await ResolveQrPayloadCoreAsync(qrPayload);
+            if (resolved.Error != null) return resolved.Error;
+
+            return new ResponseDTO("Đọc mã QR thành công", 200, true, new ParkingQrDecodeResultDTO
+            {
+                QrPayload = qrPayload.Trim(),
+                CodeType = resolved.CodeType!,
+                ReservationId = resolved.ReservationId,
+                SessionId = resolved.SessionId
             });
         }
 
@@ -963,7 +982,7 @@ namespace BLL.Implements
                 return (Guid.Empty, new ResponseDTO("Vui lòng quét mã đặt chỗ hoặc gửi QrPayload", 400, false));
             }
 
-            var resolved = await ResolveQrPayloadAsync(qrPayload);
+            var resolved = await ResolveQrPayloadCoreAsync(qrPayload);
             if (resolved.Error != null) return (Guid.Empty, resolved.Error);
             if (!resolved.ReservationId.HasValue)
             {
@@ -989,7 +1008,7 @@ namespace BLL.Implements
                 return (Guid.Empty, new ResponseDTO("Vui lòng quét mã vé gửi xe hoặc gửi QrPayload", 400, false));
             }
 
-            var resolved = await ResolveQrPayloadAsync(qrPayload);
+            var resolved = await ResolveQrPayloadCoreAsync(qrPayload);
             if (resolved.Error != null) return (Guid.Empty, resolved.Error);
             if (!resolved.SessionId.HasValue)
             {
@@ -1016,7 +1035,7 @@ namespace BLL.Implements
             return (subscription == null ? CustomerTypeGuest : CustomerTypeResident, null);
         }
 
-        private async Task<(Guid? ReservationId, Guid? SessionId, string? CodeType, ResponseDTO? Error)> ResolveQrPayloadAsync(string? qrPayload)
+        private async Task<(Guid? ReservationId, Guid? SessionId, string? CodeType, ResponseDTO? Error)> ResolveQrPayloadCoreAsync(string? qrPayload)
         {
             var id = ExtractGuidFromQrPayload(qrPayload);
             if (!id.HasValue)

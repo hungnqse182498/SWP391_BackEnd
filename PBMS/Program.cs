@@ -88,7 +88,7 @@ builder.Services.AddScoped<IVehicleChangeRequestService, VehicleChangeRequestSer
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
-builder.Services.AddHttpClient<IOcrService, OcrService>(client =>
+builder.Services.AddHttpClient<IPlateRecognitionService, PlateRecognizerService>(client =>
 {
     client.Timeout = TimeSpan.FromSeconds(30);
 });
