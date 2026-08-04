@@ -122,6 +122,7 @@ namespace PBMS.Controllers
         }
 
         [HttpGet("availability")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetAvailability([FromQuery] Guid? vehicleTypeId, [FromQuery] string? floorKeyword)
         {
             var res = await _parkingOperationService.GetAvailabilityAsync(vehicleTypeId, floorKeyword);
