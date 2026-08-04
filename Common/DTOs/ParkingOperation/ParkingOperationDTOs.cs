@@ -53,6 +53,10 @@ namespace Common.DTOs.ParkingOperation
         public decimal? Confidence { get; set; }
         public string? RegionCode { get; set; }
         public string Provider { get; set; } = "PlateRecognizer";
+        public int? ProviderStatusCode { get; set; }
+        public string? ProviderError { get; set; }
+        public string? ProviderResponse { get; set; }
+        public decimal? MinimumConfidence { get; set; }
         public string? Message { get; set; }
         public List<PlateRecognitionCandidateDTO> Candidates { get; set; } = new();
     }

@@ -93,7 +93,10 @@ namespace BLL.Implements
 
                     return new PlateRecognitionResultDTO
                     {
-                        Message = CreateProviderErrorMessage(response.StatusCode)
+                        ProviderStatusCode = (int)response.StatusCode,
+                        ProviderError = ExtractProviderError(responseBody),
+                        ProviderResponse = responseBody,
+                        Message = CreateProviderErrorMessage(response.StatusCode, responseBody)
                     };
                 }
 
@@ -109,18 +112,18 @@ namespace BLL.Implements
                     _logger.LogWarning(ex, "Plate Recognizer returned invalid JSON: {ResponseBody}", responseBody);
                     return new PlateRecognitionResultDTO
                     {
+                        ProviderStatusCode = (int)response.StatusCode,
+                        ProviderError = "Invalid JSON response",
+                        ProviderResponse = responseBody,
                         Message = "Plate Recognizer trả về dữ liệu không hợp lệ"
                     };
                 }
 
                 var candidates = parsed?.Results?
-                    .Select(result => new PlateRecognitionCandidateDTO
-                    {
-                        LicensePlate = LicensePlateNormalizer.Normalize(result.Plate),
-                        Confidence = result.Score,
-                        RegionCode = result.Region?.Code
-                    })
+                    .SelectMany(CreateCandidates)
                     .Where(candidate => !string.IsNullOrWhiteSpace(candidate.LicensePlate))
+                    .GroupBy(candidate => candidate.LicensePlate)
+                    .Select(group => group.OrderByDescending(candidate => candidate.Confidence).First())
                     .OrderByDescending(candidate => candidate.Confidence)
                     .ToList() ?? new List<PlateRecognitionCandidateDTO>();
 
@@ -130,10 +133,17 @@ namespace BLL.Implements
 
                 if (best == null)
                 {
+                    var message = candidates.Count == 0
+                        ? "Plate Recognizer không tìm thấy biển số trong ảnh. Vui lòng chụp rõ và sát biển số hơn rồi thử lại."
+                        : $"Plate Recognizer chưa đủ tự tin để dùng kết quả. Kết quả tốt nhất: {candidates[0].LicensePlate} ({FormatPercent(candidates[0].Confidence)}), thấp hơn ngưỡng {FormatPercent(_minimumConfidence)}.";
+
                     return new PlateRecognitionResultDTO
                     {
+                        ProviderStatusCode = (int)response.StatusCode,
+                        ProviderResponse = responseBody,
+                        MinimumConfidence = _minimumConfidence,
                         Candidates = candidates,
-                        Message = "Không thể nhận diện biển số từ ảnh. Vui lòng chụp rõ và sát biển số hơn rồi thử lại."
+                        Message = message
                     };
                 }
 
@@ -147,6 +157,10 @@ namespace BLL.Implements
                     LicensePlate = best.LicensePlate,
                     Confidence = best.Confidence,
                     RegionCode = best.RegionCode,
+                    ProviderStatusCode = (int)response.StatusCode,
+                    ProviderResponse = responseBody,
+                    MinimumConfidence = _minimumConfidence,
+                    Message = $"Nhận diện biển số thành công: {best.LicensePlate} ({FormatPercent(best.Confidence)})",
                     Candidates = candidates
                 };
             }
@@ -159,7 +173,37 @@ namespace BLL.Implements
                 _logger.LogError(ex, "Could not recognize a license plate from {FileName}", fileName);
                 return new PlateRecognitionResultDTO
                 {
-                    Message = "Không thể kết nối Plate Recognizer để nhận diện biển số"
+                    ProviderError = ex.Message,
+                    Message = $"Không thể kết nối Plate Recognizer để nhận diện biển số: {ex.Message}"
+                };
+            }
+        }
+
+        private static IEnumerable<PlateRecognitionCandidateDTO> CreateCandidates(PlateRecognizerResult result)
+        {
+            var primaryPlate = LicensePlateNormalizer.Normalize(result.Plate);
+            if (!string.IsNullOrWhiteSpace(primaryPlate))
+            {
+                yield return new PlateRecognitionCandidateDTO
+                {
+                    LicensePlate = primaryPlate,
+                    Confidence = result.Score,
+                    RegionCode = result.Region?.Code
+                };
+            }
+
+            if (result.Candidates == null) yield break;
+
+            foreach (var candidate in result.Candidates)
+            {
+                var plate = LicensePlateNormalizer.Normalize(candidate.Plate);
+                if (string.IsNullOrWhiteSpace(plate)) continue;
+
+                yield return new PlateRecognitionCandidateDTO
+                {
+                    LicensePlate = plate,
+                    Confidence = candidate.Score,
+                    RegionCode = result.Region?.Code
                 };
             }
         }
@@ -175,16 +219,54 @@ namespace BLL.Implements
             };
         }
 
-        private static string CreateProviderErrorMessage(HttpStatusCode statusCode)
+        private static string CreateProviderErrorMessage(HttpStatusCode statusCode, string responseBody)
         {
+            var providerError = ExtractProviderError(responseBody);
+            if (!string.IsNullOrWhiteSpace(providerError))
+            {
+                return $"Plate Recognizer trả lỗi HTTP {(int)statusCode}: {providerError}";
+            }
+
             return statusCode switch
             {
                 HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden =>
                     "Plate Recognizer API key không hợp lệ hoặc không đủ quyền",
                 (HttpStatusCode)429 =>
                     "Plate Recognizer đã hết quota hoặc đang bị giới hạn lượt gọi",
-                _ => "Plate Recognizer không xử lý được ảnh biển số"
+                _ => $"Plate Recognizer không xử lý được ảnh biển số (HTTP {(int)statusCode})"
             };
+        }
+
+        private static string? ExtractProviderError(string responseBody)
+        {
+            if (string.IsNullOrWhiteSpace(responseBody)) return null;
+
+            try
+            {
+                using var document = JsonDocument.Parse(responseBody);
+                var root = document.RootElement;
+
+                foreach (var property in new[] { "detail", "message", "error", "errors" })
+                {
+                    if (root.TryGetProperty(property, out var value))
+                    {
+                        return value.ValueKind == JsonValueKind.String
+                            ? value.GetString()
+                            : value.ToString();
+                    }
+                }
+            }
+            catch (JsonException)
+            {
+                return responseBody;
+            }
+
+            return null;
+        }
+
+        private static string FormatPercent(decimal value)
+        {
+            return $"{Math.Round(value * 100, 1)}%";
         }
 
         private class PlateRecognizerResponse
@@ -197,6 +279,13 @@ namespace BLL.Implements
             public string? Plate { get; set; }
             public decimal Score { get; set; }
             public PlateRecognizerRegion? Region { get; set; }
+            public List<PlateRecognizerCandidate>? Candidates { get; set; }
+        }
+
+        private class PlateRecognizerCandidate
+        {
+            public string? Plate { get; set; }
+            public decimal Score { get; set; }
         }
 
         private class PlateRecognizerRegion
