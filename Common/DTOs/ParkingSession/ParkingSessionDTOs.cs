@@ -11,7 +11,9 @@ namespace Common.DTOs.ParkingSession
         public string LicensePlateIn { get; set; } = string.Empty;
         public string? LicensePlateOut { get; set; }
         public string? EntryImageUrl { get; set; }
+        public string? DriverEntryImageUrl { get; set; }
         public string? ExitImageUrl { get; set; }
+        public string? DriverExitImageUrl { get; set; }
         public Guid VehicleTypeId { get; set; }
         public string? VehicleTypeName { get; set; }
         public DateTime EntryTime { get; set; }
@@ -44,7 +46,9 @@ namespace Common.DTOs.ParkingSession
         public string LicensePlateIn { get; set; } = string.Empty;
         public string? LicensePlateOut { get; set; }
         public string? EntryImageUrl { get; set; }
+        public string? DriverEntryImageUrl { get; set; }
         public string? ExitImageUrl { get; set; }
+        public string? DriverExitImageUrl { get; set; }
         public Guid VehicleTypeId { get; set; }
         public DateTime? EntryTime { get; set; }
         public DateTime? ExitTime { get; set; }
@@ -62,7 +66,9 @@ namespace Common.DTOs.ParkingSession
         public string LicensePlateIn { get; set; } = string.Empty;
         public string? LicensePlateOut { get; set; }
         public string? EntryImageUrl { get; set; }
+        public string? DriverEntryImageUrl { get; set; }
         public string? ExitImageUrl { get; set; }
+        public string? DriverExitImageUrl { get; set; }
         public Guid VehicleTypeId { get; set; }
         public DateTime EntryTime { get; set; }
         public DateTime? ExitTime { get; set; }

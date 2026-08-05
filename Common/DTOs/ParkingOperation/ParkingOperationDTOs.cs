@@ -11,6 +11,7 @@ namespace Common.DTOs.ParkingOperation
         public Guid? VehicleTypeId { get; set; }
         public Guid GateId { get; set; }
         public string? EntryImageUrl { get; set; }
+        public string? DriverEntryImageUrl { get; set; }
     }
 
     public class ParkingCheckOutDTO
@@ -23,6 +24,7 @@ namespace Common.DTOs.ParkingOperation
         public Guid GateId { get; set; }
         public string? PaymentMethod { get; set; }
         public string? ExitImageUrl { get; set; }
+        public string? DriverExitImageUrl { get; set; }
     }
 
     public class ParkingQrDecodeResultDTO

@@ -182,11 +182,17 @@ public partial class ParkingDBContext : DbContext
             entity.Property(e => e.EntryImageUrl)
                 .IsUnicode(false)
                 .HasColumnName("EntryImageURL");
+            entity.Property(e => e.DriverEntryImageUrl)
+                .IsUnicode(false)
+                .HasColumnName("DriverEntryImageURL");
             entity.Property(e => e.EntryTime).HasColumnType("datetime");
             entity.Property(e => e.ExitGateId).HasColumnName("ExitGateID");
             entity.Property(e => e.ExitImageUrl)
                 .IsUnicode(false)
                 .HasColumnName("ExitImageURL");
+            entity.Property(e => e.DriverExitImageUrl)
+                .IsUnicode(false)
+                .HasColumnName("DriverExitImageURL");
             entity.Property(e => e.ExitTime).HasColumnType("datetime");
             entity.Property(e => e.LicensePlateIn)
                 .IsRequired()

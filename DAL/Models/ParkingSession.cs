@@ -19,7 +19,11 @@ public partial class ParkingSession
 
     public string EntryImageUrl { get; set; }
 
+    public string DriverEntryImageUrl { get; set; }
+
     public string ExitImageUrl { get; set; }
+
+    public string DriverExitImageUrl { get; set; }
 
     public Guid VehicleTypeId { get; set; }
 

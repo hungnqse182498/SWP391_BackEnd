@@ -209,6 +209,7 @@ namespace BLL.Implements
                 session.ExitGateId.Value,
                 session.LicensePlateOut,
                 session.ExitImageUrl,
+                session.DriverExitImageUrl,
                 session.ExitTime.Value);
             await _unitOfWork.PaymentRepo.UpdateAsync(payment);
             await _unitOfWork.SaveChangeAsync();
@@ -395,6 +396,7 @@ namespace BLL.Implements
                 SessionId = Guid.NewGuid(),
                 LicensePlateIn = licensePlate,
                 EntryImageUrl = NormalizeOptional(dto.EntryImageUrl),
+                DriverEntryImageUrl = NormalizeOptional(dto.DriverEntryImageUrl),
                 VehicleTypeId = vehicleTypeId,
                 EntryTime = now,
                 EntryGateId = gateResult.Gate!.GateId,
@@ -483,6 +485,7 @@ namespace BLL.Implements
                     exitGateResult.Gate!.GateId,
                     checkoutPlate,
                     dto.ExitImageUrl,
+                    dto.DriverExitImageUrl,
                     exitTime);
                 await _unitOfWork.PaymentRepo.AddAsync(coveredPayment);
                 await _unitOfWork.SaveChangeAsync();
@@ -514,7 +517,7 @@ namespace BLL.Implements
 
             if (paymentMethod == PaymentMethod.Cash.ToString())
             {
-                PrepareSessionForPendingOnlineCheckout(session, exitGateResult.Gate!.GateId, checkoutPlate, dto.ExitImageUrl, exitTime);
+                PrepareSessionForPendingOnlineCheckout(session, exitGateResult.Gate!.GateId, checkoutPlate, dto.ExitImageUrl, dto.DriverExitImageUrl, exitTime);
                 await _unitOfWork.ParkingSessionRepo.UpdateAsync(session);
                 await _unitOfWork.PaymentRepo.AddAsync(payment);
                 await _unitOfWork.SaveChangeAsync();
@@ -532,7 +535,7 @@ namespace BLL.Implements
             await _unitOfWork.BeginTransactionAsync();
             try
             {
-                PrepareSessionForPendingOnlineCheckout(session, exitGateResult.Gate!.GateId, checkoutPlate, dto.ExitImageUrl, exitTime);
+                PrepareSessionForPendingOnlineCheckout(session, exitGateResult.Gate!.GateId, checkoutPlate, dto.ExitImageUrl, dto.DriverExitImageUrl, exitTime);
                 await _unitOfWork.ParkingSessionRepo.UpdateAsync(session);
                 await _unitOfWork.PaymentRepo.AddAsync(payment);
                 await _unitOfWork.SaveAsync();
@@ -638,6 +641,7 @@ namespace BLL.Implements
                 DriverUserId = subscription.UserId,
                 LicensePlateIn = licensePlate,
                 EntryImageUrl = NormalizeOptional(dto.EntryImageUrl),
+                DriverEntryImageUrl = NormalizeOptional(dto.DriverEntryImageUrl),
                 VehicleTypeId = vehicleTypeId,
                 EntryTime = now,
                 EntryGateId = gateResult.Gate!.GateId,
@@ -689,6 +693,7 @@ namespace BLL.Implements
                 exitGateResult.Gate!.GateId,
                 checkoutPlate,
                 dto.ExitImageUrl,
+                dto.DriverExitImageUrl,
                 now,
                 !isMotorbike ? subscription.FixedSlotId : null);
             await _unitOfWork.SaveChangeAsync();
@@ -766,6 +771,7 @@ namespace BLL.Implements
                 DriverUserId = reservation.UserId,
                 LicensePlateIn = licensePlate,
                 EntryImageUrl = NormalizeOptional(dto.EntryImageUrl),
+                DriverEntryImageUrl = NormalizeOptional(dto.DriverEntryImageUrl),
                 VehicleTypeId = reservation.VehicleTypeId,
                 EntryTime = now,
                 EntryGateId = gateResult.Gate!.GateId,
@@ -897,6 +903,7 @@ namespace BLL.Implements
             session.ExitTime = null;
             session.LicensePlateOut = null;
             session.ExitImageUrl = null;
+            session.DriverExitImageUrl = null;
             await _unitOfWork.ParkingSessionRepo.UpdateAsync(session);
         }
 
@@ -1106,12 +1113,13 @@ namespace BLL.Implements
             return reader.Decode(luminanceSource)?.Text;
         }
 
-        private static void PrepareSessionForPendingOnlineCheckout(ParkingSession session, Guid exitGateId, string? licensePlateOut, string? exitImageUrl, DateTime exitTime)
+        private static void PrepareSessionForPendingOnlineCheckout(ParkingSession session, Guid exitGateId, string? licensePlateOut, string? exitImageUrl, string? driverExitImageUrl, DateTime exitTime)
         {
             session.ExitGateId = exitGateId;
             session.ExitTime = exitTime;
             session.LicensePlateOut = string.IsNullOrWhiteSpace(licensePlateOut) ? session.LicensePlateIn : NormalizePlate(licensePlateOut);
             session.ExitImageUrl = NormalizeOptional(exitImageUrl);
+            session.DriverExitImageUrl = NormalizeOptional(driverExitImageUrl);
         }
 
         private async Task<ResponseDTO?> ValidateGateTypeAsync(Guid gateId, string expectedGateType)
@@ -1318,6 +1326,7 @@ namespace BLL.Implements
             Guid exitGateId,
             string? licensePlateOut,
             string? exitImageUrl,
+            string? driverExitImageUrl,
             DateTime exitTime,
             Guid? assignedFixedSlotId = null)
         {
@@ -1325,6 +1334,7 @@ namespace BLL.Implements
             session.ExitTime = exitTime;
             session.LicensePlateOut = string.IsNullOrWhiteSpace(licensePlateOut) ? session.LicensePlateIn : NormalizePlate(licensePlateOut);
             session.ExitImageUrl = NormalizeOptional(exitImageUrl);
+            session.DriverExitImageUrl = NormalizeOptional(driverExitImageUrl);
             session.Status = SessionStatus.Completed.ToString();
 
             if (session.ActualSlotId.HasValue)

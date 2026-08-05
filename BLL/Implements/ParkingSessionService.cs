@@ -93,7 +93,9 @@ namespace BLL.Implements
                     ? (validation.Status == SessionStatus.Completed ? NormalizePlate(dto.LicensePlateIn) : null)
                     : NormalizePlate(dto.LicensePlateOut),
                 EntryImageUrl = string.IsNullOrWhiteSpace(dto.EntryImageUrl) ? null : dto.EntryImageUrl.Trim(),
+                DriverEntryImageUrl = string.IsNullOrWhiteSpace(dto.DriverEntryImageUrl) ? null : dto.DriverEntryImageUrl.Trim(),
                 ExitImageUrl = string.IsNullOrWhiteSpace(dto.ExitImageUrl) ? null : dto.ExitImageUrl.Trim(),
+                DriverExitImageUrl = string.IsNullOrWhiteSpace(dto.DriverExitImageUrl) ? null : dto.DriverExitImageUrl.Trim(),
                 VehicleTypeId = dto.VehicleTypeId,
                 EntryTime = entryTime,
                 ExitTime = dto.ExitTime,
@@ -138,7 +140,9 @@ namespace BLL.Implements
                 ? (validation.Status == SessionStatus.Completed ? NormalizePlate(dto.LicensePlateIn) : null)
                 : NormalizePlate(dto.LicensePlateOut);
             session.EntryImageUrl = string.IsNullOrWhiteSpace(dto.EntryImageUrl) ? null : dto.EntryImageUrl.Trim();
+            session.DriverEntryImageUrl = string.IsNullOrWhiteSpace(dto.DriverEntryImageUrl) ? null : dto.DriverEntryImageUrl.Trim();
             session.ExitImageUrl = string.IsNullOrWhiteSpace(dto.ExitImageUrl) ? null : dto.ExitImageUrl.Trim();
+            session.DriverExitImageUrl = string.IsNullOrWhiteSpace(dto.DriverExitImageUrl) ? null : dto.DriverExitImageUrl.Trim();
             session.VehicleTypeId = dto.VehicleTypeId;
             session.EntryTime = dto.EntryTime;
             session.ExitTime = dto.ExitTime;
@@ -304,7 +308,9 @@ namespace BLL.Implements
                 LicensePlateIn = session.LicensePlateIn,
                 LicensePlateOut = session.LicensePlateOut,
                 EntryImageUrl = session.EntryImageUrl,
+                DriverEntryImageUrl = session.DriverEntryImageUrl,
                 ExitImageUrl = session.ExitImageUrl,
+                DriverExitImageUrl = session.DriverExitImageUrl,
                 VehicleTypeId = session.VehicleTypeId,
                 VehicleTypeName = session.VehicleType?.TypeName,
                 EntryTime = session.EntryTime,

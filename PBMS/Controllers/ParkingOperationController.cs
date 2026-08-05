@@ -68,6 +68,17 @@ namespace PBMS.Controllers
             return StatusCode(res.StatusCode, res);
         }
 
+        // Used for photos that are evidence only (for example, the driver's face),
+        // so no license-plate recognition is attempted.
+        [HttpPost("upload-image")]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> UploadImage(IFormFile file)
+        {
+            var upload = await SaveUploadedImageAsync(file, "Vui long chon anh de upload");
+            if (upload.Error != null) return upload.Error;
+            return Ok(new { imageUrl = upload.ImageUrl });
+        }
+
         [HttpPost("resolve-qr-payload")]
         public async Task<IActionResult> ResolveQrPayload([FromBody] ResolveQrPayloadDTO dto)
         {
