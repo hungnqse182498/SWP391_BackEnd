@@ -34,6 +34,33 @@ namespace Common.DTOs.ParkingOperation
         public string? ImageUrl { get; set; }
     }
 
+    public class ResolveQrPayloadDTO
+    {
+        public string? QrPayload { get; set; }
+    }
+
+    public class PlateRecognitionCandidateDTO
+    {
+        public string LicensePlate { get; set; } = string.Empty;
+        public decimal Confidence { get; set; }
+        public string? RegionCode { get; set; }
+    }
+
+    public class PlateRecognitionResultDTO
+    {
+        public string? ImageUrl { get; set; }
+        public string? LicensePlate { get; set; }
+        public decimal? Confidence { get; set; }
+        public string? RegionCode { get; set; }
+        public string Provider { get; set; } = "PlateRecognizer";
+        public int? ProviderStatusCode { get; set; }
+        public string? ProviderError { get; set; }
+        public string? ProviderResponse { get; set; }
+        public decimal? MinimumConfidence { get; set; }
+        public string? Message { get; set; }
+        public List<PlateRecognitionCandidateDTO> Candidates { get; set; } = new();
+    }
+
     public class ParkingAvailabilityDTO
     {
         public Guid FloorId { get; set; }

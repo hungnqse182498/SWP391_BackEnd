@@ -1,12 +1,10 @@
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
+using Common.DTOs.ParkingOperation;
 
 namespace BLL.Interfaces
 {
-    public interface IOcrService
+    public interface IPlateRecognitionService
     {
-        Task<string?> RecognizeLicensePlateAsync(
+        Task<PlateRecognitionResultDTO> RecognizeLicensePlateAsync(
             Stream imageStream,
             string fileName,
             CancellationToken cancellationToken = default);
