@@ -1,4 +1,4 @@
-using BLL.Interfaces;
+﻿using BLL.Interfaces;
 using Common.DTOs;
 using Common.DTOs.ParkingOperation;
 using Common.DTOs.ParkingSession;
@@ -6,7 +6,7 @@ using Common.Enums;
 using Common.Utilities;
 using DAL.Models;
 using DAL.UnitOfWorks;
-using Microsoft.EntityFrameworkCore;
+
 using QRCoder;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -367,16 +367,9 @@ namespace BLL.Implements
             if (string.Equals(vehicleType.TypeName, "Ô tô", StringComparison.OrdinalIgnoreCase))
             {
                 var floorId = gateResult.Gate!.FloorId;
-                var totalCarSlots = await _unitOfWork.ParkingSlotRepo.GetAll()
-                    .CountAsync(s => s.FloorId == floorId && s.VehicleTypeId == vehicleTypeId);
+                var totalCarSlots = await _unitOfWork.ParkingSlotRepo.CountSlotsByFloorAndVehicleTypeAsync(floorId, vehicleTypeId);
                 var maximumGuestSlots = (int)(totalCarSlots * GuestCapacityPercent);
-                var activeGuestSessions = await _unitOfWork.ParkingSessionRepo.GetAll()
-                    .CountAsync(s => s.Status == SessionStatus.Active.ToString()
-                                  && !s.ReservationId.HasValue
-                                  && !s.DriverUserId.HasValue
-                                  && s.VehicleTypeId == vehicleTypeId
-                                  && s.ActualSlot != null
-                                  && s.ActualSlot.FloorId == floorId);
+                var activeGuestSessions = await _unitOfWork.ParkingSessionRepo.CountActiveGuestSessionsByFloorAsync(vehicleTypeId, floorId);
 
                 if (activeGuestSessions >= maximumGuestSlots)
                 {
@@ -710,10 +703,7 @@ namespace BLL.Implements
             var gateResult = await ResolveGateByIdAsync(dto.GateId, EntryGateType);
             if (gateResult.Error != null) return gateResult.Error;
 
-            var reservation = await _unitOfWork.ReservationRepo.GetAll()
-                .Include(r => r.User)
-                .Include(r => r.VehicleType)
-                .FirstOrDefaultAsync(r => r.ReservationId == reservationId);
+            var reservation = await _unitOfWork.ReservationRepo.GetDetailWithRelationsAsync(reservationId);
 
             if (reservation == null) return new ResponseDTO("Không tìm thấy đặt chỗ", 404, false);
 
@@ -794,11 +784,7 @@ namespace BLL.Implements
 
         public async Task<ResponseDTO> GetAvailabilityAsync(Guid? vehicleTypeId, string? floorKeyword)
         {
-            var slots = await _unitOfWork.ParkingSlotRepo.GetAll()
-                .Include(s => s.Floor)
-                .Include(s => s.VehicleType)
-                .Where(s => !vehicleTypeId.HasValue || s.VehicleTypeId == vehicleTypeId.Value)
-                .ToListAsync();
+            var slots = await _unitOfWork.ParkingSlotRepo.GetSlotsWithFloorAndTypeFilteredAsync(vehicleTypeId);
 
             if (!string.IsNullOrWhiteSpace(floorKeyword))
             {
@@ -1289,12 +1275,7 @@ namespace BLL.Implements
             var depositAmount = 0m;
             if (session.ReservationId.HasValue)
             {
-                var successfulDepositAmount = await _unitOfWork.PaymentRepo.GetAll()
-                    .Where(payment =>
-                        payment.ReservationId == session.ReservationId.Value &&
-                        payment.PaymentType == PaymentType.Deposit.ToString() &&
-                        payment.PaymentStatus == PaymentStatus.Success.ToString())
-                    .SumAsync(payment => payment.Amount);
+                var successfulDepositAmount = await _unitOfWork.PaymentRepo.GetSuccessfulDepositAmountAsync(session.ReservationId.Value);
 
                 depositAmount = Math.Min(grossAmount, successfulDepositAmount);
                 amount = Math.Max(0, grossAmount - depositAmount);
@@ -1393,20 +1374,10 @@ namespace BLL.Implements
             await _unitOfWork.ReservationRepo.UpdateAsync(reservation);
         }
 
-        private IQueryable<ParkingSession> QuerySessionsWithIncludes()
-        {
-            return _unitOfWork.ParkingSessionRepo.GetAll()
-                .Include(s => s.DriverUser)
-                .Include(s => s.VehicleType)
-                .Include(s => s.EntryGate)
-                .Include(s => s.ExitGate)
-                .Include(s => s.AssignedSlot)
-                .Include(s => s.ActualSlot);
-        }
 
         private async Task<ParkingSessionDTO?> GetSessionDTOAsync(Guid sessionId)
         {
-            var session = await QuerySessionsWithIncludes().FirstOrDefaultAsync(s => s.SessionId == sessionId);
+            var session = await _unitOfWork.ParkingSessionRepo.GetSessionDetailAsync(sessionId);
             return session == null ? null : ParkingSessionService.MapToDTO(session);
         }
 

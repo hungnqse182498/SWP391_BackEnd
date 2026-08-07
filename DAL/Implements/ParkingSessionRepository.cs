@@ -19,6 +19,17 @@ namespace DAL.Implements
             return await _context.ParkingSessions.AnyAsync(s => s.SessionId == sessionId);
         }
 
+        public async Task<int> CountActiveGuestSessionsByFloorAsync(Guid vehicleTypeId, Guid floorId)
+        {
+            return await _context.ParkingSessions
+                .CountAsync(s => s.Status == SessionStatus.Active.ToString()
+                              && !s.ReservationId.HasValue
+                              && !s.DriverUserId.HasValue
+                              && s.VehicleTypeId == vehicleTypeId
+                              && s.ActualSlot != null
+                              && s.ActualSlot.FloorId == floorId);
+        }
+
         public async Task<List<ParkingSession>> GetAllSessionsWithDetailsAsync()
         {
             return await _context.ParkingSessions
@@ -99,6 +110,50 @@ namespace DAL.Implements
                 s.Status == SessionStatus.Active.ToString() &&
                 s.LicensePlateIn.ToUpper() == normalizedPlate &&
                 (!excludeSessionId.HasValue || s.SessionId != excludeSessionId.Value));
+        }
+
+        public async Task<List<ParkingSession>> GetEntrySessionsForReportAsync(DateTime from, DateTime to, Guid? vehicleTypeId)
+        {
+            var query = _context.ParkingSessions
+                .AsNoTracking()
+                .Include(s => s.VehicleType)
+                .Where(s => s.EntryTime >= from && s.EntryTime <= to);
+
+            if (vehicleTypeId.HasValue)
+            {
+                query = query.Where(s => s.VehicleTypeId == vehicleTypeId.Value);
+            }
+
+            return await query.ToListAsync();
+        }
+
+        public async Task<List<ParkingSession>> GetExitSessionsForReportAsync(DateTime from, DateTime to, Guid? vehicleTypeId)
+        {
+            var query = _context.ParkingSessions
+                .AsNoTracking()
+                .Include(s => s.VehicleType)
+                .Where(s => s.ExitTime.HasValue && s.ExitTime.Value >= from && s.ExitTime.Value <= to);
+
+            if (vehicleTypeId.HasValue)
+            {
+                query = query.Where(s => s.VehicleTypeId == vehicleTypeId.Value);
+            }
+
+            return await query.ToListAsync();
+        }
+
+        public async Task<int> CountActiveSessionsForReportAsync(Guid? vehicleTypeId)
+        {
+            var query = _context.ParkingSessions
+                .AsNoTracking()
+                .Where(s => s.Status == SessionStatus.Active.ToString());
+
+            if (vehicleTypeId.HasValue)
+            {
+                query = query.Where(s => s.VehicleTypeId == vehicleTypeId.Value);
+            }
+
+            return await query.CountAsync();
         }
     }
 }

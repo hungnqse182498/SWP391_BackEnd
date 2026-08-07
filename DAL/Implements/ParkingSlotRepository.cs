@@ -16,6 +16,26 @@ namespace DAL.Implements
         {
         }
 
+        public async Task<int> CountSlotsByFloorAndVehicleTypeAsync(Guid floorId, Guid vehicleTypeId)
+        {
+            return await _context.ParkingSlots.CountAsync(s => s.FloorId == floorId && s.VehicleTypeId == vehicleTypeId);
+        }
+
+        public async Task<List<ParkingSlot>> GetSlotsWithFloorAndTypeFilteredAsync(Guid? vehicleTypeId)
+        {
+            var query = _context.ParkingSlots
+                .Include(s => s.Floor)
+                .Include(s => s.VehicleType)
+                .AsQueryable();
+
+            if (vehicleTypeId.HasValue)
+            {
+                query = query.Where(s => s.VehicleTypeId == vehicleTypeId.Value);
+            }
+
+            return await query.ToListAsync();
+        }
+
         public async Task<List<ParkingSlot>> GetAllWithDetailsAsync()
         {
             return await _context.ParkingSlots

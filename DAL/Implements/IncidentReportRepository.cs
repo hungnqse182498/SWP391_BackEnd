@@ -29,5 +29,20 @@ namespace DAL.Implements
                 .Include(i => i.Session)
                 .FirstOrDefaultAsync(i => i.IncidentId == id);
         }
+
+        public async Task<List<IncidentReport>> GetIncidentsForReportAsync(Guid? vehicleTypeId)
+        {
+            var query = _context.IncidentReports
+                .AsNoTracking()
+                .Include(i => i.Session)
+                .AsQueryable();
+
+            if (vehicleTypeId.HasValue)
+            {
+                query = query.Where(i => i.Session != null && i.Session.VehicleTypeId == vehicleTypeId.Value);
+            }
+
+            return await query.ToListAsync();
+        }
     }
 }

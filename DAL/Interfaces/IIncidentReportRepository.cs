@@ -6,5 +6,6 @@ namespace DAL.Interfaces
     {
         Task<IEnumerable<IncidentReport>> GetAllWithDetailsAsync();
         Task<IncidentReport?> GetByIdWithDetailsAsync(Guid id);
+        Task<List<IncidentReport>> GetIncidentsForReportAsync(Guid? vehicleTypeId);
     }
 }

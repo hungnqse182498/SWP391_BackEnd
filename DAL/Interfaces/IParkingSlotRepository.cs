@@ -9,6 +9,9 @@ namespace DAL.Interfaces
 {
     public interface IParkingSlotRepository : IGenericRepository<ParkingSlot>
     {
+
+        Task<int> CountSlotsByFloorAndVehicleTypeAsync(Guid floorId, Guid vehicleTypeId);
+        Task<List<ParkingSlot>> GetSlotsWithFloorAndTypeFilteredAsync(Guid? vehicleTypeId);
         Task<List<ParkingSlot>> GetAllWithDetailsAsync();
         Task<ParkingSlot?> GetDetailWithFloorAndTypeAsync(Guid id);
         Task<ParkingSlot?> GetFirstAvailableByVehicleTypeAsync(Guid vehicleTypeId);

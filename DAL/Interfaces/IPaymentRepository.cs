@@ -1,4 +1,4 @@
-﻿using DAL.Models;
+using DAL.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,6 +13,8 @@ namespace DAL.Interfaces
         Task<Payment?> GetByOrderCodeAsync(string orderCode);
         Task<Payment?> GetLatestPendingSubscriptionPaymentAsync(Guid subscriptionId);
         Task<Payment?> GetPendingCheckoutPaymentAsync(Guid sessionId);
+        Task<decimal> GetSuccessfulDepositAmountAsync(Guid reservationId);
+        Task<List<Payment>> GetSuccessfulPaymentsForReportAsync(DateTime from, DateTime to, Guid? vehicleTypeId);
 
     }
 }

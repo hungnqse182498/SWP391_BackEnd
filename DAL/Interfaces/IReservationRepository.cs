@@ -13,6 +13,7 @@ namespace DAL.Interfaces
         Task<Reservation?> GetDetailWithRelationsAsync(Guid reservationId);
         Task<List<Reservation>> GetByAdminFiltersAsync(string? status, DateTime? date);
         Task<int> CountActiveReservationsAsync(Guid vehicleTypeId, string statusConfirmed, string statusModified, Guid excludeReservationId);
+        Task<List<Reservation>> GetReservationsForReportAsync(DateTime from, DateTime to, Guid? vehicleTypeId);
         Task<List<Reservation>> GetOverdueAsync(DateTime overdueBeforeUtc, params string[] statuses);
         Task<bool> ExistsAsync(Guid reservationId);
 

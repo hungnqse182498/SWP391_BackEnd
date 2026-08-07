@@ -1,11 +1,11 @@
-﻿using System.Globalization;
+using System.Globalization;
 using BLL.Interfaces;
 using Common.DTOs;
 using Common.DTOs.Reports;
 using Common.Enums;
 using DAL.Models;
 using DAL.UnitOfWorks;
-using Microsoft.EntityFrameworkCore;
+
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -267,153 +267,47 @@ namespace BLL.Implements
 
         private async Task<List<Payment>> GetSuccessfulPaymentsAsync(ReportRangeDTO range)
         {
-            var query = _unitOfWork.PaymentRepo.GetAll()
-                .AsNoTracking()
-                .Include(p => p.Session)
-                    .ThenInclude(s => s.VehicleType)
-                .Include(p => p.Reservation)
-                    .ThenInclude(r => r.VehicleType)
-                .Include(p => p.Subscription)
-                    .ThenInclude(s => s.VehicleType)
-                .Where(p =>
-                    p.PaymentStatus == PaymentStatus.Success.ToString() &&
-                    p.PaymentTime >= range.From &&
-                    p.PaymentTime <= range.To);
-
-            if (range.VehicleTypeId.HasValue)
-            {
-                var vehicleTypeId = range.VehicleTypeId.Value;
-                query = query.Where(p =>
-                    (p.Session != null && p.Session.VehicleTypeId == vehicleTypeId) ||
-                    (p.Reservation != null && p.Reservation.VehicleTypeId == vehicleTypeId) ||
-                    (p.Subscription != null && p.Subscription.VehicleTypeId == vehicleTypeId));
-            }
-
-            return await query.ToListAsync();
+            return await _unitOfWork.PaymentRepo.GetSuccessfulPaymentsForReportAsync(range.From, range.To, range.VehicleTypeId);
         }
 
         private async Task<List<ParkingSession>> GetEntrySessionsAsync(ReportRangeDTO range)
         {
-            var query = _unitOfWork.ParkingSessionRepo.GetAll()
-                .AsNoTracking()
-                .Include(s => s.VehicleType)
-                .Where(s => s.EntryTime >= range.From && s.EntryTime <= range.To);
-
-            if (range.VehicleTypeId.HasValue)
-            {
-                query = query.Where(s => s.VehicleTypeId == range.VehicleTypeId.Value);
-            }
-
-            return await query.ToListAsync();
+            return await _unitOfWork.ParkingSessionRepo.GetEntrySessionsForReportAsync(range.From, range.To, range.VehicleTypeId);
         }
 
         private async Task<List<ParkingSession>> GetExitSessionsAsync(ReportRangeDTO range)
         {
-            var query = _unitOfWork.ParkingSessionRepo.GetAll()
-                .AsNoTracking()
-                .Include(s => s.VehicleType)
-                .Where(s => s.ExitTime.HasValue && s.ExitTime.Value >= range.From && s.ExitTime.Value <= range.To);
-
-            if (range.VehicleTypeId.HasValue)
-            {
-                query = query.Where(s => s.VehicleTypeId == range.VehicleTypeId.Value);
-            }
-
-            return await query.ToListAsync();
+            return await _unitOfWork.ParkingSessionRepo.GetExitSessionsForReportAsync(range.From, range.To, range.VehicleTypeId);
         }
 
         private async Task<int> CountActiveSessionsAsync(ReportRangeDTO range)
         {
-            var query = _unitOfWork.ParkingSessionRepo.GetAll()
-                .AsNoTracking()
-                .Where(s => s.Status == SessionStatus.Active.ToString());
-
-            if (range.VehicleTypeId.HasValue)
-            {
-                query = query.Where(s => s.VehicleTypeId == range.VehicleTypeId.Value);
-            }
-
-            return await query.CountAsync();
+            return await _unitOfWork.ParkingSessionRepo.CountActiveSessionsForReportAsync(range.VehicleTypeId);
         }
 
         private async Task<List<Reservation>> GetReservationsAsync(ReportRangeDTO range)
         {
-            var query = _unitOfWork.ReservationRepo.GetAll()
-                .AsNoTracking()
-                .Include(r => r.VehicleType)
-                .Where(r => r.ExpectedEntryTime >= range.From && r.ExpectedEntryTime <= range.To);
-
-            if (range.VehicleTypeId.HasValue)
-            {
-                query = query.Where(r => r.VehicleTypeId == range.VehicleTypeId.Value);
-            }
-
-            return await query.ToListAsync();
+            return await _unitOfWork.ReservationRepo.GetReservationsForReportAsync(range.From, range.To, range.VehicleTypeId);
         }
 
         private async Task<List<MonthlySubscription>> GetNewSubscriptionsAsync(ReportRangeDTO range)
         {
-            var query = _unitOfWork.MonthlySubscriptionRepo.GetAll()
-                .AsNoTracking()
-                .Include(s => s.VehicleType)
-                .Where(s => s.StartDate >= range.From && s.StartDate <= range.To);
-
-            if (range.VehicleTypeId.HasValue)
-            {
-                query = query.Where(s => s.VehicleTypeId == range.VehicleTypeId.Value);
-            }
-
-            return await query.ToListAsync();
+            return await _unitOfWork.MonthlySubscriptionRepo.GetNewSubscriptionsForReportAsync(range.From, range.To, range.VehicleTypeId);
         }
 
         private async Task<int> CountActiveSubscriptionsAsync(ReportRangeDTO range)
         {
-            var now = DateTime.Now;
-            var query = _unitOfWork.MonthlySubscriptionRepo.GetAll()
-                .AsNoTracking()
-                .Where(s => s.Status == MonthlySubscriptionStatus.Active.ToString() && s.EndDate >= now);
-
-            if (range.VehicleTypeId.HasValue)
-            {
-                query = query.Where(s => s.VehicleTypeId == range.VehicleTypeId.Value);
-            }
-
-            return await query.CountAsync();
+            return await _unitOfWork.MonthlySubscriptionRepo.CountActiveSubscriptionsForReportAsync(range.VehicleTypeId);
         }
 
         private async Task<int> CountExpiredSubscriptionsAsync(ReportRangeDTO range)
         {
-            var now = DateTime.Now;
-            var query = _unitOfWork.MonthlySubscriptionRepo.GetAll()
-                .AsNoTracking()
-                .Where(s => s.Status == MonthlySubscriptionStatus.Expired.ToString() || s.EndDate < now);
-
-            if (range.VehicleTypeId.HasValue)
-            {
-                query = query.Where(s => s.VehicleTypeId == range.VehicleTypeId.Value);
-            }
-
-            return await query.CountAsync();
+            return await _unitOfWork.MonthlySubscriptionRepo.CountExpiredSubscriptionsForReportAsync(range.VehicleTypeId);
         }
 
         private async Task<int> CountExpiringSubscriptionsAsync(ReportRangeDTO range)
         {
-            var now = DateTime.Now;
-            var sevenDaysLater = now.AddDays(7);
-
-            var query = _unitOfWork.MonthlySubscriptionRepo.GetAll()
-                .AsNoTracking()
-                .Where(s =>
-                    s.Status == MonthlySubscriptionStatus.Active.ToString() &&
-                    s.EndDate >= now &&
-                    s.EndDate <= sevenDaysLater);
-
-            if (range.VehicleTypeId.HasValue)
-            {
-                query = query.Where(s => s.VehicleTypeId == range.VehicleTypeId.Value);
-            }
-
-            return await query.CountAsync();
+            return await _unitOfWork.MonthlySubscriptionRepo.CountSubscriptionsEndingSoonForReportAsync(range.VehicleTypeId);
         }
 
         private async Task<IncidentOverviewDTO> BuildIncidentOverviewAsync(ReportRangeDTO range)
@@ -441,33 +335,12 @@ namespace BLL.Implements
 
         private async Task<List<IncidentReport>> GetIncidentsAsync(ReportRangeDTO range)
         {
-            var query = _unitOfWork.IncidentReportRepo.GetAll()
-                .AsNoTracking()
-                .Include(i => i.Session)
-                .AsQueryable();
-
-            if (range.VehicleTypeId.HasValue)
-            {
-                query = query.Where(i => i.Session != null && i.Session.VehicleTypeId == range.VehicleTypeId.Value);
-            }
-
-            return await query.ToListAsync();
+            return await _unitOfWork.IncidentReportRepo.GetIncidentsForReportAsync(range.VehicleTypeId);
         }
 
         private async Task<List<ParkingSlot>> GetSlotsAsync(ReportRangeDTO range)
         {
-            var query = _unitOfWork.ParkingSlotRepo.GetAll()
-                .AsNoTracking()
-                .Include(s => s.Floor)
-                .Include(s => s.VehicleType)
-                .AsQueryable();
-
-            if (range.VehicleTypeId.HasValue)
-            {
-                query = query.Where(s => s.VehicleTypeId == range.VehicleTypeId.Value);
-            }
-
-            return await query.ToListAsync();
+            return await _unitOfWork.ParkingSlotRepo.GetSlotsWithFloorAndTypeFilteredAsync(range.VehicleTypeId);
         }
 
         private async Task<List<FloorOccupancyDTO>> BuildFloorOccupancyAsync(ReportRangeDTO range)

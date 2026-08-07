@@ -17,5 +17,9 @@ namespace DAL.Interfaces
         Task<IEnumerable<MonthlySubscription>> GetAllWithDetailsAsync();
         Task<bool> ExistsAsync(Guid subscriptionId);
         Task<bool> HasSubscriptionsByPackageIdAsync(Guid packageId);
+        Task<List<MonthlySubscription>> GetNewSubscriptionsForReportAsync(DateTime from, DateTime to, Guid? vehicleTypeId);
+        Task<int> CountActiveSubscriptionsForReportAsync(Guid? vehicleTypeId);
+        Task<int> CountExpiredSubscriptionsForReportAsync(Guid? vehicleTypeId);
+        Task<int> CountSubscriptionsEndingSoonForReportAsync(Guid? vehicleTypeId);
     }
 }

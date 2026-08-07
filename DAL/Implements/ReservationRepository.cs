@@ -75,5 +75,20 @@ namespace DAL.Implements
                 .Where(r => r.ExpectedEntryTime <= overdueBeforeUtc && statuses.Contains(r.Status))
                 .ToListAsync();
         }
+
+        public async Task<List<Reservation>> GetReservationsForReportAsync(DateTime from, DateTime to, Guid? vehicleTypeId)
+        {
+            var query = _context.Reservations
+                .AsNoTracking()
+                .Include(r => r.VehicleType)
+                .Where(r => r.ExpectedEntryTime >= from && r.ExpectedEntryTime <= to);
+
+            if (vehicleTypeId.HasValue)
+            {
+                query = query.Where(r => r.VehicleTypeId == vehicleTypeId.Value);
+            }
+
+            return await query.ToListAsync();
+        }
     }
 }

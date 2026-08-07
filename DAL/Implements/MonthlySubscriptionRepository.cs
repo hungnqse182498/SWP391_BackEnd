@@ -94,5 +94,69 @@ namespace DAL.Implements
                     (!ignoredSubscriptionId.HasValue || s.SubscriptionId != ignoredSubscriptionId.Value) &&
                     (s.Status == MonthlySubscriptionStatus.PendingPayment.ToString() || s.EndDate >= DateTime.UtcNow));
         }
+
+        public async Task<List<MonthlySubscription>> GetNewSubscriptionsForReportAsync(DateTime from, DateTime to, Guid? vehicleTypeId)
+        {
+            var query = _context.MonthlySubscriptions
+                .AsNoTracking()
+                .Include(s => s.VehicleType)
+                .Where(s => s.StartDate >= from && s.StartDate <= to);
+
+            if (vehicleTypeId.HasValue)
+            {
+                query = query.Where(s => s.VehicleTypeId == vehicleTypeId.Value);
+            }
+
+            return await query.ToListAsync();
+        }
+
+        public async Task<int> CountActiveSubscriptionsForReportAsync(Guid? vehicleTypeId)
+        {
+            var now = DateTime.Now;
+            var query = _context.MonthlySubscriptions
+                .AsNoTracking()
+                .Where(s => s.Status == MonthlySubscriptionStatus.Active.ToString() && s.EndDate >= now);
+
+            if (vehicleTypeId.HasValue)
+            {
+                query = query.Where(s => s.VehicleTypeId == vehicleTypeId.Value);
+            }
+
+            return await query.CountAsync();
+        }
+
+        public async Task<int> CountExpiredSubscriptionsForReportAsync(Guid? vehicleTypeId)
+        {
+            var now = DateTime.Now;
+            var query = _context.MonthlySubscriptions
+                .AsNoTracking()
+                .Where(s => s.Status == MonthlySubscriptionStatus.Expired.ToString() || s.EndDate < now);
+
+            if (vehicleTypeId.HasValue)
+            {
+                query = query.Where(s => s.VehicleTypeId == vehicleTypeId.Value);
+            }
+
+            return await query.CountAsync();
+        }
+
+        public async Task<int> CountSubscriptionsEndingSoonForReportAsync(Guid? vehicleTypeId)
+        {
+            var now = DateTime.Now;
+            var endingSoonDate = now.AddDays(7);
+            var query = _context.MonthlySubscriptions
+                .AsNoTracking()
+                .Where(s =>
+                    s.Status == MonthlySubscriptionStatus.Active.ToString() &&
+                    s.EndDate >= now &&
+                    s.EndDate <= endingSoonDate);
+
+            if (vehicleTypeId.HasValue)
+            {
+                query = query.Where(s => s.VehicleTypeId == vehicleTypeId.Value);
+            }
+
+            return await query.CountAsync();
+        }
     }
 }
