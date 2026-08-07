@@ -1,10 +1,10 @@
-using BLL.Interfaces;
+﻿using BLL.Interfaces;
 using Common.DTOs;
 using Common.DTOs.User;
 using Common.Enums;
 using DAL.Models;
 using DAL.UnitOfWorks;
-using Microsoft.EntityFrameworkCore;
+
 using System.Net.Mail;
 
 namespace BLL.Implements
@@ -126,7 +126,7 @@ namespace BLL.Implements
 
                 return new ResponseDTO("Cập nhật thông tin cá nhân thành công", 200, true, MapToUserDTO(user));
             }
-            catch (DbUpdateException)
+            catch (Exception ex) when (ex.GetType().Name == "DbUpdateException")
             {
                 return new ResponseDTO("Dữ liệu thông tin cá nhân bị trùng hoặc không hợp lệ", 400, false);
             }
@@ -204,7 +204,7 @@ namespace BLL.Implements
                 user.Role = roleValidation.Role;
                 return new ResponseDTO("Tạo người dùng thành công", 201, true, MapToUserDTO(user));
             }
-            catch (DbUpdateException)
+            catch (Exception ex) when (ex.GetType().Name == "DbUpdateException")
             {
                 return new ResponseDTO("Dữ liệu người dùng bị trùng hoặc không hợp lệ, vui lòng kiểm tra lại", 400, false);
             }
@@ -279,7 +279,7 @@ namespace BLL.Implements
 
                 return new ResponseDTO("Cập nhật người dùng thành công", 200, true, MapToUserDTO(user));
             }
-            catch (DbUpdateException)
+            catch (Exception ex) when (ex.GetType().Name == "DbUpdateException")
             {
                 return new ResponseDTO("Dữ liệu người dùng bị trùng hoặc không hợp lệ, vui lòng kiểm tra lại", 400, false);
             }

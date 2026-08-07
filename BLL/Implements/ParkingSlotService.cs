@@ -1,10 +1,10 @@
-using BLL.Interfaces;
+﻿using BLL.Interfaces;
 using Common.DTOs;
 using Common.DTOs.ParkingSlot;
 using Common.Enums;
 using DAL.Models;
 using DAL.UnitOfWorks;
-using Microsoft.EntityFrameworkCore;
+
 
 namespace BLL.Implements
 {

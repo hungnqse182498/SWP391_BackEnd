@@ -4,7 +4,7 @@ using Common.DTOs;
 using Common.Enums;
 using DAL.Models;
 using DAL.UnitOfWorks;
-using Microsoft.EntityFrameworkCore;
+
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.JsonWebTokens;
@@ -264,7 +264,7 @@ namespace BLL.Implements
                 _cache.Remove($"Register_{normalizedEmail}");
                 return new ResponseDTO("Đăng ký thành công", 200, true, new { userId = newUser.UserId });
             }
-            catch (DbUpdateException)
+            catch (Exception ex) when (ex.GetType().Name == "DbUpdateException")
             {
                 return new ResponseDTO("Email, UserName hoặc số điện thoại vừa được tài khoản khác sử dụng. Vui lòng kiểm tra lại.", 409, false);
             }

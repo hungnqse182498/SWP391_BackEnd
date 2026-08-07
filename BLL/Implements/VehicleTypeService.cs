@@ -3,7 +3,7 @@ using Common.DTOs;
 using Common.DTOs.VehicleType;
 using DAL.Models;
 using DAL.UnitOfWorks;
-using Microsoft.EntityFrameworkCore;
+
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -21,7 +21,7 @@ namespace BLL.Implements
 
         public async Task<ResponseDTO> GetAllAsync()
         {
-            var vehicleTypes = await _unitOfWork.VehicleTypeRepo.GetAll().ToListAsync();
+            var vehicleTypes = await _unitOfWork.VehicleTypeRepo.GetAllListAsync();
             if (vehicleTypes == null || !vehicleTypes.Any())
                 return new ResponseDTO("Không tìm thấy loại phương tiện nào", 404, false);
 

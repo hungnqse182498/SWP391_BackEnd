@@ -27,5 +27,10 @@ namespace DAL.Implements
             return await _context.VehicleTypes
                 .AnyAsync(v => v.TypeName.ToLower() == name && v.VehicleTypeId != currentId);
         }
+
+        public async Task<List<VehicleType>> GetAllListAsync()
+        {
+            return await _context.VehicleTypes.ToListAsync();
+        }
     }
 }

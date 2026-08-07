@@ -1,9 +1,9 @@
-using BLL.Interfaces;
+﻿using BLL.Interfaces;
 using Common.DTOs;
 using Common.DTOs.Role;
 using DAL.Models;
 using DAL.UnitOfWorks;
-using Microsoft.EntityFrameworkCore;
+
 
 namespace BLL.Implements
 {
@@ -71,7 +71,7 @@ namespace BLL.Implements
 
                 return new ResponseDTO("Tạo quyền thành công", 201, true, MapToDTO(role));
             }
-            catch (DbUpdateException)
+            catch (Exception ex) when (ex.GetType().Name == "DbUpdateException")
             {
                 return new ResponseDTO("Tên quyền đã tồn tại hoặc dữ liệu không hợp lệ", 400, false);
             }
@@ -115,7 +115,7 @@ namespace BLL.Implements
 
                 return new ResponseDTO("Cập nhật quyền thành công", 200, true, MapToDTO(role));
             }
-            catch (DbUpdateException)
+            catch (Exception ex) when (ex.GetType().Name == "DbUpdateException")
             {
                 return new ResponseDTO("Tên quyền đã tồn tại hoặc dữ liệu không hợp lệ", 400, false);
             }

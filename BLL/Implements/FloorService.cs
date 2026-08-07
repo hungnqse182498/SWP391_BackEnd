@@ -3,7 +3,7 @@ using Common.DTOs;
 using Common.DTOs.Floor;
 using DAL.Models;
 using DAL.UnitOfWorks;
-using Microsoft.EntityFrameworkCore;
+
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -73,7 +73,7 @@ namespace BLL.Implements
 
                 return new ResponseDTO("Tạo tầng thành công", 201, true, MapToDTO(entity));
             }
-            catch (DbUpdateException)
+            catch (Exception ex) when (ex.GetType().Name == "DbUpdateException")
             {
                 return new ResponseDTO("Dữ liệu tầng bị trùng hoặc không hợp lệ", 400, false);
             }
@@ -110,7 +110,7 @@ namespace BLL.Implements
 
                 return new ResponseDTO("Cập nhật tầng thành công", 200, true, MapToDTO(existing));
             }
-            catch (DbUpdateException)
+            catch (Exception ex) when (ex.GetType().Name == "DbUpdateException")
             {
                 return new ResponseDTO("Dữ liệu tầng bị trùng hoặc không hợp lệ", 400, false);
             }

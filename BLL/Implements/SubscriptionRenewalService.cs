@@ -4,7 +4,7 @@ using Common.DTOs.Subscription;
 using Common.Enums;
 using DAL.Models;
 using DAL.UnitOfWorks;
-using Microsoft.EntityFrameworkCore;
+
 
 
 public class SubscriptionRenewalService : ISubscriptionRenewalService
@@ -159,7 +159,7 @@ public class SubscriptionRenewalService : ISubscriptionRenewalService
             renewal.Subscription = sub;
             return new ResponseDTO("Tạo gia hạn thành công", 201, true, MapToDTO(renewal));
         }
-        catch (DbUpdateException)
+        catch (Exception ex) when (ex.GetType().Name == "DbUpdateException")
         {
             await _unitOfWork.RollbackTransactionAsync();
             return new ResponseDTO("Dữ liệu gia hạn bị trùng lặp hoặc không hợp lệ", 400, false);
@@ -197,7 +197,7 @@ public class SubscriptionRenewalService : ISubscriptionRenewalService
 
             return new ResponseDTO("Cập nhật lịch sử gia hạn thành công", 200, true, MapToDTO(renewal));
         }
-        catch (DbUpdateException)
+        catch (Exception ex) when (ex.GetType().Name == "DbUpdateException")
         {
             return new ResponseDTO("Dữ liệu cập nhật bị trùng hoặc không hợp lệ", 400, false);
         }

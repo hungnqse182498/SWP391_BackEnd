@@ -1,11 +1,11 @@
-using BLL.Interfaces;
+﻿using BLL.Interfaces;
 using Common.DTOs;
 using Common.DTOs.IncidentReport;
 using Common.DTOs.User;
 using Common.Enums; 
 using DAL.Models;
 using DAL.UnitOfWorks;
-using Microsoft.EntityFrameworkCore;
+
 using System;
 using System.Linq;
 using System.Collections.Generic;
@@ -190,7 +190,7 @@ namespace BLL.Implements
 
                 return new ResponseDTO("Cập nhật thông tin sự cố thành công", 200, true, MapToDTO(incident));
             }
-            catch (DbUpdateException)
+            catch (Exception ex) when (ex.GetType().Name == "DbUpdateException")
             {
                 return new ResponseDTO("Không thể cập nhật trạng thái sự cố do dữ liệu chưa phù hợp. Vui lòng kiểm tra lại hoặc liên hệ quản trị viên", 500, false);
             }
@@ -269,7 +269,7 @@ namespace BLL.Implements
                 await _unitOfWork.SaveChangeAsync();
                 return new ResponseDTO("Xóa báo cáo sự cố thành công", 200, true);
             }
-            catch (DbUpdateException)
+            catch (Exception ex) when (ex.GetType().Name == "DbUpdateException")
             {
                 return new ResponseDTO("Không thể xóa sự cố này vì dữ liệu đã liên kết với báo cáo doanh thu/lịch sử bãi xe", 400, false);
             }
