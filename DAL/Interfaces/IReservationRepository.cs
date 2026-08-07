@@ -1,4 +1,4 @@
-﻿using DAL.Models;
+using DAL.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,6 +14,7 @@ namespace DAL.Interfaces
         Task<List<Reservation>> GetByAdminFiltersAsync(string? status, DateTime? date);
         Task<int> CountActiveReservationsAsync(Guid vehicleTypeId, string statusConfirmed, string statusModified, Guid excludeReservationId);
         Task<List<Reservation>> GetOverdueAsync(DateTime overdueBeforeUtc, params string[] statuses);
+        Task<bool> ExistsAsync(Guid reservationId);
 
     }
 }

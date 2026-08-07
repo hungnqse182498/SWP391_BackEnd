@@ -1,4 +1,4 @@
-﻿using BLL.Interfaces;
+using BLL.Interfaces;
 using Common.DTOs;
 using Common.DTOs.Subscription;
 using Common.Enums;
@@ -6,7 +6,7 @@ using Common.Utilities;
 using DAL.Interfaces;
 using DAL.Models;
 using DAL.UnitOfWorks;
-using Microsoft.EntityFrameworkCore;
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -34,9 +34,7 @@ namespace BLL.Implements
             var validation = await ValidateRequestAsync(userId, dto.SubscriptionId, dto.NewLicensePlate, null);
             if (validation.Error != null) return validation.Error;
 
-            bool hasPending = await _unitOfWork.VehicleChangeRequestRepo.AnyAsync(x =>
-                x.SubscriptionId == dto.SubscriptionId &&
-                x.Status == VehicleChangeStatusEnum.Pending.ToString());
+            bool hasPending = await _unitOfWork.VehicleChangeRequestRepo.HasPendingRequestAsync(dto.SubscriptionId);
 
             if (hasPending)
                 return new ResponseDTO("Gói vé tháng này hiện đang có một yêu cầu đổi biển số chờ xử lý", 409, false);

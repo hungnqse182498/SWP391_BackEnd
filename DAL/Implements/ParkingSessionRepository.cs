@@ -1,4 +1,4 @@
-﻿using DAL.Interfaces;
+using DAL.Interfaces;
 using DAL.Models;
 using Common.Enums;
 using Common.Utilities;
@@ -13,6 +13,11 @@ namespace DAL.Implements
     public class ParkingSessionRepository : GenericRepository<ParkingSession>, IParkingSessionRepository
     { 
         public ParkingSessionRepository(ParkingDBContext context) : base(context) { }
+
+        public async Task<bool> ExistsAsync(Guid sessionId)
+        {
+            return await _context.ParkingSessions.AnyAsync(s => s.SessionId == sessionId);
+        }
 
         public async Task<List<ParkingSession>> GetAllSessionsWithDetailsAsync()
         {

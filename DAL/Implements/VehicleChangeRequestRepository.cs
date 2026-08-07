@@ -1,4 +1,4 @@
-﻿using DAL.Interfaces;
+using DAL.Interfaces;
 using DAL.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -12,6 +12,11 @@ namespace DAL.Implements
     public class VehicleChangeRequestRepository : GenericRepository<VehicleChangeRequest>, IVehicleChangeRequestRepository
     {
         public VehicleChangeRequestRepository(ParkingDBContext context) : base(context) { }
+
+        public async Task<bool> HasPendingRequestAsync(Guid subscriptionId)
+        {
+            return await _context.VehicleChangeRequests.AnyAsync(x => x.SubscriptionId == subscriptionId && x.Status == "Pending");
+        }
 
         public async Task<List<VehicleChangeRequest>>GetBySubscriptionAsync(Guid id)
         {

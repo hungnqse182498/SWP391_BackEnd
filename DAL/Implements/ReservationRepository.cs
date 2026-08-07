@@ -1,4 +1,4 @@
-﻿using DAL.Interfaces;
+using DAL.Interfaces;
 using DAL.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -13,6 +13,11 @@ namespace DAL.Implements
     {
         public ReservationRepository(ParkingDBContext context) : base(context)
         {
+        }
+
+        public async Task<bool> ExistsAsync(Guid reservationId)
+        {
+            return await _context.Reservations.AnyAsync(r => r.ReservationId == reservationId);
         }
 
         public async Task<List<Reservation>> GetByUserIdWithPaymentsAsync(Guid userId)

@@ -1,4 +1,4 @@
-﻿using DAL.Models;
+using DAL.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,5 +14,6 @@ namespace DAL.Interfaces
         Task<ParkingSession?> GetSessionDetailAsync(Guid id);
         Task<ParkingSession?> GetActiveSessionWithDetailsAsync(Guid? sessionId, string? licensePlate);
         Task<bool> HasActiveSessionByLicensePlateAsync(string licensePlate, Guid? excludeSessionId = null);
+        Task<bool> ExistsAsync(Guid sessionId);
     }
 }

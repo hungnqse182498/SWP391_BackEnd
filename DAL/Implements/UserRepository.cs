@@ -1,4 +1,4 @@
-﻿using DAL.Interfaces;
+using DAL.Interfaces;
 using DAL.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -13,6 +13,11 @@ namespace DAL.Implements
     {
         public UserRepository(ParkingDBContext context) : base(context)
         {
+        }
+
+        public async Task<bool> ExistsAsync(Guid userId)
+        {
+            return await _context.Users.AnyAsync(u => u.UserId == userId);
         }
         public async Task<User?> FindByEmailAsync(string email)
         {

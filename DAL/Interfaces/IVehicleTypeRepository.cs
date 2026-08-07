@@ -9,6 +9,7 @@ namespace DAL.Interfaces
     {
         Task<VehicleType> FindByNameAsync(string typeName);
         Task<List<VehicleType>> GetAllListAsync();
+        Task<bool> ExistsAsync(Guid vehicleTypeId);
         Task<bool> IsTypeNameDuplicateAsync(string typeName, Guid currentId);
     }
 }

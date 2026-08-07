@@ -1,4 +1,4 @@
-﻿using DAL.Models;
+using DAL.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,5 +15,7 @@ namespace DAL.Interfaces
         Task<MonthlySubscription?> GetActiveByPlateAndVehicleTypeAsync(string licensePlate, Guid vehicleTypeId, DateTime now);
         Task<bool> HasUsablePlateAsync(string plate, Guid? ignoredSubscriptionId = null);
         Task<IEnumerable<MonthlySubscription>> GetAllWithDetailsAsync();
+        Task<bool> ExistsAsync(Guid subscriptionId);
+        Task<bool> HasSubscriptionsByPackageIdAsync(Guid packageId);
     }
 }

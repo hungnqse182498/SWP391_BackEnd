@@ -1,4 +1,4 @@
-﻿using DAL.Models;
+using DAL.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,5 +16,6 @@ namespace DAL.Interfaces
         Task<bool> IsUserNameDuplicateAsync(string userName, Guid? currentUserId = null);
         Task<bool> IsEmailDuplicateAsync(string email, Guid? currentUserId = null);
         Task<bool> IsPhoneNumberDuplicateAsync(string phoneNumber, Guid? currentUserId = null);
+        Task<bool> ExistsAsync(Guid userId);
     }
 }

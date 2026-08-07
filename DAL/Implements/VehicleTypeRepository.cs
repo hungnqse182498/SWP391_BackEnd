@@ -15,6 +15,11 @@ namespace DAL.Implements
             _context = context;
         }
 
+        public async Task<bool> ExistsAsync(Guid vehicleTypeId)
+        {
+            return await _context.VehicleTypes.AnyAsync(v => v.VehicleTypeId == vehicleTypeId);
+        }
+
         public async Task<VehicleType?> FindByNameAsync(string typeName)
         {
             if (string.IsNullOrWhiteSpace(typeName)) return null;

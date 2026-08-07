@@ -1,10 +1,10 @@
-﻿using BLL.Interfaces;
+using BLL.Interfaces;
 using Common.DTOs;
 using Common.DTOs.Subscription;
 using Common.Enums;
 using DAL.Models;
 using DAL.UnitOfWorks;
-using Microsoft.EntityFrameworkCore;
+
 
 namespace BLL.Implements
 {
@@ -94,7 +94,7 @@ namespace BLL.Implements
                 return new ResponseDTO("Gói xe máy không được yêu cầu vị trí đỗ cố định", 400);
 
             var hasSubscriptions = await _unitOfWork.MonthlySubscriptionRepo
-                .AnyAsync(s => s.PackageId == id);
+                .HasSubscriptionsByPackageIdAsync(id);
             var changesPurchasedStructure =
                 package.VehicleTypeId != dto.VehicleTypeId ||
                 package.DurationMonths != dto.DurationMonths ||
@@ -142,7 +142,7 @@ namespace BLL.Implements
             if (durationMonths <= 0) return new ResponseDTO("Thời hạn gói phải lớn hơn 0 tháng", 400);
             if (price <= 0) return new ResponseDTO("Giá gói phải lớn hơn 0 VNĐ", 400);
 
-            var vehicleTypeExists = await _unitOfWork.VehicleTypeRepo.AnyAsync(v => v.VehicleTypeId == vehicleTypeId);
+            var vehicleTypeExists = await _unitOfWork.VehicleTypeRepo.ExistsAsync(vehicleTypeId);
             if (!vehicleTypeExists) return new ResponseDTO("Loại phương tiện không tồn tại", 400);
 
             return null;

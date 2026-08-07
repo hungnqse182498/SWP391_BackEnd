@@ -1,4 +1,4 @@
-﻿using BLL.Interfaces;
+using BLL.Interfaces;
 using Common.DTOs;
 using Common.DTOs.ParkingOperation;
 using Common.DTOs.ParkingSession;
@@ -581,7 +581,7 @@ namespace BLL.Implements
             var vehicleTypeId = dto.VehicleTypeId.GetValueOrDefault();
             if (vehicleTypeId == Guid.Empty) return new ResponseDTO("Vui lòng chọn loại phương tiện", 400, false);
 
-            var vehicleTypeExists = await _unitOfWork.VehicleTypeRepo.AnyAsync(v => v.VehicleTypeId == vehicleTypeId);
+            var vehicleTypeExists = await _unitOfWork.VehicleTypeRepo.ExistsAsync(vehicleTypeId);
             if (!vehicleTypeExists) return new ResponseDTO("Loại phương tiện không tồn tại", 400, false);
 
             var gateResult = await ResolveGateByIdAsync(dto.GateId, EntryGateType);
@@ -1050,8 +1050,8 @@ namespace BLL.Implements
                 return (null, null, null, new ResponseDTO("Mã QR không chứa GUID hợp lệ", 400, false));
             }
 
-            var reservationExists = await _unitOfWork.ReservationRepo.AnyAsync(r => r.ReservationId == id.Value);
-            var sessionExists = await _unitOfWork.ParkingSessionRepo.AnyAsync(s => s.SessionId == id.Value);
+            var reservationExists = await _unitOfWork.ReservationRepo.ExistsAsync(id.Value);
+            var sessionExists = await _unitOfWork.ParkingSessionRepo.ExistsAsync(id.Value);
 
             if (!reservationExists && !sessionExists)
             {

@@ -1,4 +1,4 @@
-﻿using DAL.Interfaces;
+using DAL.Interfaces;
 using Common.Enums;
 using Common.Utilities;
 using DAL.Models;
@@ -15,6 +15,16 @@ namespace DAL.Implements
     {
 
         public MonthlySubscriptionRepository(ParkingDBContext context) : base(context) { }
+
+        public async Task<bool> ExistsAsync(Guid subscriptionId)
+        {
+            return await _context.MonthlySubscriptions.AnyAsync(s => s.SubscriptionId == subscriptionId);
+        }
+
+        public async Task<bool> HasSubscriptionsByPackageIdAsync(Guid packageId)
+        {
+            return await _context.MonthlySubscriptions.AnyAsync(s => s.PackageId == packageId);
+        }
         public async Task<List<MonthlySubscription>> GetByUserAsync(Guid userId)
         {
             return await _context.MonthlySubscriptions

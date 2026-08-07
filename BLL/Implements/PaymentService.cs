@@ -399,28 +399,28 @@ public class PaymentService : IPaymentService
         if (userId.HasValue)
         {
             if (userId.Value == Guid.Empty) return (null, null, null, new ResponseDTO("UserId không hợp lệ", 400, false));
-            var userExists = await _unitOfWork.UserRepo.AnyAsync(u => u.UserId == userId.Value);
+            var userExists = await _unitOfWork.UserRepo.ExistsAsync(userId.Value);
             if (!userExists) return (null, null, null, new ResponseDTO("Người dùng không tồn tại", 400, false));
         }
 
         if (sessionId.HasValue)
         {
             if (sessionId.Value == Guid.Empty) return (null, null, null, new ResponseDTO("SessionId không hợp lệ", 400, false));
-            var sessionExists = await _unitOfWork.ParkingSessionRepo.AnyAsync(s => s.SessionId == sessionId.Value);
+            var sessionExists = await _unitOfWork.ParkingSessionRepo.ExistsAsync(sessionId.Value);
             if (!sessionExists) return (null, null, null, new ResponseDTO("Phiên gửi xe không tồn tại", 400, false));
         }
 
         if (reservationId.HasValue)
         {
             if (reservationId.Value == Guid.Empty) return (null, null, null, new ResponseDTO("ReservationId không hợp lệ", 400, false));
-            var reservationExists = await _unitOfWork.ReservationRepo.AnyAsync(r => r.ReservationId == reservationId.Value);
+            var reservationExists = await _unitOfWork.ReservationRepo.ExistsAsync(reservationId.Value);
             if (!reservationExists) return (null, null, null, new ResponseDTO("Đặt chỗ không tồn tại", 400, false));
         }
 
         if (subscriptionId.HasValue)
         {
             if (subscriptionId.Value == Guid.Empty) return (null, null, null, new ResponseDTO("SubscriptionId không hợp lệ", 400, false));
-            var subscriptionExists = await _unitOfWork.MonthlySubscriptionRepo.AnyAsync(s => s.SubscriptionId == subscriptionId.Value);
+            var subscriptionExists = await _unitOfWork.MonthlySubscriptionRepo.ExistsAsync(subscriptionId.Value);
             if (!subscriptionExists) return (null, null, null, new ResponseDTO("Gói tháng không tồn tại", 400, false));
         }
 
