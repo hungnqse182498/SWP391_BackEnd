@@ -352,7 +352,7 @@ namespace BLL.Implements
                 return new ResponseDTO("Biển số phải gồm 4-15 chữ cái và chữ số", 400, false);
 
             var activeSubscription = await _unitOfWork.MonthlySubscriptionRepo
-                .GetActiveByPlateAndVehicleTypeAsync(licensePlate, vehicleTypeId, DateTime.UtcNow);
+                .GetActiveByPlateAsync(licensePlate, DateTime.UtcNow);
             if (activeSubscription != null)
             {
                 return new ResponseDTO(
@@ -730,10 +730,7 @@ namespace BLL.Implements
                 return new ResponseDTO("Biển số phải gồm 4-15 chữ cái và chữ số", 400, false);
 
             var activeSubscription = await _unitOfWork.MonthlySubscriptionRepo
-                .GetActiveByPlateAndVehicleTypeAsync(
-                    licensePlate,
-                    reservation.VehicleTypeId,
-                    now);
+                .GetActiveByPlateAsync(licensePlate, now);
             if (activeSubscription != null)
             {
                 return new ResponseDTO(

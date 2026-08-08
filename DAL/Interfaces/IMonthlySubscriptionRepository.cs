@@ -13,6 +13,7 @@ namespace DAL.Interfaces
         Task<MonthlySubscription?> GetDetailAsync(Guid id);
         Task<MonthlySubscription?> GetActivationDetailAsync(Guid id);
         Task<MonthlySubscription?> GetActiveByPlateAndVehicleTypeAsync(string licensePlate, Guid vehicleTypeId, DateTime now);
+        Task<MonthlySubscription?> GetActiveByPlateAsync(string licensePlate, DateTime now);
         Task<bool> HasUsablePlateAsync(string plate, Guid? ignoredSubscriptionId = null);
         Task<IEnumerable<MonthlySubscription>> GetAllWithDetailsAsync();
         Task<bool> ExistsAsync(Guid subscriptionId);
